@@ -1,6 +1,7 @@
 # AnimeTron backend
 
-This first slice provides only process liveness. It does not check dependencies
+The API currently provides only process liveness. A PostgreSQL engine factory
+is available for future persistence, but the API does not yet use a database
 or implement authentication, storage, workflows, or creator features.
 
 From this directory in PowerShell, using Python 3.12 or newer:
@@ -17,3 +18,10 @@ python -m venv .venv
 `GET /api/v1/health` returns `{"status":"ok"}` when the process responds.
 It is a liveness check, not a readiness or security check. Interactive API
 documentation is disabled to avoid loading third-party assets.
+
+The database factory requires an explicit `postgresql+psycopg` URL including a
+host and database. Do not commit credentials. To run the optional PostgreSQL
+integration test, set `ANIMETRON_TEST_DATABASE_URL` to a disposable database
+before running pytest. The test creates and removes a uniquely named table;
+the database must not contain production data. Without that variable the
+integration test is skipped.
