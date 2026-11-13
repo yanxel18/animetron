@@ -2,6 +2,7 @@ import os
 
 from alembic import context
 
+from app.core.artifacts import metadata as artifact_metadata
 from app.core.database import create_database_engine
 from app.core.outbox import metadata as outbox_metadata
 from app.services.workflows.revisions import metadata as revision_metadata
@@ -24,6 +25,7 @@ try:
                 outbox_metadata,
                 revision_metadata,
                 binding_metadata,
+                artifact_metadata,
             ],
         )
         with context.begin_transaction():
