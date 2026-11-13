@@ -222,6 +222,11 @@ accessibility checks pass, not merely when mock screens exist.
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
+  - [ ] P7-06a Record the owner-approved responsiveness target: Chromium on the
+    reference computer at 1440px, real 100-node/150-edge workflow, p95
+    keyboard/click selection to correctly updated inspector at most 200ms,
+    100 measured selections after warm-up. In review on branch
+    `docs/approve-canvas-target`; runtime performance/contrast tests remain open.
 
 ## Phase 8 - MCP bridge
 

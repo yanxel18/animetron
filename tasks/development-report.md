@@ -216,3 +216,23 @@ confirmed that it was untracked; its contents were not read. Ignore rules for
 [#29](https://github.com/yanxel18/animetron/pull/29). No credential value was
 printed, staged or transmitted. An available token is not evidence of model
 license acceptance, repository approval or inference compatibility.
+
+## Studio responsiveness approval - 2026-11-14
+
+The owner approved a real 100-node/150-edge workflow benchmark in Chromium on
+the reference computer at 1440px width: p95 keyboard/click node-selection time
+to the correctly updated inspector at most 200ms across 100 measurements after
+warm-up. The [studio specification](../docs/SPEC-creator-studio.md) and
+[UX direction](../docs/UX-DIRECTION.md) now record the same target.
+
+This is an approved acceptance target, **not an enforced or passing check**:
+no frontend or browser measurement command exists yet. P7 implementation must
+add the actual runtime test and verify that a deliberately over-budget control
+fails; static screenshots or a standalone mock do not satisfy the requirement.
+Accessibility, responsive layouts, 200% zoom, reduced motion and composed color
+contrast remain separate acceptance criteria.
+
+Constraint-driven development is floor-only during this autonomous run:
+no new suppressions, unfinished success-shaped stubs, weakened checks or
+unexplained skipped/deleted tests. No coverage percentage, CI security policy
+or extra performance budget was silently invented or marked enforced.

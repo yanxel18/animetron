@@ -34,9 +34,14 @@ Studio, Runs, Library, Review, Models, Schedules, Connections, Settings.
 2. Add/connect/reorder nodes without dragging using pointer menus and keyboard
    alternatives. Verify focus, accessible names, status announcements, 200% zoom,
    reduced motion and 375/768/1024/1440px layouts. Small screens offer list editing.
-3. Measure text/control contrast in both implemented themes. Approve a real
-   100-node/150-edge responsiveness benchmark before assigning a performance
-   threshold; do not count static mock screenshots as runtime verification.
+3. Measure text/control contrast in both implemented themes. The owner approved
+   the responsiveness target on November 14, 2026: with a real
+   100-node/150-edge workflow on the reference computer in Chromium at a
+   1440px viewport width, p95 time from keyboard/click node selection to the
+   correctly updated inspector must be at most 200ms across 100 measured
+   selections after warm-up. Record the browser/build/environment and measured
+   distribution. Static mocks and screenshots cannot establish this result.
+   Accessibility, zoom, reduced-motion and other viewport checks still apply.
 
 ## Boundaries
 
