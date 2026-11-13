@@ -58,3 +58,9 @@ database. Set `ANIMETRON_DATABASE_URL` to the same URL, then run:
 
 Back up existing databases before applying migrations. A downgrade removes run
 and event data and must not be used without explicit authorization.
+
+The internal model acquisition preflight reports missing license acceptance,
+access confirmation, and insufficient storage. Its caller must supply verified
+acceptance, access, and current storage facts; a successful check is not a
+download, reservation, model integrity check, or readiness result. No model
+downloads or model registry API are implemented.
