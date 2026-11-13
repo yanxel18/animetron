@@ -9,5 +9,6 @@ applyTo: '**'
   the affected checklist items, links, blockers and reconciliation date.
 - Mark an item complete only after its work is merged and its checks pass. Keep
   open-PR work unchecked and identify it as in review. Reconcile newly merged
-  items on the next task branch; the owner merges PRs.
+  items on the next task branch. The owner has authorized merging reviewed,
+  verified PRs.
 - Preserve the specification approval and external-action gates in the tracker.

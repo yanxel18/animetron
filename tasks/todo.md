@@ -18,8 +18,9 @@ gates still apply. This checklist summarizes them but does not replace them.
   Phases are dependency ordered, but independent slices may run in parallel.
 - No delivery date or effort estimate is established. Estimate and update dates
   only after scope, hardware, provider eligibility and capacity are confirmed.
-- The user merges PRs. This checklist does not authorize deployment, live
-  publishing, model licenses, downloads or external transmission.
+- The owner has authorized the assistant to merge reviewed, verified PRs.
+  This checklist does not authorize deployment, live publishing, model licenses,
+  model downloads or external transmission.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -93,9 +94,12 @@ hardware and failures never appear ready.
   - [x] P2-03a Validate immutable Hugging Face repository and commit identities
     ([#14](https://github.com/yanxel18/animetron/pull/14); not a manifest,
     allowlist or readiness check).
-  - [ ] P2-03b Verify an individual model stream's size and digest with
-    bounded reads (in review: [#16](https://github.com/yanxel18/animetron/pull/16);
+  - [x] P2-03b Verify an individual model stream's size and digest with
+    bounded reads ([#16](https://github.com/yanxel18/animetron/pull/16);
     not a model readiness check).
+  - [ ] P2-03c Define immutable model manifest and file integrity metadata
+    (in review: [#17](https://github.com/yanxel18/animetron/pull/17); not a
+    license acceptance, allowlist or readiness check).
 - [ ] P2-04 Implement confirmed, deduplicated acquisition with staging,
   integrity checks and atomic readiness; keep credentials server-side.
 - [ ] P2-05 Expose authorized model and download status; test interrupted,

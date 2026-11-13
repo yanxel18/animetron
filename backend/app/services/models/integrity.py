@@ -7,11 +7,15 @@ class ModelIntegrityError(ValueError):
     pass
 
 
+def validate_sha256(sha256: str) -> None:
+    if not isinstance(sha256, str) or re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+        raise ValueError("Expected SHA-256 must be a lowercase digest")
+
+
 def verify_model_file(stream: BinaryIO, *, expected_size: int, sha256: str) -> None:
     if type(expected_size) is not int or expected_size < 0:
         raise ValueError("Expected size must be a nonnegative byte count")
-    if not isinstance(sha256, str) or re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
-        raise ValueError("Expected SHA-256 must be a lowercase digest")
+    validate_sha256(sha256)
 
     digest = hashlib.sha256()
     remaining = expected_size
