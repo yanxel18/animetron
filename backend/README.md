@@ -237,3 +237,36 @@ An internal manifest value groups a pinned reference, engine and license
 identifiers, expected file sizes and digests, and a minimum storage estimate.
 It does not establish license acceptance, repository allowlisting, safe file
 access, adequate staging space, verified downloads, or model readiness.
+
+## Internal schedule preview (Phase 6 slice)
+
+`app.services.scheduling.preview.preview_occurrences(expression, time_zone, after)`
+returns the next five strictly future `ScheduleOccurrence` values. The cursor
+must be timezone-aware. Each result includes an offset-bearing `local_time`,
+UTC `due_at`, and `slot_key` of `<IANA-zone>:<YYYY-MM-DDTHH:MM>`.
+Future persistence must namespace that key by schedule identity and reuse it
+for both preview and dispatch; the value itself does not deduplicate effects.
+
+The approved POSIX-style five fields support numeric lists/ranges/steps,
+wildcards, and three-letter month/weekday names. Restricted day-of-month and
+weekday fields match with OR. Macros, seconds/years, hashed/random expressions,
+and `L`/`W`/`#` extensions are rejected. Nonexistent local times are skipped;
+ambiguous times use only the earlier occurrence, never an already missed slot.
+Invalid input, impossible dates and exhaustion of the bounded 50-calendar-year
+preview search raise `ValueError`; no partial successful preview is returned.
+
+Croniter 7.0.0 supplies wall-clock candidates; an explicit UTC round-trip and
+`fold=0` enforce the approved DST policy instead of its native DST iteration.
+Python `zoneinfo` uses the host time-zone database, falling back to pinned
+`tzdata==2026.6`. Set `PYTHONTZPATH=""` in the application/test process to use
+the pinned fallback consistently across hosts; no machine-wide setting changes
+are needed.
+
+```powershell
+$env:PYTHONTZPATH = ""
+.\.venv\Scripts\python.exe -m pytest tests\test_scheduling.py -q -p no:cacheprovider
+```
+
+There are no schedule HTTP endpoints, database rows, Beat process, durable slot
+claims, run intents, overlap/restart handling or publication permissions in this
+slice. These remain required before enabling scheduling.

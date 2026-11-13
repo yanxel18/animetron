@@ -12,3 +12,10 @@ dist/
 *.env
 .worktrees/
 data/
+.npm-cache/
+frontend/node_modules/
+frontend/.npm-cache/
+frontend/.tmp/
+frontend/.playwright-browsers/
+frontend/test-results/
+frontend/playwright-report/
