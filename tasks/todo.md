@@ -44,10 +44,11 @@ have the security and recovery guarantees below.
     workflow instructions are merged in
     [#25](https://github.com/yanxel18/animetron/pull/25); no phase completion
     or external-action permission is implied.
-- [ ] P0-02 With the owner's approval, make the local specification documents
+- [x] P0-02 With the owner's approval, make the local specification documents
   available in version control and link them from this checklist.
-  - Approved on 2026-11-14; specification publication is in review on branch
-    `docs/approve-module-specifications`.
+  - Approved and merged on 2026-11-14:
+    [#27](https://github.com/yanxel18/animetron/pull/27). Documentation review,
+    whitespace validation and GitGuardian checks passed.
 - [x] P0-03 Add a minimal API liveness endpoint. [#1](https://github.com/yanxel18/animetron/pull/1)
 - [x] P0-04 Add a PostgreSQL engine foundation. [#2](https://github.com/yanxel18/animetron/pull/2)
 - [x] P0-05 Add transactional outbox storage with leases.
@@ -115,6 +116,10 @@ hardware and failures never appear ready.
   [#7](https://github.com/yanxel18/animetron/pull/7)
 - [ ] P2-02 Inspect actual VRAM, driver, WSL2/CUDA and available storage; record
   supported runtime choices and benchmark plan.
+  - [ ] P2-02a Record host resources and Linux-container NVIDIA visibility.
+    In review on branch `docs/hardware-readiness`; no CUDA kernel, model
+    compatibility, Docker-volume capacity or inference benchmark is certified.
+    See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
   - [x] P2-03a Validate immutable Hugging Face repository and commit identities
