@@ -236,7 +236,9 @@ alongside the phases above. Complete when the real browser flows and
 accessibility checks pass, not merely when mock screens exist.
 
 - [ ] P7-01 Establish the dark/cyan workspace, local/system typography,
-  responsive layout and accessible component foundations.
+  responsive layout and accessible component foundations. Implementation is in
+  review: [PR #36](https://github.com/yanxel18/animetron/pull/36). Keep unchecked
+  until merged.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with

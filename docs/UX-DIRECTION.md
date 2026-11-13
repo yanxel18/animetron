@@ -2,8 +2,10 @@
 
 Status: Dark creator studio with cyan accents approved November 13, 2026.
 Module specifications approved for implementation November 14, 2026.
-Detailed tokens still require measurement. The responsiveness target was
-approved November 14, 2026; no interface has been implemented or runtime-validated.
+P7-01 implementation is in review. Its dark-only tokens have been measured in
+Chromium for the sampled text and focus pairs below; this is not a certification
+of every state or a second theme. The responsiveness target was approved
+November 14, 2026.
 
 ## Design evidence
 
@@ -17,10 +19,16 @@ generated MASTER. Relevant verified local search guidance:
 
 - UX / Accessibility / Dragging Movements: provide single-pointer alternatives
   to dragging as well as keyboard operation.
-- React / Performance / Batch state updates: keep normal batching; do not use
-  flushSync as a routine progress-update mechanism.
-- React / Accessibility / Announce dynamic content: announce meaningful state
-  changes without streaming every frame or progress tick to screen readers.
+- UX / Accessibility / Focus States and Keyboard Navigation: keep focus visible
+  and tab order aligned to visual order.
+- UX / Accessibility / Focus Not Obscured (Minimum): keep focus at least
+  partially visible around persistent UI.
+- React / Rerender / Functional setState: use functional updates where a
+  callback depends on existing state; the mobile navigation toggle uses this
+  pattern.
+- No dynamic run or generation events exist in P7-01, so the shell does not
+  invent a live status announcement. Later event-driven screens must announce
+  meaningful changes, not every progress tick.
 
 ## Product identity
 
@@ -129,6 +137,29 @@ There is no arbitrary "run anything" node.
   warm-up. Avoid whole-graph rerendering on each progress update. Implement a
   real browser measurement; screenshots alone are not performance evidence.
 
+## P7-01 foundation implementation ([PR #36 in review](https://github.com/yanxel18/animetron/pull/36))
+
+- System font stack only; no remote font request. Dark workspace tokens use the
+  approved candidate palette; no light theme was added.
+- The shell supplies a skip link, named workspace landmarks, visible focus,
+  a responsive navigation toggle, consistent original SVG line icons, and
+  disabled screens/actions with visible reasons.
+- The canvas, inspector and run-activity panels show truthful empty states.
+  The screen does not load a workflow, generate content, create/monitor runs,
+  check API liveness or infer GPU/resource readiness.
+- The 2026-11-14 real 100-node/150-edge p95 selection target is unchanged and
+  was not tested: this foundation has no graph editor or node data.
+- Playwright/Chromium verified 375, 768, 1024 and 1440 CSS-pixel layouts with
+  no horizontal overflow. A 720 CSS-pixel viewport at device scale factor 2
+  was also rendered in Chromium as a 200%-effective-width/scale check. This is
+  not native browser UI zoom; its limitation and remaining acceptance work are
+  recorded in [the P7-01 report](../tasks/studio-foundation-report.md).
+- Computed Chromium contrast measurements: body text on workspace 18.10:1;
+  secondary note 9.54:1; disabled Validate 8.19:1; disabled Run 7.10:1;
+  active Studio text and keyboard focus ring 8.96:1. These samples exceed
+  4.5:1 for text and 3:1 for the focus indicator; unmeasured pairs and states
+  remain unverified.
+
 ## Next design deliverables after scope approval
 
 1. Approved theme and semantic state colors with measured contrast pairs.
@@ -136,4 +167,5 @@ There is no arbitrary "run anything" node.
 3. Component contracts for node cards, inspector, run timeline and approval card.
 4. Keyboard/single-pointer workflow and small-screen fallback specification.
 
-No UI code or screenshots have been produced in this planning phase.
+Implementation and verification details are in the linked P7-01 report. This
+does not complete later workflow, run, review or release acceptance.
