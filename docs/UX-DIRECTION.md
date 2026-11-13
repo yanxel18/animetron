@@ -2,8 +2,8 @@
 
 Status: Dark creator studio with cyan accents approved November 13, 2026.
 Module specifications approved for implementation November 14, 2026.
-Detailed tokens still require measurement and the responsiveness target requires
-agreement; no interface has been implemented or runtime-validated.
+Detailed tokens still require measurement. The responsiveness target was
+approved November 14, 2026; no interface has been implemented or runtime-validated.
 
 ## Design evidence
 
@@ -123,9 +123,11 @@ There is no arbitrary "run anything" node.
 - No secrets in previews, logs, URLs, clipboard exports or workflow JSON.
 - Measure normal text at >=4.5:1 and meaningful controls at >=3:1.
 - Validate at 375px, 768px, 1024px and 1440px, with 200% zoom and reduced motion.
-- Proposed canvas benchmark: 100 nodes and 150 edges without whole-graph
-  rerendering on each progress update. Agree a measured responsiveness target
-  before implementing performance gates.
+- Approved canvas benchmark: a real 100-node/150-edge workflow on the reference
+  computer in Chromium at 1440px width, with p95 keyboard/click node selection
+  to correctly updated inspector at most 200ms over 100 selections after
+  warm-up. Avoid whole-graph rerendering on each progress update. Implement a
+  real browser measurement; screenshots alone are not performance evidence.
 
 ## Next design deliverables after scope approval
 
