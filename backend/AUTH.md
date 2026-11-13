@@ -86,7 +86,7 @@ routes are disabled. No control data is available through public schema routes.
 | `GET /api/v1/auth/session` | Any explicitly granted principal; principalId, role, csrfToken, expiresAt |
 | `POST /api/v1/auth/logout` | Same principal, exact Origin and X-CSRF-Token; local revocation, cookie clearing, 303 to Keycloak confirmation |
 | `GET /api/v1/readiness` | Owner/operator; real session/database and discovery/JWKS checks |
-| `GET /api/v1/audit-events` | Owner; ascending cursor, default limit 50, maximum 100; data and nextCursor |
+| `GET /api/v1/audit-events` | Owner; ascending cursor, default limit 50, maximum 100; data, nextCursor and bounded denials |
 | `WSS /api/v1/ws` | Same active principal, exact origin/target, no query token; authenticated handshake and ping/pong only |
 
 Errors use `{"error":{"code":...,"message":...,"requestId":...}}`.
@@ -112,6 +112,8 @@ readiness never reports ready if its provider check fails.
 Migration `0006_auth_sessions` adds only four independent auth tables after
 `0005_artifact_metadata`. Login/session expiry and audit timestamp indexes
 support cleanup; hashes and session principal IDs have unique constraints.
+Additive `0007_auth_denial_counters` adds the bounded denial counters. Apply
+both before enabling the updated workers; existing `0006` is unchanged.
 No existing workflow/outbox/artifact table is altered. Upgrade is additive;
 run it before enabling configuration. Downgrade explicitly revokes all auth
 state and removes audit data, so it is a destructive administrative rollback,
@@ -129,8 +131,19 @@ streaming has been added.
 Audit rows contain a generated ID/time, stable event code, server request ID and
 optional pseudonymous principal digest. No headers, cookies, query values,
 passwords, provider tokens or email are recorded. Login success/session rotation
-and local logout/audit are transactional. Denials and WebSocket acceptance are
-also recorded. Active login quota is **30 starts per shared fifteen-minute
+and local logout/audit are transactional. WebSocket acceptance remains an
+individual audit event. `access_denied` and `login_failed` instead use atomic
+shared PostgreSQL counters: exactly two server-owned categories, each with
+96 fifteen-minute ring slots, and a hard maximum of **192 logical rows**.
+Request, principal, origin and IP values never enter counter keys. Each counter
+exposes `event`, `windowStart`, `occurrences`, `lastRequestId` and
+`lastOccurredAt` through owner-only audit history's additive `denials` field;
+existing `data`/`nextCursor` pagination is unchanged. Counts include rejected
+requests rather than suppressing auditing or changing HTTP rejection policy.
+Old windows expire on denied writes and owner reads after twenty-four hours.
+Slot reuse resets counts for the new window; concurrent workers increment
+atomically. This bounds logical cardinality, not PostgreSQL WAL/dead tuples or
+filesystem capacity. Active login quota is **30 starts per shared fifteen-minute
 window**, across workers and new browser handles. This conservative global
 quota can deny legitimate login during abuse; it is not per-user protection.
 
@@ -138,7 +151,9 @@ Subject IDs are pseudonymous personal data used only for authorization.
 Nonce/verifier/CSRF fields are sensitive server-side state. Expired state and
 sessions, prior quota buckets and audit records older than ninety days are
 purged on successful login starts; expiry rejection does not depend on cleanup.
-Operators must schedule cleanup during long periods without login and set
+Denied writes and owner reads also remove audit history older than ninety days,
+including legacy append-only denial rows. All workers must receive the updated
+code to stop legacy append behavior. Operators must schedule idle-period cleanup and set
 backup retention/deletion/export policy before production. Database TLS and
 encryption at rest are deployment obligations, not implemented encryption here.
 
@@ -153,9 +168,20 @@ python tests/run_auth_checks.py
 
 The harness owns only `animetron-oidc-478745d5-*` resources, creates a dedicated
 bridge with loopback ephemeral host bindings and disposable PostgreSQL/Keycloak,
-generates credentials in memory/environment, applies migrations and removes
-specifically created containers (including anonymous volumes) and network in
+generates credentials in memory/environment, applies/checks migrations and removes
+specifically created containers by captured immutable IDs (including anonymous volumes) and network in
 `finally`. `--storage` runs the initial durable storage slice without Keycloak.
+The harness verifies its created container's owner/session labels and installs
+a separate `animetron_oidc_test_guard.ownership` marker containing the unique
+owner ID, capability hash, actual database name and captured container ID.
+Only its child test process receives `ANIMETRON_TEST_DATABASE_OWNER_ID`,
+`ANIMETRON_TEST_DATABASE_OWNER_TOKEN` and
+`ANIMETRON_TEST_DATABASE_CONTAINER_ID`. A supplied test URL without matching
+proof fails at pytest session startup, before collection/mutation. Every auth
+reset re-verifies and locks the marker in the deletion transaction. Names or
+loopback/prefix shapes alone never authorize a reset. Boundary tests use only
+the proven owned database, preserve an exact sentinel on rejection, and prove
+that missing/foreign proof also rejects nested pytest startup.
 Windows browser tests use installed Edge with Playwright 1.65.1, a temporary
 isolated profile under worktree data, no browser/OS installs and restricted
 networking. Provider redirect responses are intercepted *before* navigation;
@@ -164,7 +190,7 @@ authorization codes are passed only to the in-process backend test client.
 Evidence on 2026-11-14:
 
 - Initial storage increment: **15 passed** against disposable PostgreSQL.
-- Final full Windows suite: **278 passed, 20 skipped**; all **59 new auth tests**
+- Initial published full Windows suite: **278 passed, 20 skipped**; all **59 initial auth tests**
   run. The twenty existing skips require Linux/POSIX artifact storage and were
   not changed or suppressed by this task.
 - Direct review caught WebSocket timer checks extending idle activity. The
@@ -172,13 +198,22 @@ Evidence on 2026-11-14:
   (**1 failed, 277 passed, 20 skipped**) and passed in the final suite. It
   verifies persisted timestamps before/after timeout remain unchanged and an
   actual ping updates activity. The user directed continuation after discovery.
-- Ruff: **all checks passed**. Strict mypy `--platform linux`: **27 source files**.
+- Review-repair full Windows suite, after the necessary master merge:
+  **314 passed, 20 skipped**; all **70 auth tests** run, including three real
+  Keycloak/browser cases, real database-ownership boundary regressions and
+  repeated-denial, atomic multi-pool update, ring reuse, constraint and retention tests.
+  The denial growth regression failed before correction (**1 failed, 17 passed**).
+  Three meaningful QA iterations were used: the first two passed their test
+  suites but found import-format errors; the final combined run passed all gates.
+- Ruff app/tests/migrations: **all checks passed**. Strict mypy
+  `--platform linux`: **29 source files** after inheriting master.
 - Real provider/browser cases prove login, validated session persistence across
   a new app/engine, rotation, authorized dependency readiness, actual Keycloak
   logout confirmation/completion, denied unlisted subjects and concurrent
   callback single-winner behavior. Adversarial token cases also exercise real
   Authlib verification with generated test signing keys, not production keys.
-- Disposable migration upgrade, downgrade to `0005_artifact_metadata`, and
+- Disposable migration upgrade, `alembic check` (no new operations),
+  downgrade to `0005_artifact_metadata`, and
   re-upgrade passed. No existing internal foundation data was migrated away.
 - pip-audit 2.10.1: **no known dependency vulnerabilities** after upgrading only
   worktree pip to 26.3. The unpublished local backend package cannot be matched
@@ -215,9 +250,19 @@ production SLO/load certification is claimed. A DB/provider outage denies
 protected readiness, not liveness. Artifact HTTP, workflow CRUD, model/media,
 review, scheduling, frontend and publishing are intentionally untouched.
 
+Required merge gates: the fixture-only repair still received GitGuardian failure
+(`132201491115`), naming `backend/tests/test_auth_api.py`, generic high-entropy
+category, with zero API annotations. Matched values are withheld. Head fixtures
+now generate client/token/CSRF/bearer material and signing keys at runtime; the
+unsigned attack header is constructed from public JSON. Scanner success and the
+existing independent reviewer's reassessment remain required; no waiver,
+scan exclusion, force push, approval or merge is claimed.
+See [same-PR findings and handoff](AUTH-FINDINGS.md).
+
 ## Official sources
 
 - [Keycloak OIDC endpoints](https://www.keycloak.org/securing-apps/oidc-layers)
+- [SQLAlchemy PostgreSQL atomic upsert](https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#insert-on-conflict-upsert)
 - [Keycloak Docker quickstart and production boundaries](https://www.keycloak.org/getting-started/getting-started-docker)
 - [Authlib Starlette OIDC and logout](https://docs.authlib.org/en/latest/oauth2/client/web/starlette.html)
 - [Authlib HTTPX2 and PKCE](https://docs.authlib.org/en/latest/oauth2/client/http/index.html#add-pkce-for-authorization-code)

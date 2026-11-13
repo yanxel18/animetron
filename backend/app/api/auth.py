@@ -43,9 +43,19 @@ class AuditEventResponse(BaseModel):
     occurred_at: datetime = Field(alias="occurredAt")
 
 
+class DenialCounterResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    event: Literal["access_denied", "login_failed"]
+    window_start: datetime = Field(alias="windowStart")
+    occurrences: int = Field(ge=1)
+    last_request_id: str = Field(alias="lastRequestId")
+    last_occurred_at: datetime = Field(alias="lastOccurredAt")
+
+
 class AuditPageResponse(BaseModel):
     data: list[AuditEventResponse]
     next_cursor: int | None = Field(alias="nextCursor")
+    denials: list[DenialCounterResponse] = Field(default_factory=list)
 
 
 class ErrorDetail(BaseModel):
@@ -198,10 +208,14 @@ def auth_router(config: AuthConfig | None, store: AuthStore | None) -> APIRouter
         cursor: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(ge=1, le=100)] = 50,
     ) -> AuditPageResponse:
-        rows = available()[1].audit_page(cursor, limit + 1)
+        persistence = available()[1]
+        denials = persistence.denial_counts()
+        rows = persistence.audit_page(cursor, limit + 1)
         return AuditPageResponse(
             data=[AuditEventResponse.model_validate(row) for row in rows[:limit]],
             nextCursor=int(str(rows[limit - 1]["id"])) if len(rows) > limit else None,
+            denials=[DenialCounterResponse.model_validate(row)
+                     for row in denials],
         )
 
     @router.websocket("/ws")

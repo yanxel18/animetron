@@ -65,8 +65,12 @@ have the security and recovery guarantees below.
     `feature/oidc-browser-sessions`;
     dependency [#27](https://github.com/yanxel18/animetron/pull/27) is merged.
     See [auth contract and acceptance evidence](../backend/AUTH.md).
-    Final suite: 278 passed / 20 existing Linux-only skips, including the
-    PostgreSQL-backed WebSocket idle-timeout regression.
+    Review repair: 314 passed / 20 existing Linux-only skips, 70 auth tests,
+    Ruff and Linux mypy (29 files) passed, including owned-database rejection
+    and bounded shared denial-count regressions. Migration upgrade/check/
+    downgrade/re-upgrade and dependency audit passed. Same-PR
+    [repair findings](../backend/AUTH-FINDINGS.md) retain the required
+    GitGuardian and independent reassessment gates; not ready to merge.
     No deployment, artifact/workflow HTTP, provider publishing, back-channel
     logout or phase-completion certification is included.
 - [ ] P0-07 Implement bounded artifact upload, metadata and authorized

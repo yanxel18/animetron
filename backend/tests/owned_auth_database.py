@@ -8,7 +8,14 @@ import sqlalchemy as sa
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.auth import audit_events, auth_rate, digest, login_states, sessions
+from app.core.auth import (
+    audit_events,
+    auth_rate,
+    denial_counters,
+    digest,
+    login_states,
+    sessions,
+)
 
 
 def verify_owned_auth_database(conn: Connection) -> None:
@@ -47,5 +54,5 @@ def reset_auth_tables(engine: Engine) -> None:
         conn.execute(sa.text("SET LOCAL statement_timeout = '3s'"))
         conn.execute(sa.text("SET LOCAL lock_timeout = '3s'"))
         verify_owned_auth_database(conn)
-        for table in (sessions, login_states, auth_rate, audit_events):
+        for table in (sessions, login_states, auth_rate, audit_events, denial_counters):
             conn.execute(table.delete())

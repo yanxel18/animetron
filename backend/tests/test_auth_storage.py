@@ -6,12 +6,14 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from owned_auth_database import reset_auth_tables
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.auth import (
     AuthConfig,
     AuthDenied,
     AuthStore,
     audit_events,
+    denial_counters,
     digest,
     login_states,
     sessions,
@@ -82,6 +84,69 @@ def consume(store, state, browser):
         return store.consume_login(state, browser)
     except AuthDenied:
         return None
+
+
+def test_denial_audit_has_shared_bounded_storage(store):
+    for index in range(240):
+        store.audit("access_denied", str(index), digest(str(index)))
+        store.audit("login_failed", str(index))
+    with store.engine.connect() as conn:
+        assert not conn.execute(select(audit_events)).all()
+    other = AuthStore(store.engine, config())
+    counts = other.denial_counts()
+    totals = {}
+    for row in counts:
+        totals[row["event"]] = totals.get(row["event"], 0) + row["occurrences"]
+    assert totals == {
+        "access_denied": 240, "login_failed": 240,
+    }
+
+
+def test_denial_counter_updates_are_atomic_across_connection_pools(store):
+    other_engine = create_database_engine(os.environ["ANIMETRON_TEST_DATABASE_URL"])
+    try:
+        other = AuthStore(other_engine, config())
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(
+                lambda index: (store if index % 2 else other).audit(
+                    "access_denied", str(index), digest(str(index)),
+                ),
+                range(128),
+            ))
+        assert sum(row["occurrences"] for row in other.denial_counts()) == 128
+        with store.engine.connect() as conn:
+            assert not conn.execute(select(audit_events)).all()
+    finally:
+        other_engine.dispose()
+
+
+def test_denial_ring_reuses_slots_and_expires_on_writes_and_owner_reads(store):
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    with store.transaction() as conn:
+        store.record(conn, "logout", "old", now=start - timedelta(days=91))
+        store.record(conn, "logout", "recent", now=start)
+    for index in range(120):
+        now = start + timedelta(minutes=15 * index)
+        with store.transaction() as conn:
+            for event in ("access_denied", "login_failed"):
+                for _ in range(2):
+                    store.record(conn, event, str(index), now=now)
+    counts = store.denial_counts(now=now)
+    assert len(counts) == 192
+    assert all(row["occurrences"] == 2 for row in counts)
+    assert all(row["window_start"] > now - timedelta(days=1) for row in counts)
+    with store.engine.connect() as conn:
+        assert conn.execute(select(audit_events.c.request_id)).scalars().all() == ["recent"]
+    assert store.denial_counts(now=now + timedelta(days=1)) == []
+
+
+@pytest.mark.parametrize("event,slot", [("client-controlled", 0), ("access_denied", 96)])
+def test_denial_keys_are_bounded_by_database_constraints(store, event, slot):
+    with pytest.raises(IntegrityError), store.transaction() as conn:
+        conn.execute(denial_counters.insert().values(
+            event=event, slot=slot, window_start=datetime.now(UTC), occurrences=1,
+            last_request_id="request", last_occurred_at=datetime.now(UTC),
+        ))
 
 
 def test_session_is_durable_opaque_rotated_expiring_and_revocable(store):

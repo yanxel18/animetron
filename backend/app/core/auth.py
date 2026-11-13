@@ -51,6 +51,18 @@ auth_rate = sa.Table(
     sa.Column("bucket", sa.BigInteger(), primary_key=True),
     sa.Column("attempts", sa.Integer(), nullable=False),
 )
+denial_counters = sa.Table(
+    "auth_denial_counters", metadata,
+    sa.Column("event", sa.String(32), primary_key=True),
+    sa.Column("slot", sa.Integer(), primary_key=True),
+    sa.Column("window_start", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("occurrences", sa.BigInteger(), nullable=False),
+    sa.Column("last_request_id", sa.String(36), nullable=False),
+    sa.Column("last_occurred_at", sa.DateTime(timezone=True), nullable=False),
+    sa.CheckConstraint("event IN ('access_denied', 'login_failed')", name="ck_denial_event"),
+    sa.CheckConstraint("slot >= 0 AND slot < 96", name="ck_denial_slot"),
+    sa.CheckConstraint("occurrences > 0", name="ck_denial_occurrences"),
+)
 
 
 def digest(value: str) -> str:
@@ -158,11 +170,55 @@ class AuthStore:
     @staticmethod
     def record(
         conn: Connection, event: str, request_id: str, principal_id: str | None = None,
+        *, now: datetime | None = None,
     ) -> None:
+        now = now or datetime.now(UTC)
+        if event in ("access_denied", "login_failed"):
+            bucket = int(now.timestamp()) // 900
+            window = datetime.fromtimestamp(bucket * 900, UTC)
+            AuthStore.prune_denials(conn, window)
+            statement = insert(denial_counters).values(
+                event=event, slot=bucket % 96, window_start=window,
+                occurrences=1, last_request_id=request_id, last_occurred_at=now,
+            )
+            # Two server-owned categories x 96 slots: at most 192 durable rows,
+            # irrespective of client/actor/request cardinality or clock changes.
+            conn.execute(statement.on_conflict_do_update(
+                index_elements=[denial_counters.c.event, denial_counters.c.slot],
+                set_={
+                    "window_start": window,
+                    "occurrences": sa.case(
+                        (denial_counters.c.window_start == window,
+                         denial_counters.c.occurrences + 1), else_=1,
+                    ),
+                    "last_request_id": request_id, "last_occurred_at": now,
+                },
+            ))
+            return
         conn.execute(audit_events.insert().values(
             event=event, principal_id=principal_id,
-            request_id=request_id, occurred_at=datetime.now(UTC),
+            request_id=request_id, occurred_at=now,
         ))
+
+    @staticmethod
+    def prune_denials(conn: Connection, window: datetime) -> None:
+        conn.execute(denial_counters.delete().where(
+            denial_counters.c.window_start <= window - timedelta(days=1)
+        ))
+        # Also expire legacy append-only history without requiring a login start.
+        conn.execute(audit_events.delete().where(
+            audit_events.c.occurred_at < window - timedelta(days=90)
+        ))
+
+    def denial_counts(self, *, now: datetime | None = None) -> list[Mapping[str, object]]:
+        now = now or datetime.now(UTC)
+        window = datetime.fromtimestamp(int(now.timestamp()) // 900 * 900, UTC)
+        with self.transaction() as conn:
+            self.prune_denials(conn, window)
+            return [dict(row) for row in conn.execute(
+                sa.select(denial_counters)
+                .order_by(denial_counters.c.window_start, denial_counters.c.event)
+            ).mappings()]
 
     def audit(self, event: str, request_id: str, principal_id: str | None = None) -> None:
         with self.transaction() as conn:

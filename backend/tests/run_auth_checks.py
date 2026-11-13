@@ -108,6 +108,9 @@ def main():
         migration_env = dict(env, ANIMETRON_DATABASE_URL=env["ANIMETRON_TEST_DATABASE_URL"])
         subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"],
                        cwd=ROOT, env=migration_env, check=True)
+        # The harness marker is deliberately outside application metadata.
+        subprocess.run([sys.executable, "-m", "alembic", "check"],
+                       cwd=ROOT, env=migration_env, check=True)
         print("PostgreSQL image:", docker("inspect", "--format", "{{.Image}}", created[db]), flush=True)
         if not args.storage:
             created[kc] = docker("run", "--detach", "--name", kc, *labels, "--network", network_id,
@@ -164,7 +167,7 @@ def main():
             # Failure output must not serialize browser URLs or fixture secrets.
             # Assertions remain intact; only traceback presentation is redacted.
             [sys.executable, "-m", "pytest", *selection, "-q", "--tb=no", "--basetemp", str(temporary / "pytest")],
-            [sys.executable, "-m", "ruff", "check", "app", "tests"],
+            [sys.executable, "-m", "ruff", "check", "--no-cache", "app", "tests", "migrations"],
             [sys.executable, "-m", "mypy", "--platform", "linux", "app"],
         ):
             results.append(subprocess.run(command, cwd=ROOT, env=env, check=False).returncode)

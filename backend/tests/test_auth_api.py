@@ -193,7 +193,7 @@ def test_owner_audit_history_is_capped_cursor_paginated(context):
     client, store = context
     handle, _ = store.create_session("owner", "request")
     client.cookies.set("__Host-animetron_session", handle)
-    store.audit("access_denied", "request")
+    store.audit("websocket_authenticated", "request")
     response = client.get("/api/v1/audit-events?limit=1")
     assert response.status_code == 200
     page = response.json()
@@ -205,6 +205,35 @@ def test_owner_audit_history_is_capped_cursor_paginated(context):
     assert client.get("/api/v1/audit-events?cursor=-1").status_code == 422
     with store.engine.connect() as conn:
         assert conn.execute(select(audit_events)).mappings().all()
+
+
+def test_repeated_unauthenticated_requests_are_counted_without_append_growth(context):
+    client, store = context
+    for _ in range(110):
+        assert client.get("/api/v1/auth/session").status_code == 401
+        assert client.get("/api/v1/auth/callback").status_code == 400
+        assert client.get("/api/v1/readiness",
+                          headers={"Origin": "https://evil.example"}).status_code == 403
+    with store.engine.connect() as conn:
+        assert not conn.execute(select(audit_events)).all()
+    with store.transaction() as conn:
+        # Simulate pre-migration legacy append-only data, not a new denial write.
+        conn.execute(audit_events.insert().values(
+            event="access_denied", request_id="legacy",
+            occurred_at=datetime.now(UTC) - timedelta(days=91),
+        ))
+    handle, _ = store.create_session("owner", "owner-request")
+    client.cookies.set("__Host-animetron_session", handle)
+    page = client.get("/api/v1/audit-events").json()
+    counts = {}
+    for row in page["denials"]:
+        counts[row["event"]] = counts.get(row["event"], 0) + row["occurrences"]
+        assert set(row) == {
+            "event", "windowStart", "occurrences", "lastRequestId", "lastOccurredAt",
+        }
+        assert len(row["lastRequestId"]) == 36
+    assert counts == {"access_denied": 220, "login_failed": 110}
+    assert len(page["data"]) == 1
 
 
 @pytest.mark.parametrize("attack", [
