@@ -30,9 +30,11 @@ not pin handler implementations or schema defaults or make execution safe
 across upgrades. Do not enqueue work until those guarantees exist.
 
 The internal run store persists run-state transitions and ordered replay events
-in a caller-managed transaction. It does not create workflow snapshots, dispatch
-jobs, authorize actions, or implement review and publication. Only use it behind
-those future controls.
+in a caller-managed transaction. A separate internal creation path binds a run
+to a stored revision and prevents deletion of referenced revisions. Existing
+unbound runs and the original creation function remain available internally.
+Neither path creates node intents, dispatches jobs, authorizes actions, or
+implements review and publication. Only use them behind those future controls.
 
 The internal transactional outbox stores intent IDs, topics, and resource IDs
 in a caller-managed transaction. Claims use expiring database leases and a
