@@ -71,7 +71,8 @@ immutable workflow and recover its state without duplicate effects.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [ ] P1-10a Derive immutable node dependencies from a validated workflow
-    (implementation in review; no scheduling or dispatch).
+    (in review: [#15](https://github.com/yanxel18/animetron/pull/15); no
+    scheduling or dispatch).
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
