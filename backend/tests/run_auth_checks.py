@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -130,11 +131,19 @@ def main():
         selection = ["tests/test_auth_storage.py"] if args.storage else ["tests"]
         results = []
         for command in (
-            [sys.executable, "-m", "pytest", *selection, "-q", "--basetemp", str(temporary / "pytest")],
+            # Failure output must not serialize browser URLs or fixture secrets.
+            # Assertions remain intact; only traceback presentation is redacted.
+            [sys.executable, "-m", "pytest", *selection, "-q", "--tb=no", "--basetemp", str(temporary / "pytest")],
             [sys.executable, "-m", "ruff", "check", "app", "tests"],
             [sys.executable, "-m", "mypy", "--platform", "linux", "app"],
         ):
             results.append(subprocess.run(command, cwd=ROOT, env=env, check=False).returncode)
+        if any(results) and kc in created:
+            # Provider error *codes* only, never log lines (codes/tokens/credentials
+            # and client query parameters may otherwise occur in server output).
+            logs = docker("logs", kc)
+            print("Provider diagnostic error codes:",
+                  sorted(set(re.findall(r'error="([a-z_]+)"', logs))), flush=True)
         if not args.storage:
             subprocess.run([sys.executable, "-m", "alembic", "downgrade", "0005_artifact_metadata"],
                            cwd=ROOT, env=migration_env, check=True)
