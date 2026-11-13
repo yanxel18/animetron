@@ -17,6 +17,11 @@ nodes with configs, and camelCase edge ports. Callers must provide byte and
 graph limits, check the returned validation issues, and must not treat a parsed
 document as an immutable snapshot. There is no workflow API or persistence yet.
 
+The internal run store persists run-state transitions and ordered replay events
+in a caller-managed transaction. It does not create workflow snapshots, dispatch
+jobs, authorize actions, or implement review and publication. Only use it behind
+those future controls.
+
 From this directory in PowerShell, using Python 3.12 or newer:
 
 ```powershell
@@ -38,3 +43,13 @@ integration test, set `ANIMETRON_TEST_DATABASE_URL` to a disposable database
 before running pytest. The test creates and removes a uniquely named table;
 the database must not contain production data. Without that variable the
 integration test is skipped.
+
+Run-event tests also require the migration to be applied to that disposable
+database. Set `ANIMETRON_DATABASE_URL` to the same URL, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+Back up existing databases before applying migrations. A downgrade removes run
+and event data and must not be used without explicit authorization.
