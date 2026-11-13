@@ -2,6 +2,8 @@ from collections import Counter, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+from pydantic import BaseModel, ValidationError
+
 
 @dataclass(frozen=True)
 class Port:
@@ -13,12 +15,14 @@ class Port:
 class NodeDefinition:
     inputs: Mapping[str, Port] = field(default_factory=dict)
     outputs: Mapping[str, Port] = field(default_factory=dict)
+    config_model: type[BaseModel] | None = None
 
 
 @dataclass(frozen=True)
 class Node:
     id: str
     type: str
+    config: Mapping[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -80,6 +84,29 @@ def validate_graph(
                     "UNKNOWN_NODE_TYPE", "Node type is not allowed", node.id
                 )
             )
+        else:
+            config_model = definitions[node.type].config_model
+            try:
+                if not isinstance(node.config, Mapping) or (
+                    config_model is None and bool(node.config)
+                ):
+                    issues.append(
+                        ValidationIssue(
+                            "INVALID_NODE_CONFIG",
+                            "Node configuration is invalid",
+                            node.id,
+                        )
+                    )
+                elif config_model is not None:
+                    config_model.model_validate(
+                        dict(node.config), strict=True, extra="forbid"
+                    )
+            except ValidationError:
+                issues.append(
+                    ValidationIssue(
+                        "INVALID_NODE_CONFIG", "Node configuration is invalid", node.id
+                    )
+                )
 
     nodes = {
         node.id: node
