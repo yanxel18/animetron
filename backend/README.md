@@ -15,6 +15,15 @@ in a caller-managed transaction. It does not create workflow snapshots, dispatch
 jobs, authorize actions, or implement review and publication. Only use it behind
 those future controls.
 
+The internal transactional outbox stores intent IDs, topics, and resource IDs
+in a caller-managed transaction. Claims use expiring database leases and a
+token to reject stale acknowledgements. This is storage infrastructure only:
+there is no relay, queue, automatic run dispatch, or exactly-once guarantee.
+A relay must commit its claim before publishing, reuse the intent ID for
+deduplication, and acknowledge only confirmed delivery. Consumers must make
+effects idempotent; a lease cannot fence an external effect or prove that a
+timed-out publication did not happen.
+
 From this directory in PowerShell, using Python 3.12 or newer:
 
 ```powershell
