@@ -71,6 +71,11 @@ python -m venv .venv
 `GET /api/v1/health` returns `{"status":"ok"}` when the process responds.
 It is a liveness check, not a readiness or security check. Interactive API
 documentation is disabled to avoid loading third-party assets.
+HTTP responses include restrictive browser security headers, including on
+unhandled errors. They do not authenticate requests, prevent CSRF, enforce
+trusted hosts, or replace a secure gateway. Routes are registered on `api`;
+serve the outer ASGI `app` so the headers also cover error responses. See
+[Starlette middleware documentation](https://www.starlette.io/middleware/#corsmiddleware-global-enforcement).
 
 The database factory requires an explicit `postgresql+psycopg` URL including a
 host and database. Do not commit credentials. To run the optional PostgreSQL
