@@ -87,6 +87,9 @@ hardware and failures never appear ready.
   supported runtime choices and benchmark plan.
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
+  - [ ] P2-03a Validate immutable Hugging Face repository and commit identities
+    (in review: [#14](https://github.com/yanxel18/animetron/pull/14); not a
+    manifest, allowlist or readiness check).
 - [ ] P2-04 Implement confirmed, deduplicated acquisition with staging,
   integrity checks and atomic readiness; keep credentials server-side.
 - [ ] P2-05 Expose authorized model and download status; test interrupted,

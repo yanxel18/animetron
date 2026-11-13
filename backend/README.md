@@ -90,3 +90,7 @@ access confirmation, and insufficient storage. Its caller must supply verified
 acceptance, access, and current storage facts; a successful check is not a
 download, reservation, model integrity check, or readiness result. No model
 downloads or model registry API are implemented.
+
+An internal model reference identifies a Hugging Face model repository by its
+full repository ID and full lowercase commit hash. It does not check whether a
+repository or revision exists or is allowlisted, accepted, downloaded, or ready.

@@ -1,6 +1,36 @@
 import pytest
 
 from app.services.models.preflight import AcquisitionBlocker, check_acquisition
+from app.services.models.reference import ModelReference
+
+
+def test_model_reference_distinguishes_full_repository_and_revision() -> None:
+    first = ModelReference("huggingface", "creator-a/model", "a" * 40)
+    assert first != ModelReference("huggingface", "creator-b/model", "a" * 40)
+    assert first != ModelReference("huggingface", "creator-a/model", "b" * 40)
+    assert len({first, ModelReference("huggingface", "creator-a/model", "a" * 40)}) == 1
+
+
+@pytest.mark.parametrize(
+    "repository",
+    ["", "../model", "a/../model", "https://example.com/model", "a\\model", "a//b"],
+)
+def test_model_reference_rejects_urls_and_invalid_repository_ids(
+    repository: str,
+) -> None:
+    with pytest.raises(ValueError):
+        ModelReference("huggingface", repository, "a" * 40)
+
+
+@pytest.mark.parametrize("revision", ["main", "a" * 7, "a" * 39, "g" * 40, "A" * 40])
+def test_model_reference_requires_a_full_canonical_commit_hash(revision: str) -> None:
+    with pytest.raises(ValueError):
+        ModelReference("huggingface", "creator/model", revision)
+
+
+def test_model_reference_does_not_accept_unknown_providers() -> None:
+    with pytest.raises(ValueError):
+        ModelReference("other", "creator/model", "a" * 40)
 
 
 def test_accepted_access_and_sufficient_space_pass_preflight() -> None:
