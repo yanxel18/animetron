@@ -1,6 +1,8 @@
 """Owned disposable PostgreSQL/Keycloak harness. No inherited database URLs."""
 
 import argparse
+import hashlib
+import json
 import os
 import re
 import secrets
@@ -54,40 +56,68 @@ def main():
     env["KC_BOOTSTRAP_ADMIN_USERNAME"] = "test-admin"
     env["KC_BOOTSTRAP_ADMIN_PASSWORD"] = secrets.token_urlsafe(32)
     network, db, kc = PREFIX + "network", PREFIX + "postgres", PREFIX + "keycloak"
-    created = []
-    network_created = False
+    created = {}
+    network_id = None
+    owner = secrets.token_hex(16)
+    owner_token = secrets.token_urlsafe(32)
+    labels = ("--label", "animetron.session=478745d5",
+              "--label", "animetron.oidc.owner=" + owner)
+
+    def verify_container(container_id):
+        actual = json.loads(docker("inspect", "--format", "{{json .Config.Labels}}", container_id))
+        if (
+            docker("inspect", "--format", "{{.Id}}", container_id) != container_id
+            or actual.get("animetron.session") != "478745d5"
+            or actual.get("animetron.oidc.owner") != owner
+        ):
+            raise RuntimeError("Owned test container identity verification failed")
+
     try:
         # Docker 29 internal bridges omit host port mappings. A dedicated bridge
         # with exclusively loopback bindings permits host-side acceptance checks.
-        docker("network", "create", network)
-        network_created = True
-        docker("run", "--detach", "--name", db, "--network", network,
+        network_id = docker("network", "create", *labels, network)
+        created[db] = docker("run", "--detach", "--name", db, *labels, "--network", network_id,
                "--network-alias", "postgres", "--publish", "127.0.0.1::5432",
                "--memory", "512m", "--cpus", "2",
                "-e", "POSTGRES_PASSWORD", "-e", "POSTGRES_DB=animetron",
                "postgres:18", env=env)
-        created.append(db)
-        port = docker("port", db, "5432/tcp").split(":")[-1]
+        verify_container(created[db])
+        port = docker("port", created[db], "5432/tcp").split(":")[-1]
         url = f"postgresql://postgres:{env['POSTGRES_PASSWORD']}@127.0.0.1:{port}/animetron"
         connection = wait_for(lambda: psycopg.connect(url, connect_timeout=3, autocommit=True))
         with connection:
             connection.execute("CREATE DATABASE keycloak")
+            connection.execute("CREATE SCHEMA animetron_oidc_test_guard")
+            connection.execute(
+                "CREATE TABLE animetron_oidc_test_guard.ownership ("
+                "singleton boolean PRIMARY KEY CHECK (singleton), "
+                "owner_id text NOT NULL, token_hash text NOT NULL, "
+                "container_id text NOT NULL, database_name text NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO animetron_oidc_test_guard.ownership VALUES "
+                "(true, %s, %s, %s, current_database())",
+                (owner, hashlib.sha256(owner_token.encode()).hexdigest(), created[db]),
+            )
+        env["ANIMETRON_TEST_DATABASE_OWNER_ID"] = owner
+        env["ANIMETRON_TEST_DATABASE_OWNER_TOKEN"] = owner_token
+        env["ANIMETRON_TEST_DATABASE_CONTAINER_ID"] = created[db]
         env["ANIMETRON_TEST_DATABASE_URL"] = url.replace(
             "postgresql://", "postgresql+psycopg://"
         )
         migration_env = dict(env, ANIMETRON_DATABASE_URL=env["ANIMETRON_TEST_DATABASE_URL"])
         subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"],
                        cwd=ROOT, env=migration_env, check=True)
-        print("PostgreSQL image:", docker("inspect", "--format", "{{.Image}}", db), flush=True)
+        print("PostgreSQL image:", docker("inspect", "--format", "{{.Image}}", created[db]), flush=True)
         if not args.storage:
-            docker("run", "--detach", "--name", kc, "--network", network,
+            created[kc] = docker("run", "--detach", "--name", kc, *labels, "--network", network_id,
                    "--publish", "127.0.0.1::8080", "--memory", "1g", "--cpus", "2",
                    "-e", "KC_DB=postgres", "-e", "KC_DB_URL=jdbc:postgresql://postgres/keycloak",
                    "-e", "KC_DB_USERNAME=postgres", "-e", "KC_DB_PASSWORD",
                    "-e", "KC_BOOTSTRAP_ADMIN_USERNAME", "-e", "KC_BOOTSTRAP_ADMIN_PASSWORD",
                    "quay.io/keycloak/keycloak:26.8.2", "start-dev", env=env)
-            created.append(kc)
-            port = docker("port", kc, "8080/tcp").split(":")[-1]
+            verify_container(created[kc])
+            port = docker("port", created[kc], "8080/tcp").split(":")[-1]
             base = f"http://127.0.0.1:{port}"
             with httpx.Client(timeout=5, trust_env=False) as client:
                 def ready():
@@ -127,7 +157,7 @@ def main():
                 response.raise_for_status()
                 env["ANIMETRON_TEST_OIDC_ISSUER"] = base + "/realms/animetron-test"
                 env["ANIMETRON_TEST_OIDC_OWNER"] = owner
-            print("Keycloak image:", docker("inspect", "--format", "{{.Image}}", kc), flush=True)
+            print("Keycloak image:", docker("inspect", "--format", "{{.Image}}", created[kc]), flush=True)
         selection = ["tests/test_auth_storage.py"] if args.storage else ["tests"]
         results = []
         for command in (
@@ -141,7 +171,7 @@ def main():
         if any(results) and kc in created:
             # Provider error *codes* only, never log lines (codes/tokens/credentials
             # and client query parameters may otherwise occur in server output).
-            logs = docker("logs", kc)
+            logs = docker("logs", created[kc])
             print("Provider diagnostic error codes:",
                   sorted(set(re.findall(r'error="([a-z_]+)"', logs))), flush=True)
         if not args.storage:
@@ -151,11 +181,11 @@ def main():
                            cwd=ROOT, env=migration_env, check=True)
         return max(results)
     finally:
-        for name in reversed(created):
-            docker("rm", "--force", "--volumes", name)
+        for name, container_id in reversed(tuple(created.items())):
+            docker("rm", "--force", "--volumes", container_id)
             print("Removed owned container (including anonymous volumes):", name, flush=True)
-        if network_created:
-            docker("network", "rm", network)
+        if network_id:
+            docker("network", "rm", network_id)
             print("Removed owned network:", network, flush=True)
 
 

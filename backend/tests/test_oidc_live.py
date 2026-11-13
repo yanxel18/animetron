@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
+from owned_auth_database import reset_auth_tables
 from playwright.sync_api import Error as BrowserError
 from playwright.sync_api import sync_playwright
 from sqlalchemy import select
@@ -16,8 +17,6 @@ from app.core.auth import (
     AuthDenied,
     AuthStore,
     audit_events,
-    auth_rate,
-    login_states,
     sessions,
 )
 from app.core.database import create_database_engine
@@ -82,9 +81,7 @@ def live_context():
     )
     engine = create_database_engine(os.environ["ANIMETRON_TEST_DATABASE_URL"])
     store = AuthStore(engine, config)
-    with engine.begin() as conn:
-        for table in (sessions, login_states, auth_rate, audit_events):
-            conn.execute(table.delete())
+    reset_auth_tables(engine)
     with (
         TestClient(SecurityHeaders(create_api(config, engine)), base_url=config.origin) as client,
         sync_playwright() as playwright,

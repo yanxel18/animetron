@@ -1,6 +1,10 @@
+import base64
+import json
 import os
+import secrets
 import time
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import httpx2 as httpx
@@ -8,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 from joserfc import jwt
 from joserfc.jwk import OctKey, RSAKey
+from owned_auth_database import reset_auth_tables
 from sqlalchemy import select
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
@@ -15,20 +20,24 @@ from app.core.auth import (
     AuthConfig,
     AuthStore,
     audit_events,
-    auth_rate,
-    login_states,
     sessions,
 )
 from app.core.database import create_database_engine
 from app.main import SecurityHeaders, configured_api, create_api
 
+_TEST_CLIENT_SECRET = secrets.token_urlsafe(32)
+
 
 def auth_config():
     return AuthConfig(
         issuer="https://identity.example/realms/animetron",
-        client_id="animetron", client_secret="test-only-not-a-real-secret",
+        client_id="animetron", client_secret=_TEST_CLIENT_SECRET,
         origin="https://control.example", owner_subject="owner", grants={"reader": "viewer"},
     )
+
+
+def test_auth_fixture_client_secret_is_not_embedded_in_source():
+    assert auth_config().client_secret not in Path(__file__).read_text(encoding="utf-8")
 
 
 @pytest.fixture
@@ -36,9 +45,7 @@ def context():
     engine = create_database_engine(os.environ["ANIMETRON_TEST_DATABASE_URL"])
     config = auth_config()
     store = AuthStore(engine, config)
-    with engine.begin() as conn:
-        for table in (sessions, login_states, auth_rate, audit_events):
-            conn.execute(table.delete())
+    reset_auth_tables(engine)
     with TestClient(SecurityHeaders(create_api(config, engine)),
                     base_url=config.origin) as client:
         yield client, store
@@ -53,7 +60,7 @@ def test_no_configuration_fails_closed_without_header_bypass(path):
     with TestClient(SecurityHeaders(create_api()), base_url="https://control.example") as client:
         response = client.get(path, headers={
             "X-User": "owner", "X-Principal": "owner", "X-Role": "owner",
-            "Authorization": "Bearer fabricated",
+            "Authorization": "Bearer " + secrets.token_urlsafe(32),
         })
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "AUTH_UNAVAILABLE"
@@ -64,7 +71,7 @@ def test_malformed_database_configuration_preserves_only_public_liveness(monkeyp
     values = {
         "ANIMETRON_OIDC_ISSUER": "https://identity.example/realms/test",
         "ANIMETRON_OIDC_CLIENT_ID": "animetron",
-        "ANIMETRON_OIDC_CLIENT_SECRET": "test-only",
+        "ANIMETRON_OIDC_CLIENT_SECRET": secrets.token_urlsafe(32),
         "ANIMETRON_BROWSER_ORIGIN": "https://control.example",
         "ANIMETRON_OWNER_SUBJECT": "owner",
         "ANIMETRON_DATABASE_URL": "not-a-database-url",
@@ -103,9 +110,9 @@ def test_session_and_role_authorization_are_real_and_origin_bound(context):
 
 @pytest.mark.parametrize("headers", [
     {}, {"Origin": "https://control.example"},
-    {"Origin": "https://evil.example", "X-CSRF-Token": "wrong"},
-    {"Origin": "null", "X-CSRF-Token": "wrong"},
-    {"Origin": "https://control.example", "X-CSRF-Token": "wrong"},
+    {"Origin": "https://evil.example", "X-CSRF-Token": secrets.token_urlsafe(32)},
+    {"Origin": "null", "X-CSRF-Token": secrets.token_urlsafe(32)},
+    {"Origin": "https://control.example", "X-CSRF-Token": secrets.token_urlsafe(32)},
 ])
 def test_logout_requires_origin_and_csrf_and_never_revokes_on_failure(context, headers):
     client, store = context
@@ -247,12 +254,13 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
                 signature = ("A" if signature[0] != "A" else "B") + signature[1:]
                 token = f"{header}.{body}.{signature}"
             elif attack == "unsigned":
-                token = "eyJhbGciOiJub25lIn0." + token.split(".")[1] + "."
+                header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).decode().rstrip("=")
+                token = header + "." + token.split(".")[1] + "."
             elif attack == "hmac":
                 token = jwt.encode({"alg": "HS256"}, claims, OctKey.generate_key(256))
             elif attack == "unknown_key":
                 token = jwt.encode({"alg": "RS256", "kid": "unknown"}, claims, key)
-            payload = {"access_token": "fixture-access-token", "token_type": "Bearer",
+            payload = {"access_token": secrets.token_urlsafe(32), "token_type": "Bearer",
                        "id_token": token}
         return httpx.Response(200, json=payload, request=request)
 

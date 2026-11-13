@@ -4,6 +4,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from owned_auth_database import reset_auth_tables
 from sqlalchemy import select
 
 from app.core.auth import (
@@ -11,7 +12,6 @@ from app.core.auth import (
     AuthDenied,
     AuthStore,
     audit_events,
-    auth_rate,
     digest,
     login_states,
     sessions,
@@ -57,10 +57,7 @@ def store():
     if not url:
         pytest.fail("Auth persistence tests require an isolated PostgreSQL database")
     engine = create_database_engine(url)
-    with engine.begin() as conn:
-        # Only this test suite's auth rows, never existing internal foundation data.
-        for table in (sessions, login_states, auth_rate, audit_events):
-            conn.execute(table.delete())
+    reset_auth_tables(engine)
     yield AuthStore(engine, config())
     engine.dispose()
 
