@@ -70,9 +70,9 @@ immutable workflow and recover its state without duplicate effects.
   creation; persist node intents and outbox effects in one transaction.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
-  - [ ] P1-10a Derive immutable node dependencies from a validated workflow
-    (in review: [#15](https://github.com/yanxel18/animetron/pull/15); no
-    scheduling or dispatch).
+  - [x] P1-10a Derive immutable node dependencies from a validated workflow
+    ([#15](https://github.com/yanxel18/animetron/pull/15); no scheduling or
+    dispatch).
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
@@ -90,9 +90,12 @@ hardware and failures never appear ready.
   supported runtime choices and benchmark plan.
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
-  - [ ] P2-03a Validate immutable Hugging Face repository and commit identities
-    (in review: [#14](https://github.com/yanxel18/animetron/pull/14); not a
-    manifest, allowlist or readiness check).
+  - [x] P2-03a Validate immutable Hugging Face repository and commit identities
+    ([#14](https://github.com/yanxel18/animetron/pull/14); not a manifest,
+    allowlist or readiness check).
+  - [ ] P2-03b Verify an individual model stream's size and digest with
+    bounded reads (in review: [#16](https://github.com/yanxel18/animetron/pull/16);
+    not a model readiness check).
 - [ ] P2-04 Implement confirmed, deduplicated acquisition with staging,
   integrity checks and atomic readiness; keep credentials server-side.
 - [ ] P2-05 Expose authorized model and download status; test interrupted,

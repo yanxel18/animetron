@@ -98,3 +98,6 @@ downloads or model registry API are implemented.
 An internal model reference identifies a Hugging Face model repository by its
 full repository ID and full lowercase commit hash. It does not check whether a
 repository or revision exists or is allowlisted, accepted, downloaded, or ready.
+The internal file verifier checks a stream's exact size and SHA-256 using bounded
+reads. Its caller must securely open the intended file and obtain trusted
+expectations; matching one file does not establish model readiness.

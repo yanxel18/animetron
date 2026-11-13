@@ -1,7 +1,83 @@
+import hashlib
+import io
+
 import pytest
 
+from app.services.models.integrity import ModelIntegrityError, verify_model_file
 from app.services.models.preflight import AcquisitionBlocker, check_acquisition
 from app.services.models.reference import ModelReference
+
+
+def test_model_file_integrity_accepts_exact_size_and_hash() -> None:
+    data = b"model weights"
+    verify_model_file(
+        io.BytesIO(data),
+        expected_size=len(data),
+        sha256=hashlib.sha256(data).hexdigest(),
+    )
+
+
+@pytest.mark.parametrize(
+    ("data", "size", "digest"),
+    [
+        (b"abc", 2, hashlib.sha256(b"ab").hexdigest()),
+        (b"ab", 3, hashlib.sha256(b"abc").hexdigest()),
+        (b"abc", 3, hashlib.sha256(b"xyz").hexdigest()),
+    ],
+)
+def test_model_file_integrity_rejects_truncation_extra_data_or_wrong_hash(
+    data: bytes, size: int, digest: str
+) -> None:
+    with pytest.raises(ModelIntegrityError):
+        verify_model_file(io.BytesIO(data), expected_size=size, sha256=digest)
+
+
+def test_model_file_integrity_handles_partial_reads() -> None:
+    class PartialReader(io.BytesIO):
+        def read(self, size: int = -1) -> bytes:
+            return super().read(min(size, 2))
+
+    data = b"abcdef"
+    verify_model_file(
+        PartialReader(data),
+        expected_size=len(data),
+        sha256=hashlib.sha256(data).hexdigest(),
+    )
+
+
+def test_model_file_integrity_bounds_reads_for_large_files() -> None:
+    class BoundedReader(io.BytesIO):
+        def read(self, size: int = -1) -> bytes:
+            assert 0 < size <= 1024 * 1024
+            return super().read(size)
+
+    data = b"x" * (1024 * 1024 + 3)
+    verify_model_file(
+        BoundedReader(data),
+        expected_size=len(data),
+        sha256=hashlib.sha256(data).hexdigest(),
+    )
+
+
+def test_model_file_integrity_rejects_nonblocking_end_of_stream() -> None:
+    class NotReady(io.RawIOBase):
+        def readinto(self, buffer: bytearray) -> None:
+            return None
+
+    with pytest.raises(TypeError):
+        verify_model_file(
+            NotReady(), expected_size=0, sha256=hashlib.sha256(b"").hexdigest()
+        )
+
+
+@pytest.mark.parametrize(
+    ("size", "digest"), [(-1, "a" * 64), (True, "a" * 64), (0, "A" * 64)]
+)
+def test_model_file_integrity_rejects_invalid_expectations(
+    size: int, digest: str
+) -> None:
+    with pytest.raises(ValueError):
+        verify_model_file(io.BytesIO(), expected_size=size, sha256=digest)
 
 
 def test_model_reference_distinguishes_full_repository_and_revision() -> None:
