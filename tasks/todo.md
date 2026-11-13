@@ -56,11 +56,14 @@ have the security and recovery guarantees below.
 - [ ] P0-06 Implement authenticated sessions, authorization, CSRF protection,
   audit records, authorized readiness, and protected WebSocket handshakes.
   - [ ] P0-06b OIDC/Keycloak session foundation is in review in
-    [#33](https://github.com/yanxel18/animetron/pull/33). Independent review
-    requires guarded disposable-test DB resets and bounded denial auditing;
-    GitGuardian's test-material finding must also be resolved. Fixes and
-    regression verification are in progress; do not merge or check complete
-    before all gates pass.
+    [#33](https://github.com/yanxel18/animetron/pull/33), **blocked** at
+    `ff5e67654b8aacde440671e5411414e114daf323` by a failed GitGuardian check.
+    Independent source reassessment resolved the prior disposable-DB reset
+    and denial-audit findings. Author verification: 314 passed/20 unchanged
+    Linux skips, including 70 auth tests and 3 real Keycloak/Edge flows.
+    Three correction iterations are exhausted; exact remaining detector/history
+    scope is unknown. No merge, waiver or completion claim.
+    [Final auth gate evidence](development-report.md#authentication-gate-checkpoint---2026-11-14).
   - [x] P0-06a Apply browser security headers to API responses, including
     unhandled errors ([#19](https://github.com/yanxel18/animetron/pull/19);
     not authentication or CSRF protection).
