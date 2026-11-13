@@ -22,3 +22,11 @@ This report records unresolved findings; implementation progress remains in
   either a trusted gateway or an identity provider. No authenticated session,
   CSRF defense, protected WebSocket, trusted-host policy, or authorized
   readiness endpoint exists. Security response headers do not provide these.
+- **F-006: Byte-storage recovery remains incomplete.** On 2026-11-14 the owner
+  approved a dedicated Linux service with a private Docker named volume, including
+  the exception to project-directory-only storage for Docker-managed volumes.
+  Native Windows byte storage remains unsupported. Internal byte publication and
+  PostgreSQL metadata commits are not atomic; interruption can leave staged,
+  double-linked or orphaned files. Explicit offline reconciliation, retention,
+  aggregate quotas, media probing and coordinated backup/restore are still needed
+  before exposing uploads/downloads or declaring Phase 0 complete.

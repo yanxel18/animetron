@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-`master` and GitHub pull requests on 2026-11-13. The existing module
+`master` and GitHub pull requests on 2026-11-14. The existing module
 specifications are local, untracked documents; their draft status and approval
 gates still apply. This checklist summarizes them but does not replace them.
 
@@ -30,6 +30,10 @@ have the security and recovery guarantees below.
 
 - [ ] P0-01 Review and approve the remaining draft module specifications and
   resolve deployment, security and provider choices.
+  - Storage runtime approved on 2026-11-14: dedicated Linux service with a
+    private Docker named volume. Docker-managed artifact volumes are an explicit
+    exception to the project-directory-only storage boundary; no deployment or
+    live publishing is authorized by this decision.
 - [ ] P0-02 With the owner's approval, make the local specification documents
   available in version control and link them from this checklist.
 - [x] P0-03 Add a minimal API liveness endpoint. [#1](https://github.com/yanxel18/animetron/pull/1)
@@ -46,6 +50,10 @@ have the security and recovery guarantees below.
   - [x] P0-07a Persist immutable artifact metadata in caller-owned transactions
     ([#21](https://github.com/yanxel18/animetron/pull/21); not byte
     storage, content verification or authorization).
+  - [ ] P0-07b Implement bounded, integrity-checked internal Linux byte storage
+    with no-replace publication (in review: [#23](https://github.com/yanxel18/animetron/pull/23);
+    no HTTP, media probing, authorization,
+    byte/metadata atomicity or automatic orphan recovery).
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
