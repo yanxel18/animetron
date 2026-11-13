@@ -137,6 +137,13 @@ hardware and failures never appear ready.
   corrupt, inaccessible, concurrent and disk-constrained acquisitions.
 - [ ] P2-06 Benchmark approved model candidates and document real resource
   usage, compatibility, runtime and visual quality before selecting defaults.
+  - On 2026-11-14 the owner accepted applicable licenses and authorized the
+    three-file Wan2.2 TI2V 5B candidate at
+    `Comfy-Org/Wan-2.2@ee6f4a40737a995bf5818954cfce6d59443b0f04`.
+    Acquisition/local testing remain conditional on capacity, integrity and
+    framework safety checks. [Exact consent scope](development-report.md#pinned-model-consent---2026-11-14).
+    Feasibility work is in progress on branch `benchmark/wan-ti2v-5b`; this
+    authorizes no other model, voice, cloud inference or publishing.
 
 ## Phase 3 - Local media generation
 
@@ -193,11 +200,12 @@ outcomes and safe reconciliation.
 Depends on: Phase 1 and approved schedule/DST policy. Complete when a persisted
 schedule creates at most one run intent per due slot and never grants approval.
 
-- [ ] P6-01 Approve cron, time zone, overlap, missed-run and DST behavior.
+- [x] P6-01 Approve cron, time zone, overlap, missed-run and DST behavior.
   - Owner approved five-field/IANA/OR matching, skipped GPU overlap and missed
     slots without catch-up, spring-forward gaps skipped and fall-back's earlier
-    occurrence once on 2026-11-14. The policy documentation is in review on
-    branch `docs/approve-scheduling-policy`; runtime boundary tests remain
+    occurrence once on 2026-11-14. Policy documentation merged in
+    [#30](https://github.com/yanxel18/animetron/pull/30); documentation review,
+    whitespace and GitGuardian checks passed. Runtime boundary tests remain
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
@@ -222,11 +230,13 @@ accessibility checks pass, not merely when mock screens exist.
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
-  - [ ] P7-06a Record the owner-approved responsiveness target: Chromium on the
+  - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
     reference computer at 1440px, real 100-node/150-edge workflow, p95
     keyboard/click selection to correctly updated inspector at most 200ms,
-    100 measured selections after warm-up. In review on branch
-    `docs/approve-canvas-target`; runtime performance/contrast tests remain open.
+    100 measured selections after warm-up.
+    [#31](https://github.com/yanxel18/animetron/pull/31); documentation review,
+    whitespace and GitGuardian checks passed. Runtime performance/contrast
+    tests remain open.
 
 ## Phase 8 - MCP bridge
 
