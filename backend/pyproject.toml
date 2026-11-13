@@ -8,10 +8,12 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "alembic==1.20.1",
+    "croniter==7.0.0",
     "fastapi==0.162.5",
     "psycopg[binary]==3.3.9",
     "pydantic==2.14.3",
     "sqlalchemy==2.0.57",
+    "tzdata==2026.6",
     "uvicorn==0.54.0",
 ]
 
@@ -21,6 +23,7 @@ dev = [
     "mypy==2.4.1",
     "pytest==9.2.0",
     "ruff==0.17.5",
+    "types-croniter==6.2.4.20261006",
 ]
 
 [tool.setuptools.packages.find]

@@ -17,6 +17,9 @@ Hugging Face credential and never accessed `huggingfaceinfo.env`.
 Worktree: `D:\animetron\.worktrees\wan-benchmark`;
 branch: `benchmark/wan-ti2v-5b`;
 baseline: `7bf34e2cc3ed81c1ca69ade4143b1eb02b3a6a5f`.
+Before merge, the tracker was reconciled with master `d4ef716`: explicit
+consent #32 and merged preview-core #35 are preserved. This does not change
+the historical experiment baseline or certify complete model feasibility.
 Execution timestamps below are UTC (local date is 2026-11-14 JST).
 
 ## Scope and acquisition gate

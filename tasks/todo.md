@@ -116,8 +116,8 @@ hardware and failures never appear ready.
   [#7](https://github.com/yanxel18/animetron/pull/7)
 - [ ] P2-02 Inspect actual VRAM, driver, WSL2/CUDA and available storage; record
   supported runtime choices and benchmark plan.
-  - [ ] P2-02a Record host resources and Linux-container NVIDIA visibility.
-    In review on branch `docs/hardware-readiness`; no CUDA kernel, model
+  - [x] P2-02a Record host resources and Linux-container NVIDIA visibility.
+    [#28](https://github.com/yanxel18/animetron/pull/28); no CUDA kernel, model
     compatibility, Docker-volume capacity or inference benchmark is certified.
     See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
@@ -145,6 +145,15 @@ hardware and failures never appear ready.
     shared-host/Linux RAM capacity was not established. No model acquisition,
     READY status, scene output or P3/P9 acceptance. Exact-owned containers and
     transient runtime were removed after worker-termination verification.
+  - On 2026-11-14 the owner accepted applicable licenses and authorized the
+    three-file Wan2.2 TI2V 5B candidate at
+    `Comfy-Org/Wan-2.2@ee6f4a40737a995bf5818954cfce6d59443b0f04`.
+    Acquisition/local testing remain conditional on capacity, integrity and
+    framework safety checks. [Exact consent scope](development-report.md#pinned-model-consent---2026-11-14).
+    The partial feasibility report is in review in
+    [#34](https://github.com/yanxel18/animetron/pull/34), blocked before model
+    acquisition by conservative RAM-capacity uncertainty. Consent authorizes
+    no other model, voice, cloud inference or publishing.
 
 ## Phase 3 - Local media generation
 
@@ -201,9 +210,22 @@ outcomes and safe reconciliation.
 Depends on: Phase 1 and approved schedule/DST policy. Complete when a persisted
 schedule creates at most one run intent per due slot and never grants approval.
 
-- [ ] P6-01 Approve cron, time zone, overlap, missed-run and DST behavior.
+- [x] P6-01 Approve cron, time zone, overlap, missed-run and DST behavior.
+  - Owner approved five-field/IANA/OR matching, skipped GPU overlap and missed
+    slots without catch-up, spring-forward gaps skipped and fall-back's earlier
+    occurrence once on 2026-11-14. Policy documentation merged in
+    [#30](https://github.com/yanxel18/animetron/pull/30); documentation review,
+    whitespace and GitGuardian checks passed. Runtime boundary tests remain
+    required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
+  - [x] P6-02a Internal next-five preview core merged in
+    [#35](https://github.com/yanxel18/animetron/pull/35): approved
+    five-field/OR/IANA matching, gap skip, earlier fold only and deterministic
+    zone/local-slot keys. Native suite 187 passed/77 existing integration skips,
+    Ruff/strict Linux mypy and GitGuardian passed. Tests do not
+    establish persistence, authorized CRUD, overlap/restart or dispatch.
+    [Preview verification and findings](scheduling-preview-report.md).
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
   skipped slots; test pause, restart, overlap, DST and duplicate dispatch.
 
@@ -225,6 +247,13 @@ accessibility checks pass, not merely when mock screens exist.
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
+  - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
+    reference computer at 1440px, real 100-node/150-edge workflow, p95
+    keyboard/click selection to correctly updated inspector at most 200ms,
+    100 measured selections after warm-up.
+    [#31](https://github.com/yanxel18/animetron/pull/31); documentation review,
+    whitespace and GitGuardian checks passed. Runtime performance/contrast
+    tests remain open.
 
 ## Phase 8 - MCP bridge
 

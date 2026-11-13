@@ -23,10 +23,35 @@ timeZone, enabled, nextDueAt and explicit overlap/missed-run policies.
 - `POST /api/v1/schedules/{id}/previews`: next five occurrences with offsets.
 - Internal dispatch creates the runtime run intent, not a direct inference call.
 
-Default proposal: skip overlapping generation, skip missed occurrences on
-restart, and permit no catch-up burst. A recurring local time is fired once per
-local schedule slot on fall-back and skipped if nonexistent on spring-forward;
-document exact cron-library behavior before approval of implementation.
+Policy approved by the owner on November 14, 2026:
+
+- Five-field cron: minute, hour, day of month, month, weekday. Use explicit IANA
+  time zones and standard day-of-month OR weekday matching.
+- Skip overlapping GPU generation and missed occurrences on restart, with no
+  catch-up burst. Skipped slots remain observable and audited.
+- Skip a nonexistent local time during spring-forward. For an ambiguous local
+  time during fall-back, fire once at its earlier occurrence.
+- Preview and dispatch use the same persisted local-slot identity. A schedule
+  never grants publication approval.
+
+The maintained croniter library documents OR matching, optional AND behavior,
+and timezone-aware iteration; it also supports additional second/year fields.
+Those extensions are outside this approved five-field policy. Its documentation
+does not establish the exact approved gap/fold behavior. Verify the selected
+version with real time-zone boundary cases and enforce the approved policy
+rather than silently adopting library defaults.
+
+The first implementation slice supplies internal next-five preview only:
+`app.services.scheduling.preview.preview_occurrences`. It uses croniter 7.0.0
+wall-clock candidates and explicit `zoneinfo` UTC round-trips, choosing fold 0.
+Its POSIX-style syntax accepts numeric lists/ranges/steps, wildcards and
+three-letter month/weekday names; croniter-specific macros, hashed/random,
+`L`/`W`/`#`, seconds and years are outside this interface. A bounded
+50-calendar-year search fails explicitly rather than returning partial results.
+An offset-bearing local time, UTC due time and zone/wall-clock slot key are
+returned. Future persistence/dispatch must reuse this calculation and namespace
+slot keys by schedule identity. No authorized preview endpoint or persisted
+dispatch exists yet. [Implementation findings](../tasks/scheduling-preview-report.md).
 
 ## Testing and acceptance criteria
 
@@ -43,3 +68,11 @@ Inherit shared boundaries. One Beat process; no worker-embedded duplicate Beat.
 Do not hardcode a daily schedule into worker code. Schedule persistence is
 PostgreSQL-backed; select one maintained integration or narrowly scoped scheduler,
 not a second parallel scheduling system.
+
+## Scheduling evidence
+
+[Maintainer README](https://github.com/pallets-eco/croniter#about-dst), checked
+November 14, 2026. The day-of-month/day-of-week documentation states that
+restricted fields use OR by default. DST iteration requires a timezone-aware
+base. No croniter version pin or scheduler implementation is approved merely
+by citing this page; selection and tests must substantiate the policy above.
