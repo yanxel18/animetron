@@ -11,7 +11,9 @@ from app.core.auth import (
     AuthDenied,
     AuthStore,
     audit_events,
+    auth_rate,
     digest,
+    login_states,
     sessions,
 )
 from app.core.database import create_database_engine
@@ -57,7 +59,7 @@ def store():
     engine = create_database_engine(url)
     with engine.begin() as conn:
         # Only this test suite's auth rows, never existing internal foundation data.
-        for table in (sessions, audit_events):
+        for table in (sessions, login_states, auth_rate, audit_events):
             conn.execute(table.delete())
     yield AuthStore(engine, config())
     engine.dispose()
@@ -129,3 +131,23 @@ def test_audit_contains_no_session_handle_or_provider_credentials(store):
     assert [row["event"] for row in rows] == ["login_succeeded", "logout"]
     assert all(row["principal_id"] == principal.id for row in rows)
     assert all(handle not in str(row) and config().client_secret not in str(row) for row in rows)
+
+
+def test_idle_expiry_and_validation_only_checks_do_not_extend_session(store):
+    handle, _ = store.create_session("owner", "request")
+    initial = datetime.now(UTC)
+    store.authenticate(handle, now=initial + timedelta(minutes=20), touch=False)
+    with pytest.raises(AuthDenied):
+        store.authenticate(handle, now=initial + timedelta(minutes=31))
+
+
+def test_shared_login_limit_cannot_be_bypassed_by_new_browser_handles(store):
+    for _ in range(30):
+        store.start_login("nonce", "v" * 48, "request")
+    other = AuthStore(store.engine, config())
+    for _ in range(2):
+        with pytest.raises(AuthDenied) as error:
+            other.start_login("nonce", "v" * 48, "request")
+        assert error.value.status == 429
+    with store.engine.connect() as conn:
+        assert len(conn.execute(select(login_states)).all()) == 30

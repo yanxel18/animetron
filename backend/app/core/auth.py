@@ -237,17 +237,24 @@ class AuthStore:
             self.record(conn, "login_succeeded", request_id, principal_id)
         return handle, Principal(principal_id, role, csrf, expires)
 
-    def authenticate(self, handle: str, *, now: datetime | None = None) -> Principal:
+    def authenticate(
+        self, handle: str, *, now: datetime | None = None, touch: bool = True,
+    ) -> Principal:
         now = now or datetime.now(UTC)
         if not re.fullmatch(r"[A-Za-z0-9_-]{43}", handle):
             raise AuthDenied()
         with self.transaction() as conn:
-            row = conn.execute(sessions.update().where(
+            predicates = (
                 sessions.c.handle_hash == digest(handle),
                 sessions.c.config_hash == self.config.fingerprint,
                 sessions.c.expires_at > now,
                 sessions.c.last_seen_at > now - timedelta(seconds=self.config.idle_seconds),
-            ).values(last_seen_at=now).returning(sessions)).mappings().first()
+            )
+            query = (
+                sessions.update().where(*predicates).values(last_seen_at=now).returning(sessions)
+                if touch else sa.select(sessions).where(*predicates)
+            )
+            row = conn.execute(query).mappings().first()
         if row is None:
             raise AuthDenied()
         return Principal(
