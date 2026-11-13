@@ -2,9 +2,11 @@
 
 Project-wide progress and remaining work: [task checklist](../tasks/todo.md).
 
-The API currently provides only process liveness. A PostgreSQL engine factory
-is available for future persistence, but the API does not yet use a database
-or implement authentication, storage, workflows, or creator features.
+The API provides minimal public liveness and a bounded authenticated control
+plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
+[AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
+CSRF, audit/readiness/WebSocket controls and security limitations. It does not
+implement artifact HTTP, workflow CRUD, model/media or creator features.
 
 The internal workflow graph validator checks graph limits, node and edge IDs,
 allowlisted node types, port connections, required inputs, and cycles against
@@ -105,11 +107,16 @@ From this directory in PowerShell, using Python 3.12 or newer:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m pytest tests -q
+.\.venv\Scripts\python.exe tests/run_auth_checks.py
 .\.venv\Scripts\python.exe -m ruff check app tests
 .\.venv\Scripts\python.exe -m mypy app
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
+
+The full auth harness requires Docker and installed Edge on Windows; it creates
+only disposable, loopback-bound test resources and ignores inherited database
+URLs. The plain HTTP server command above is liveness-only: authenticated
+operation requires the explicitly configured HTTPS origin and TLS boundary.
 
 ## Internal Linux artifact bytes
 
@@ -192,7 +199,7 @@ Syscall references: [linkat](https://man7.org/linux/man-pages/man2/link.2.html),
 It is a liveness check, not a readiness or security check. Interactive API
 documentation is disabled to avoid loading third-party assets.
 HTTP responses include restrictive browser security headers, including on
-unhandled errors. They do not authenticate requests, prevent CSRF, enforce
+unhandled errors. Headers alone do not authenticate requests, prevent CSRF, enforce
 trusted hosts, or replace a secure gateway. Routes are registered on `api`;
 serve the outer ASGI `app` so the headers also cover error responses. See
 [Starlette middleware documentation](https://www.starlette.io/middleware/#corsmiddleware-global-enforcement).
