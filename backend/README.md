@@ -1,5 +1,7 @@
 # AnimeTron backend
 
+Project-wide progress and remaining work: [task checklist](../tasks/todo.md).
+
 The API currently provides only process liveness. A PostgreSQL engine factory
 is available for future persistence, but the API does not yet use a database
 or implement authentication, storage, workflows, or creator features.
