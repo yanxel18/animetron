@@ -11,7 +11,11 @@ validation is strict, unknown fields are rejected, and errors do not echo config
 values. Nodes without a config model accept only empty config. This validator is
 not exposed as an API or connected to run dispatch. It does not return parsed
 config objects; execution must validate config again before use. Workflow
-serialization and durable execution are not yet implemented.
+durable execution is not yet implemented. An internal, provisional document
+parser accepts UTF-8 JSON with schemaVersion 1, an opaque nonblank revision,
+nodes with configs, and camelCase edge ports. Callers must provide byte and
+graph limits, check the returned validation issues, and must not treat a parsed
+document as an immutable snapshot. There is no workflow API or persistence yet.
 
 The internal run store persists run-state transitions and ordered replay events
 in a caller-managed transaction. It does not create workflow snapshots, dispatch
