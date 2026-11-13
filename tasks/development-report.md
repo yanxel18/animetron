@@ -19,7 +19,8 @@ This report records unresolved findings; implementation progress remains in
   specifications are merged in [#27](https://github.com/yanxel18/animetron/pull/27).
 - **F-005: Authentication implementation remains incomplete.** The owner chose
   a maintained identity-provider integration and delegated provider selection.
-  Implementation/verification is in progress; no merged authenticated session,
+  Implementation is tested in unmerged PR #33 but blocked by its secret-scanner
+  gate; no merged authenticated session,
   CSRF defense, protected WebSocket, trusted-host policy, or authorized
   readiness endpoint exists. Security response headers do not provide these.
 - **F-006: Byte-storage recovery remains incomplete.** On 2026-11-14 the owner
@@ -35,13 +36,14 @@ This report records unresolved findings; implementation progress remains in
   established. No model payload or scene was acquired/generated. See the merged
   [Wan findings](wan-benchmark-report.md); this is not intrinsic GPU/model
   incompatibility or permission to alter shared-machine settings.
-- **F-008: Authentication merge gates need correction.** Independent review
-  of [#33](https://github.com/yanxel18/animetron/pull/33) found blanket auth-table
-  resets from a caller-provided test DB URL without an ownership guard, and
-  unbounded persistent audit writes from unauthenticated denials. GitGuardian
-  also flagged high-entropy test material. Corrections/regression tests are in
-  progress; no waiver or self-approval is permitted. The check is not evidence
-  that the protected local Hugging Face key leaked.
+- **F-008: Authentication's scanner gate remains blocked.** Independent source
+  reassessment of [#33](https://github.com/yanxel18/animetron/pull/33) resolved
+  the prior unguarded test resets and unbounded per-denial audit-row findings.
+  Final-head GitGuardian still fails with a generic high-entropy finding
+  reported in the API tests; exact remaining detector/history scope is unknown.
+  Three correction iterations are exhausted. No waiver, force push or
+  self-approval is permitted; the result is not evidence that the protected
+  local Hugging Face key leaked.
 - **F-009: A test audit omitted its cache override once.** The auth task reports
   a possible shared-cache write before correcting subsequent auditing to an
   explicitly project-contained cache. The shared cache was left untouched,
@@ -376,3 +378,46 @@ working authorized workflow/media/review/publishing/scheduler/MCP services,
 recovery and the owner's real narrated-reel/eligible-platform acceptance are
 still required. No shared-host/WSL/Docker settings were changed to force model
 capacity, and no Hugging Face credential was read.
+
+## Authentication gate checkpoint - 2026-11-14
+
+[#33](https://github.com/yanxel18/animetron/pull/33) remains open and unmerged at
+`ff5e67654b8aacde440671e5411414e114daf323`, which includes master `aa02844`.
+Authenticated GitHub REST confirmed that exact head and the completed, failed
+GitGuardian check `132207548516`; no required check was bypassed.
+
+The author reports final verification of **314 passed/20 unchanged Linux-only
+skips**, including **70 auth tests and 3 real Keycloak/Edge flows**. Ruff,
+strict Linux mypy (29 files), migration upgrade/check/downgrade/re-upgrade and
+dependency audit passed. These are author/harness results, not independent
+database or Docker reproduction or full-system acceptance.
+
+Independent read-only security reassessment resolved the two original findings:
+
+- All reviewed auth reset fixtures call a shared guard that checks generated
+  capability, database marker/name and captured container ID in the same
+  marker-locked transaction before deletion. Pytest checks ownership before
+  collection; missing/foreign proof and sentinel preservation have regressions.
+- Denied access/failed login use two fixed 96-slot PostgreSQL counter rings:
+  atomic shared increments, at most 192 logical rows, 24-hour denial retention
+  and legacy 90-day audit cleanup on writes/owner reads. The owner-only response
+  exposes counters; repeated route denials, concurrency and ring retention are
+  tested. Existing HTTP and login throttling behavior is unchanged.
+
+The counter bound is **not** a request-rate, WAL, dead-tuple or filesystem
+capacity guarantee. Back-channel account-disable propagation, deployment TLS,
+backup and SLO certification also remain outside this foundation's evidence.
+
+GitGuardian reports zero annotations; the author's masked summary identifies
+`backend/tests/test_auth_api.py` and the generic high-entropy category, without
+establishing the remaining line, exact detector or current/history scope.
+Matched values were withheld. Runtime-generated fixture material did not clear
+the final check. After three correction iterations, leave the PR open for
+finding triage rather than speculate, suppress scanning, delete regression
+coverage, rewrite shared history or assert that a live credential leaked.
+Source reassessment of the two findings is not full PR clearance.
+
+The author reports exact-name absence checks after removing owned PostgreSQL/
+Keycloak containers, anonymous volumes, networks and bounded temporaries;
+the private worktree virtual environment is retained. No deployment or live
+content transmission occurred. P0-06b and P9 remain unchecked.
