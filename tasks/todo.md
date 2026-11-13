@@ -34,6 +34,13 @@ have the security and recovery guarantees below.
     private Docker named volume. Docker-managed artifact volumes are an explicit
     exception to the project-directory-only storage boundary; no deployment or
     live publishing is authorized by this decision.
+  - Blocked on 2026-11-14: planning approval does not settle implementation
+    approval or the trusted-gateway versus identity-provider decision. See the
+    [P0-P9 readiness assessment](development-report.md#p0-p9-readiness-assessment---2026-11-14)
+    for verification results and the remaining owner decisions. Autonomous
+    workflow instructions are merged in
+    [#25](https://github.com/yanxel18/animetron/pull/25); no phase completion
+    or external-action permission is implied.
 - [ ] P0-02 With the owner's approval, make the local specification documents
   available in version control and link them from this checklist.
 - [x] P0-03 Add a minimal API liveness endpoint. [#1](https://github.com/yanxel18/animetron/pull/1)
