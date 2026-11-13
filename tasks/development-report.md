@@ -194,3 +194,25 @@ established by these measurements.
 
 P2-02 remains incomplete pending compute/storage compatibility evidence; P2-06
 and P3/P9 real-model acceptance remain explicitly gated.
+
+## Scheduling-policy approval - 2026-11-14
+
+The owner approved five-field cron with explicit IANA zones and standard
+day-of-month OR weekday semantics, skipped overlapping GPU generation, skipped
+missed occurrences without catch-up, skipped spring-forward gaps and one
+execution at the earlier fall-back occurrence. Preview and dispatch must share
+the persisted slot identity. The [scheduling specification](../docs/SPEC-scheduling.md)
+records the decision and the maintainer documentation limits.
+
+This resolves the policy-choice portion of P6-01, not P6-02/P6-03. No scheduler,
+library pin, due-slot transaction or DST runtime behavior was implemented or
+certified by the documentation change. Hardware evidence is merged in
+[#28](https://github.com/yanxel18/animetron/pull/28); P2-02a is reconciled while
+P2-02 remains incomplete.
+
+The owner identified a project-local Hugging Face environment file. Metadata
+confirmed that it was untracked; its contents were not read. Ignore rules for
+`*.env` and `.worktrees/` were verified and merged in
+[#29](https://github.com/yanxel18/animetron/pull/29). No credential value was
+printed, staged or transmitted. An available token is not evidence of model
+license acceptance, repository approval or inference compatibility.
