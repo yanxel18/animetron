@@ -29,6 +29,15 @@ in a caller-managed transaction. It does not create workflow snapshots, dispatch
 jobs, authorize actions, or implement review and publication. Only use it behind
 those future controls.
 
+The internal transactional outbox stores intent IDs, topics, and resource IDs
+in a caller-managed transaction. Claims use expiring database leases and a
+token to reject stale acknowledgements. This is storage infrastructure only:
+there is no relay, queue, automatic run dispatch, or exactly-once guarantee.
+A relay must commit its claim before publishing, reuse the intent ID for
+deduplication, and acknowledge only confirmed delivery. Consumers must make
+effects idempotent; a lease cannot fence an external effect or prove that a
+timed-out publication did not happen.
+
 From this directory in PowerShell, using Python 3.12 or newer:
 
 ```powershell
@@ -60,3 +69,9 @@ database. Set `ANIMETRON_DATABASE_URL` to the same URL, then run:
 
 Back up existing databases before applying migrations. A downgrade removes run
 and event data and must not be used without explicit authorization.
+
+The internal model acquisition preflight reports missing license acceptance,
+access confirmation, and insufficient storage. Its caller must supply verified
+acceptance, access, and current storage facts; a successful check is not a
+download, reservation, model integrity check, or readiness result. No model
+downloads or model registry API are implemented.
