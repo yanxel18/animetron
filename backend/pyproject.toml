@@ -8,6 +8,8 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.162.5",
+    "psycopg[binary]==3.3.9",
+    "sqlalchemy==2.0.57",
     "uvicorn==0.54.0",
 ]
 
