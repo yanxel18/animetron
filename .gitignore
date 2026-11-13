@@ -9,4 +9,6 @@ build/
 dist/
 .env
 .env.*
+*.env
+.worktrees/
 data/

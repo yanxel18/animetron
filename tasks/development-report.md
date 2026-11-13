@@ -130,3 +130,67 @@ resolved, but authenticated implementation and acceptance remain outstanding.
 The earlier readiness assessment is historical evidence, not the current
 approval state. Continue using [todo.md](todo.md); remaining external-action,
 scheduling/performance and owner-involved acceptance gates are unchanged.
+
+## Hardware evidence - 2026-11-14
+
+Specification publication is merged in
+[#27](https://github.com/yanxel18/animetron/pull/27); F-004 is resolved.
+Host/resource inspection and a bounded Linux-container NVIDIA probe produced:
+
+| Measurement | Observed value |
+| --- | --- |
+| GPU | NVIDIA GeForce RTX 5070 Ti |
+| Total reported VRAM | 16,303 MiB |
+| Free reported VRAM at inspection | 14,103 MiB; volatile, not reserved capacity |
+| NVIDIA driver | 621.01 |
+| GPU compute capability | 12.0 |
+| Host physical memory | 34,055,766,016 bytes |
+| Project drive D free space | 240,320,303,104 bytes; volatile, not reserved capacity |
+| WSL | 2.7.8.0, default version 2, default distribution docker-desktop |
+| WSL kernel | 6.18.33.1-1 |
+| Docker server | 29.7.2, Linux x86_64 |
+| Existing Python test image ID | `sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b` |
+
+The existing `python:3.12-slim` image ran only the NVIDIA hardware query, with
+`--rm`, no network, read-only root filesystem, all capabilities dropped,
+no-new-privileges, 32-process/128-MiB/one-CPU limits and the unique name
+`animetron-hardware-478745d5`. It reported the same GPU, VRAM, driver and compute
+capability inside Linux. The exact-name container query after exit returned
+no container. No image was downloaded and no GPU inference was launched.
+
+**This verifies driver/device visibility, not a working CUDA compute kernel,
+PyTorch build, ComfyUI compatibility or model throughput.** Project-drive free
+space also does not prove free space in Docker-managed artifact/model volumes.
+No capacity reservation, inference engine, model default or checkpoint pin is
+established by these measurements.
+
+### Runtime and benchmark next steps
+
+- Use Linux GPU containers through WSL2 as the candidate inference runtime;
+  secure byte storage remains Linux-only. Do not install a Linux NVIDIA driver
+  into WSL or change the host driver as part of this project.
+- Select an officially compatible framework/CUDA build for compute capability
+  12.0, then verify device enumeration and a small synchronized real tensor
+  operation in an isolated bounded test before marking CUDA compute ready.
+- Confirm free space and staging/output headroom at the actual model/artifact
+  storage location. Enforce a single GPU admission slot; the currently free
+  VRAM figure is not permission to consume other workloads' capacity.
+- After explicit checkpoint/license/access approval, benchmark one small scene
+  before a 30-60-second reel. Record immutable revisions and file hashes,
+  framework/CUDA/ComfyUI/FFmpeg versions, peak GPU/RAM/disk use and elapsed time.
+- Validate 9:16, decodability, audio, subtitles and the hard 90-second maximum.
+  Obtain owner review of character consistency, voice rights and alignment;
+  do not substitute deterministic fixtures for model or visual-quality evidence.
+
+### Documentation evidence and unresolved compatibility
+
+- [NVIDIA CUDA on WSL guide](https://docs.nvidia.com/cuda/wsl-user-guide/index.html#nvidia-gpu-computing-on-wsl):
+  WSL2 is required; container GPU use is supported, while WSL `nvidia-smi`
+  exposes a limited feature set. Hardware visibility alone is insufficient.
+- [PyTorch local installation page](https://docs.pytorch.org/get-started/locally/):
+  the retrieved selector showed an old stable label alongside newer CUDA options.
+  This inconsistent page was not used to choose a version pin. Verify current
+  official release/build support and a real kernel before accepting compatibility.
+
+P2-02 remains incomplete pending compute/storage compatibility evidence; P2-06
+and P3/P9 real-model acceptance remain explicitly gated.
