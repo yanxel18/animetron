@@ -31,6 +31,10 @@ database changes. Digests detect corruption, not malicious tampering. It does
 not pin handler implementations or schema defaults or make execution safe
 across upgrades. Do not enqueue work until those guarantees exist.
 
+An internal dependency plan derives each node's distinct predecessors from a
+validated workflow. It does not bind to a stored snapshot, schedule nodes,
+track outcomes, or execute work; document order is not execution order.
+
 The internal run store persists run-state transitions and ordered replay events
 in a caller-managed transaction. A separate internal creation path binds a run
 to a stored revision and prevents deletion of referenced revisions. Existing

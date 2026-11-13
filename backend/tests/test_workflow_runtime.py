@@ -1,6 +1,10 @@
+import json
+
 import pytest
 from pydantic import BaseModel, Field
 
+from app.services.workflows.plan import create_dependency_plan
+from app.services.workflows.snapshot import InvalidWorkflowGraph
 from app.services.workflows.validation import (
     Edge,
     Graph,
@@ -20,6 +24,108 @@ DEFINITIONS = {
     "image_sink": NodeDefinition(inputs={"in": Port("image", required=True)}),
 }
 LIMITS = GraphLimits(max_nodes=10, max_edges=10)
+
+
+def test_dependency_plan_captures_fan_out_join_and_independent_nodes() -> None:
+    definitions = {
+        "source": NodeDefinition(outputs={"out": Port("text")}),
+        "join": NodeDefinition(
+            inputs={"left": Port("text", True), "right": Port("text", True)}
+        ),
+    }
+    data = {
+        "schemaVersion": 1,
+        "revision": "r1",
+        "nodes": [
+            {"id": "join", "type": "join", "config": {}},
+            {"id": "b", "type": "source", "config": {}},
+            {"id": "a", "type": "source", "config": {}},
+            {"id": "independent", "type": "source", "config": {}},
+        ],
+        "edges": [
+            {
+                "id": "1",
+                "source": "a",
+                "sourcePort": "out",
+                "target": "join",
+                "targetPort": "left",
+            },
+            {
+                "id": "2",
+                "source": "b",
+                "sourcePort": "out",
+                "target": "join",
+                "targetPort": "right",
+            },
+        ],
+    }
+    result = create_dependency_plan(
+        json.dumps(data).encode(), definitions, LIMITS, max_bytes=4096
+    )
+    assert result.revision == "r1"
+    assert [(node.node_id, node.dependencies) for node in result.nodes] == [
+        ("join", ("b", "a")),
+        ("b", ()),
+        ("a", ()),
+        ("independent", ()),
+    ]
+
+
+def test_dependency_plan_rejects_cycles_before_returning_a_plan() -> None:
+    data = {
+        "schemaVersion": 1,
+        "revision": "r1",
+        "nodes": [{"id": "a", "type": "transform", "config": {}}],
+        "edges": [
+            {
+                "id": "e",
+                "source": "a",
+                "sourcePort": "out",
+                "target": "a",
+                "targetPort": "in",
+            }
+        ],
+    }
+    with pytest.raises(InvalidWorkflowGraph) as error:
+        create_dependency_plan(
+            json.dumps(data).encode(), DEFINITIONS, LIMITS, max_bytes=4096
+        )
+    assert "CYCLE" in {issue.code for issue in error.value.issues}
+
+
+def test_dependency_plan_counts_one_predecessor_connected_to_two_ports() -> None:
+    definitions = {
+        "source": NodeDefinition(outputs={"out": Port("text")}),
+        "join": NodeDefinition(inputs={"left": Port("text"), "right": Port("text")}),
+    }
+    data = {
+        "schemaVersion": 1,
+        "revision": "r1",
+        "nodes": [
+            {"id": "a", "type": "source", "config": {}},
+            {"id": "b", "type": "join", "config": {}},
+        ],
+        "edges": [
+            {
+                "id": "1",
+                "source": "a",
+                "sourcePort": "out",
+                "target": "b",
+                "targetPort": "left",
+            },
+            {
+                "id": "2",
+                "source": "a",
+                "sourcePort": "out",
+                "target": "b",
+                "targetPort": "right",
+            },
+        ],
+    }
+    result = create_dependency_plan(
+        json.dumps(data).encode(), definitions, LIMITS, max_bytes=4096
+    )
+    assert result.nodes[1].dependencies == ("a",)
 
 
 def graph(nodes: list[Node], edges: list[Edge] | None = None) -> Graph:
