@@ -1,6 +1,7 @@
 # P7-01 Creator Studio Foundation Report
 
-**Status:** Implemented on `feature/studio-foundation`, PR #36 open for review.
+**Status:** P7-01 merged in [#36](https://github.com/yanxel18/animetron/pull/36).
+Independent whole-UI review and checks passed; broader P7/P9 remain incomplete.
 
 **Base:** `master` at `901904419a1bbf6ed660041e88240f91bb9c6f98` (PR #32).
 
@@ -82,6 +83,22 @@ Before PR preparation, authenticated GitHub REST reads confirmed:
 GitHub MCP reads returned 404; the Git credential helper was used for REST
 reads without printing or persisting its token.
 
+## Independent review and persistent checkout
+
+The independent UI Finish-Gate reviewer repeated the script-disabled frozen
+install, 3 unit tests, 6 Chromium cases, strict typecheck and production build;
+all passed, with zero dependency audit findings. The reviewed source head was
+`d8a28dfbdb7b2e5c510f666e21de6e28635118d2`. No required findings were reported.
+Viewport screenshots were retained in the review worktree's
+`frontend/test-results`; browser/server processes ended and temporary review
+dependencies/caches were removed.
+
+After merge, the main project checkout's frozen dependencies were restored
+with project-local cache/temp paths; typecheck, 3 unit tests and production
+build passed again. Installed dependencies/build remain in ignored project
+directories so the local UI can be started without restoring them again.
+No persistent dev server or deployment was started.
+
 ## Limitations and remaining work
 
 - The 720 CSS-pixel / device-scale-factor-2 test is a real Chromium render of
@@ -101,7 +118,7 @@ reads without printing or persisting its token.
   unimplemented. P7-05 broader accessibility acceptance and P7-06 graph
   responsiveness target remain open. No P9 readiness or end-to-end acceptance
   is claimed.
-- Task checklist P7-01 remains unchecked until this PR is merged.
+- Task checklist P7-01 is reconciled as complete after the verified merge.
 
 Temporary npm cache, Chromium binaries, browser contexts, test screenshots,
 build output and temporary browser files were created only below this worktree;

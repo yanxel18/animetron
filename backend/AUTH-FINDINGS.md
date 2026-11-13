@@ -48,6 +48,13 @@ and cursor fields remain, with a bounded `denials` collection.
   current master incorporated at `8f98ca3906a14b9f31b62d3ccbcfa89797725db5`,
   preserving both auth and master scheduling dependencies. No unrelated
   master implementation was edited.
+- The coordinator then required current master
+  `aa028447fca2c576039426659c6f707599d4eb6d` before final handoff. That
+  integration changes only task reports/tracker, not backend source/tests/
+  dependencies. Preserve #34 RAM-blocked consent facts, #35 dependency pins,
+  #36 P7-01 completion and the original review-blocker history; P0-06b remains
+  unchecked/in review. Parent worktree edits and its empty findings file are
+  not touched. The final full QA remains applicable to unchanged backend code.
 - Real denial-growth regression: **1 expected failure, 17 passed** before fix.
 - QA iteration 1: **283 passed, 20 skipped**, mypy 27 files; one import-format
   failure corrected. QA iteration 2: **314 passed, 20 skipped**, mypy 29 files;

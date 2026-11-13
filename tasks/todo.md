@@ -65,6 +65,11 @@ have the security and recovery guarantees below.
     `feature/oidc-browser-sessions`;
     dependency [#27](https://github.com/yanxel18/animetron/pull/27) is merged.
     See [auth contract and acceptance evidence](../backend/AUTH.md).
+    Original independent-review blockers were unguarded disposable-test DB
+    resets and unbounded denial auditing; both now have verified fixes awaiting
+    same-reviewer reassessment. GitGuardian's test-material finding still
+    requires a passing final-head check. Do not merge or check complete before
+    all gates pass.
     Review repair: 314 passed / 20 existing Linux-only skips, 70 auth tests,
     Ruff and Linux mypy (29 files) passed, including owned-database rejection
     and bounded shared denial-count regressions. Migration upgrade/check/
@@ -153,8 +158,9 @@ hardware and failures never appear ready.
 - [ ] P2-06 Benchmark approved model candidates and document real resource
   usage, compatibility, runtime and visual quality before selecting defaults.
   - [ ] P2-06a Run the explicitly approved pinned Wan 2.2 TI2V 5B feasibility
-    experiment. In review in [#34](https://github.com/yanxel18/animetron/pull/34)
-    on `benchmark/wan-ti2v-5b`; see
+    experiment. Partial evidence merged in
+    [#34](https://github.com/yanxel18/animetron/pull/34); full model feasibility
+    remains **blocked before acquisition** by the RAM planning gate. See
     [bounded execution evidence](wan-benchmark-report.md).
     PyTorch 2.9.1/cu128 synchronized sm_120 kernels passed; conservative
     shared-host/Linux RAM capacity was not established. No model acquisition,
@@ -165,7 +171,7 @@ hardware and failures never appear ready.
     `Comfy-Org/Wan-2.2@ee6f4a40737a995bf5818954cfce6d59443b0f04`.
     Acquisition/local testing remain conditional on capacity, integrity and
     framework safety checks. [Exact consent scope](development-report.md#pinned-model-consent---2026-11-14).
-    The partial feasibility report is in review in
+    The partial feasibility report is merged in
     [#34](https://github.com/yanxel18/animetron/pull/34), blocked before model
     acquisition by conservative RAM-capacity uncertainty. Consent authorizes
     no other model, voice, cloud inference or publishing.
@@ -250,10 +256,13 @@ Depends on: corresponding authorized backend services; build usable slices
 alongside the phases above. Complete when the real browser flows and
 accessibility checks pass, not merely when mock screens exist.
 
-- [ ] P7-01 Establish the dark/cyan workspace, local/system typography,
-  responsive layout and accessible component foundations. Implementation is in
-  review: [PR #36](https://github.com/yanxel18/animetron/pull/36). Keep unchecked
-  until merged.
+- [x] P7-01 Establish the dark/cyan workspace, local/system typography,
+  responsive layout and accessible component foundations.
+  [#36](https://github.com/yanxel18/animetron/pull/36) merged after independent
+  whole-UI review: 3 unit/6 Chromium cases, typecheck/build, script-disabled
+  frozen install, audit and GitGuardian passed. Native 200% browser zoom and
+  assistive technology remain unverified; P7-05/P7-06/P9 are not complete.
+  [Measured foundation evidence](studio-foundation-report.md).
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
