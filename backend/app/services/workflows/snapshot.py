@@ -19,6 +19,7 @@ class InvalidWorkflowGraph(ValueError):
 
 @dataclass(frozen=True)
 class WorkflowSnapshot:
+    revision: str
     canonical_json: bytes
     sha256: str
 
@@ -59,5 +60,7 @@ def create_snapshot(
         allow_nan=False,
     ).encode("ascii")
     return WorkflowSnapshot(
-        canonical_json=encoded, sha256=hashlib.sha256(encoded).hexdigest()
+        revision=parsed.revision,
+        canonical_json=encoded,
+        sha256=hashlib.sha256(encoded).hexdigest(),
     )

@@ -21,6 +21,15 @@ class InvalidWorkflowDocument(ValueError):
     pass
 
 
+def validate_revision_identifier(revision: str) -> None:
+    if not revision.strip() or len(revision) > 128 or "\x00" in revision:
+        raise ValueError("Invalid workflow revision identifier")
+    try:
+        revision.encode("utf-8")
+    except UnicodeEncodeError:
+        raise ValueError("Invalid workflow revision identifier") from None
+
+
 class _DocumentModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -92,8 +101,7 @@ def parse_workflow_document(
             parse_constant=_reject_constant,
         )
         document = _Document.model_validate(payload)
-        if not document.revision.strip():
-            raise InvalidWorkflowDocument("Workflow revision must not be blank")
+        validate_revision_identifier(document.revision)
     except (UnicodeDecodeError, ValueError, ValidationError, RecursionError):
         raise InvalidWorkflowDocument("Workflow document is invalid") from None
 

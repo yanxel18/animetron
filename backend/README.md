@@ -15,14 +15,19 @@ durable execution is not yet implemented. An internal, provisional document
 parser accepts UTF-8 JSON with schemaVersion 1, an opaque nonblank revision,
 nodes with configs, and camelCase edge ports. Callers must provide byte and
 graph limits, check the returned validation issues, and must not treat a parsed
-document as an immutable snapshot. There is no workflow API or persistence yet.
+document as an immutable snapshot. Revision identifiers are nonblank UTF-8
+strings up to 128 characters and cannot contain NUL. There is no workflow API.
 
 The internal snapshot builder validates a document and produces immutable
 canonical JSON bytes and a SHA-256 digest. Object keys are sorted, but node and
 edge order is preserved; this is project-specific encoding, not an RFC 8785
-canonicalization. It does not persist revisions, pin handler implementations
-or schema defaults, or make execution safe across upgrades. Do not enqueue
-work based on this value until those guarantees and authorization exist.
+canonicalization. An internal, caller-transactional revision store saves these
+bytes under a workflow ID and revision, rejects conflicting content, and
+checks the digest on read. Identical writes are idempotent. It has no workflow
+ownership or authorization model, and does not prevent privileged direct
+database changes. Digests detect corruption, not malicious tampering. It does
+not pin handler implementations or schema defaults or make execution safe
+across upgrades. Do not enqueue work until those guarantees exist.
 
 The internal run store persists run-state transitions and ordered replay events
 in a caller-managed transaction. It does not create workflow snapshots, dispatch
