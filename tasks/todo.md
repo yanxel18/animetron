@@ -43,6 +43,9 @@ have the security and recovery guarantees below.
     not authentication or CSRF protection).
 - [ ] P0-07 Implement bounded artifact upload, metadata and authorized
   download with opaque IDs, content checks and safe storage.
+  - [ ] P0-07a Persist immutable artifact metadata in caller-owned transactions
+    (in review: [#21](https://github.com/yanxel18/animetron/pull/21); not byte
+    storage, content verification or authorization).
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,

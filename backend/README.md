@@ -57,6 +57,49 @@ must calculate and verify the hashes against the exact content themselves.
 This value is not an approval proof and provides no authorization, persistence,
 expiry, decision handling, Telegram delivery, or publishing.
 
+## Internal artifact metadata (bounded Phase 0 slice)
+
+`app.core.artifacts` provides internal `ArtifactMetadata`, `save_artifact` and
+`get_artifact` interfaces, not HTTP endpoints. One immutable row represents one
+revision; changed revisions need new IDs. There is no lineage or "latest".
+
+Trusted server-side code must generate UUID4 IDs once and retain them for retries.
+Python and PostgreSQL enforce version 4 and RFC variant bits, but **UUID4 shape
+cannot prove randomness or trusted generation**. Other constraints:
+- Owner/revision: `[A-Za-z0-9][A-Za-z0-9_.:@-]{0,127}`; owner is unverified.
+  Use opaque identities, not names, emails or credentials.
+- SHA-256: 64 lowercase hex characters. Size: integer `0..2**63-1`, not bool.
+- Media type: restricted lowercase `type/subtype`, at most 255 characters, no
+  parameters (see validator); syntax is not a content allowlist.
+- Locator: `artifacts/<32 lowercase UUID hex digits>`, derived from the ID.
+  PostgreSQL enforces nonnull fields, formats, UUID primary key and locator match.
+
+Writes require an active non-autocommit psycopg transaction; use READ COMMITTED.
+Callers own commit/rollback, timeouts and whole-transaction retries.
+Identical retries succeed; changes raise `ArtifactConflict` without overwriting;
+missing IDs raise `ArtifactNotFound`. Database errors propagate.
+
+**Limits:** no authentication/authorization or filesystem access/deletion.
+Digest/size/media type are assertions, not verified bytes; locators do not prove
+containment or safe access. Privileged SQL can change/delete rows. No lifecycle,
+retention/privacy policy, audit, run/review binding, byte/metadata atomicity or
+backup/restore coordination exists. This establishes no security or readiness.
+
+The `0005_artifact_metadata` migration creates the table. Downgrade to `0004_run_revisions`
+drops **all artifact metadata**: require authorization and a recovery plan for
+populated databases. No bytes are deleted. Tests write rows/transactional DDL:
+use the same disposable database for both URLs; database tests skip without a URL.
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = "1"
+# ANIMETRON_DATABASE_URL: migrations; ANIMETRON_TEST_DATABASE_URL: tests.
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m alembic check
+.\.venv\Scripts\python.exe -m pytest tests/test_artifacts.py -q -p no:cacheprovider
+.\.venv\Scripts\python.exe -m ruff check --no-cache app tests migrations
+.\.venv\Scripts\python.exe -m mypy --cache-dir .mypy_cache app
+```
+
 From this directory in PowerShell, using Python 3.12 or newer:
 
 ```powershell
