@@ -137,7 +137,7 @@ There is no arbitrary "run anything" node.
   warm-up. Avoid whole-graph rerendering on each progress update. Implement a
   real browser measurement; screenshots alone are not performance evidence.
 
-## P7-01 foundation implementation (in review)
+## P7-01 foundation implementation ([PR #36 in review](https://github.com/yanxel18/animetron/pull/36))
 
 - System font stack only; no remote font request. Dark workspace tokens use the
   approved candidate palette; no light theme was added.

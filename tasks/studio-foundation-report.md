@@ -1,10 +1,12 @@
 # P7-01 Creator Studio Foundation Report
 
-**Status:** Implemented on `feature/studio-foundation`, pending review and merge.
+**Status:** Implemented on `feature/studio-foundation`, PR #36 open for review.
 
 **Base:** `master` at `901904419a1bbf6ed660041e88240f91bb9c6f98` (PR #32).
 
-**PR:** To be recorded after opening.
+**PR:** https://github.com/yanxel18/animetron/pull/36
+
+**Implementation commit:** `5ca4b9accf9883c6e7a5d5475ca621afda383e3e`
 
 **Scope:** P7-01 only. P7-02/03/04 flows were not implemented.
 
