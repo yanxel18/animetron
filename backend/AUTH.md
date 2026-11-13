@@ -62,7 +62,9 @@ setting its subject. Provider infrastructure, TLS, PostgreSQL deployment,
 backups and production credential provisioning are outside this slice.
 
 Use direct TLS with a loopback-bound gateway and do not trust forwarded headers
-from arbitrary peers. If configuring a production ASGI server, bound WebSocket
+from arbitrary peers. Disable raw request/access logs at the server and gateway
+(`--no-access-log` for Uvicorn): callback URLs contain short-lived authorization
+codes/state and must not be logged. If configuring a production ASGI server, bound WebSocket
 frame/queue sizes and disable compression (for example `--ws-max-size 64
 --ws-max-queue 4 --ws-per-message-deflate false`). This slice creates no server
 deployment or provider service.

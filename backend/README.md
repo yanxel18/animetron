@@ -110,7 +110,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe tests/run_auth_checks.py
 .\.venv\Scripts\python.exe -m ruff check app tests
 .\.venv\Scripts\python.exe -m mypy app
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 The full auth harness requires Docker and installed Edge on Windows; it creates
