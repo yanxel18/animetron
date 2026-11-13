@@ -115,3 +115,18 @@ should be addressed before treating merges as independently enforced gates.
 
 This assessment is documentation-only. No phase checkbox was marked complete.
 Final system testing and owner-involved P3/P9 acceptance remain outstanding.
+
+## Approval update - 2026-11-14
+
+After the readiness assessment was merged in
+[#26](https://github.com/yanxel18/animetron/pull/26), the owner explicitly approved
+all nine local module specifications for implementation and version control.
+F-004's permission gate and the implementation-approval portion of P0-01 are
+therefore resolved; version-control publication remains incomplete until its
+PR is merged. The owner chose a maintained identity-provider integration and
+delegated provider selection. F-005's gateway-versus-provider decision is
+resolved, but authenticated implementation and acceptance remain outstanding.
+
+The earlier readiness assessment is historical evidence, not the current
+approval state. Continue using [todo.md](todo.md); remaining external-action,
+scheduling/performance and owner-involved acceptance gates are unchanged.

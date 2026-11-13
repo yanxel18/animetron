@@ -1,9 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-`master` and GitHub pull requests on 2026-11-14. The existing module
-specifications are local, untracked documents; their draft status and approval
-gates still apply. This checklist summarizes them but does not replace them.
+`master` and GitHub pull requests on 2026-11-14. The owner approved the
+[module specifications](../docs/SPECIFICATIONS.md) for implementation and version
+control on 2026-11-14. Their explicit provider, model, scheduling, performance
+and human-acceptance gates still apply. This checklist does not replace them.
 
 ## How to use
 
@@ -34,8 +35,10 @@ have the security and recovery guarantees below.
     private Docker named volume. Docker-managed artifact volumes are an explicit
     exception to the project-directory-only storage boundary; no deployment or
     live publishing is authorized by this decision.
-  - Blocked on 2026-11-14: planning approval does not settle implementation
-    approval or the trusted-gateway versus identity-provider decision. See the
+  - Owner approval on 2026-11-14: all nine specifications may be implemented
+    and committed. A maintained identity-provider integration is selected;
+    provider selection is delegated to the assistant. Other explicit decisions
+    and acceptance gates remain open. See the
     [P0-P9 readiness assessment](development-report.md#p0-p9-readiness-assessment---2026-11-14)
     for verification results and the remaining owner decisions. Autonomous
     workflow instructions are merged in
@@ -43,6 +46,8 @@ have the security and recovery guarantees below.
     or external-action permission is implied.
 - [ ] P0-02 With the owner's approval, make the local specification documents
   available in version control and link them from this checklist.
+  - Approved on 2026-11-14; specification publication is in review on branch
+    `docs/approve-module-specifications`.
 - [x] P0-03 Add a minimal API liveness endpoint. [#1](https://github.com/yanxel18/animetron/pull/1)
 - [x] P0-04 Add a PostgreSQL engine foundation. [#2](https://github.com/yanxel18/animetron/pull/2)
 - [x] P0-05 Add transactional outbox storage with leases.
