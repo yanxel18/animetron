@@ -17,6 +17,13 @@ nodes with configs, and camelCase edge ports. Callers must provide byte and
 graph limits, check the returned validation issues, and must not treat a parsed
 document as an immutable snapshot. There is no workflow API or persistence yet.
 
+The internal snapshot builder validates a document and produces immutable
+canonical JSON bytes and a SHA-256 digest. Object keys are sorted, but node and
+edge order is preserved; this is project-specific encoding, not an RFC 8785
+canonicalization. It does not persist revisions, pin handler implementations
+or schema defaults, or make execution safe across upgrades. Do not enqueue
+work based on this value until those guarantees and authorization exist.
+
 The internal run store persists run-state transitions and ordered replay events
 in a caller-managed transaction. It does not create workflow snapshots, dispatch
 jobs, authorize actions, or implement review and publication. Only use it behind
