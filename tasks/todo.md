@@ -94,7 +94,8 @@ hardware and failures never appear ready.
     ([#14](https://github.com/yanxel18/animetron/pull/14); not a manifest,
     allowlist or readiness check).
   - [ ] P2-03b Verify an individual model stream's size and digest with
-    bounded reads (implementation in review; not a model readiness check).
+    bounded reads (in review: [#16](https://github.com/yanxel18/animetron/pull/16);
+    not a model readiness check).
 - [ ] P2-04 Implement confirmed, deduplicated acquisition with staging,
   integrity checks and atomic readiness; keep credentials server-side.
 - [ ] P2-05 Expose authorized model and download status; test interrupted,
