@@ -39,7 +39,8 @@ have the security and recovery guarantees below.
 - [ ] P0-06 Implement authenticated sessions, authorization, CSRF protection,
   audit records, authorized readiness, and protected WebSocket handshakes.
   - [ ] P0-06a Apply browser security headers to API responses, including
-    unhandled errors (in review; not authentication or CSRF protection).
+    unhandled errors (in review: [#19](https://github.com/yanxel18/animetron/pull/19);
+    not authentication or CSRF protection).
 - [ ] P0-07 Implement bounded artifact upload, metadata and authorized
   download with opaque IDs, content checks and safe storage.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
