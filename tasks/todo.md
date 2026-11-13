@@ -137,13 +137,23 @@ hardware and failures never appear ready.
   corrupt, inaccessible, concurrent and disk-constrained acquisitions.
 - [ ] P2-06 Benchmark approved model candidates and document real resource
   usage, compatibility, runtime and visual quality before selecting defaults.
+  - [ ] P2-06a Run the explicitly approved pinned Wan 2.2 TI2V 5B feasibility
+    experiment. In review in [#34](https://github.com/yanxel18/animetron/pull/34)
+    on `benchmark/wan-ti2v-5b`; see
+    [bounded execution evidence](wan-benchmark-report.md).
+    PyTorch 2.9.1/cu128 synchronized sm_120 kernels passed; conservative
+    shared-host/Linux RAM capacity was not established. No model acquisition,
+    READY status, scene output or P3/P9 acceptance. Exact-owned containers and
+    transient runtime were removed after worker-termination verification.
   - On 2026-11-14 the owner accepted applicable licenses and authorized the
     three-file Wan2.2 TI2V 5B candidate at
     `Comfy-Org/Wan-2.2@ee6f4a40737a995bf5818954cfce6d59443b0f04`.
     Acquisition/local testing remain conditional on capacity, integrity and
     framework safety checks. [Exact consent scope](development-report.md#pinned-model-consent---2026-11-14).
-    Feasibility work is in progress on branch `benchmark/wan-ti2v-5b`; this
-    authorizes no other model, voice, cloud inference or publishing.
+    The partial feasibility report is in review in
+    [#34](https://github.com/yanxel18/animetron/pull/34), blocked before model
+    acquisition by conservative RAM-capacity uncertainty. Consent authorizes
+    no other model, voice, cloud inference or publishing.
 
 ## Phase 3 - Local media generation
 
@@ -209,9 +219,11 @@ schedule creates at most one run intent per due slot and never grants approval.
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
-  - [ ] P6-02a Internal next-five preview core is in review on
-    `feature/schedule-preview`: approved five-field/OR/IANA matching, gap skip,
-    earlier fold only and deterministic zone/local-slot keys. Tests do not
+  - [x] P6-02a Internal next-five preview core merged in
+    [#35](https://github.com/yanxel18/animetron/pull/35): approved
+    five-field/OR/IANA matching, gap skip, earlier fold only and deterministic
+    zone/local-slot keys. Native suite 187 passed/77 existing integration skips,
+    Ruff/strict Linux mypy and GitGuardian passed. Tests do not
     establish persistence, authorized CRUD, overlap/restart or dispatch.
     [Preview verification and findings](scheduling-preview-report.md).
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
