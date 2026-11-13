@@ -97,8 +97,8 @@ hardware and failures never appear ready.
   - [x] P2-03b Verify an individual model stream's size and digest with
     bounded reads ([#16](https://github.com/yanxel18/animetron/pull/16);
     not a model readiness check).
-  - [ ] P2-03c Define immutable model manifest and file integrity metadata
-    (in review: [#17](https://github.com/yanxel18/animetron/pull/17); not a
+  - [x] P2-03c Define immutable model manifest and file integrity metadata
+    ([#17](https://github.com/yanxel18/animetron/pull/17); not a
     license acceptance, allowlist or readiness check).
 - [ ] P2-04 Implement confirmed, deduplicated acquisition with staging,
   integrity checks and atomic readiness; keep credentials server-side.
