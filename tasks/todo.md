@@ -60,7 +60,9 @@ have the security and recovery guarantees below.
     not authentication or CSRF protection).
   - [ ] P0-06b Bounded Keycloak/Authlib OIDC browser sessions, principal roles,
     CSRF logout, audit history, authorized readiness and origin-checked
-    WebSocket handshake. **In review** on `feature/oidc-browser-sessions`;
+    WebSocket handshake. **In review**
+    ([#33](https://github.com/yanxel18/animetron/pull/33)) on
+    `feature/oidc-browser-sessions`;
     dependency [#27](https://github.com/yanxel18/animetron/pull/27) is merged.
     See [auth contract and acceptance evidence](../backend/AUTH.md).
     Final suite: 278 passed / 20 existing Linux-only skips, including the

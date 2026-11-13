@@ -1,6 +1,8 @@
 # P0-06: authenticated control-plane slice
 
-Status: implemented for review; **not deployment or phase-completion evidence**.
+Status: implemented for review in
+[#33](https://github.com/yanxel18/animetron/pull/33);
+**not deployment or phase-completion evidence**.
 Specification dependency [#27](https://github.com/yanxel18/animetron/pull/27)
 merged at `5b151ecb33c724c6e46eb063c3aaa879949a2d26`.
 
@@ -185,6 +187,13 @@ Evidence on 2026-11-14:
   `sha256:b9f6b8ff03b62f3cfd9d9ba3fe56226a9991c79d3fb46fd46536263bf02be553`.
   Owned Keycloak image:
   `sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0`.
+
+After final verification, exact-name inspection confirmed absence of the owned
+PostgreSQL, Keycloak and port-probe containers, the test network and the
+port-probe network. Container removal included their anonymous volumes.
+`data/oidc-test-temp` (browser profiles and test temporaries) and the exact
+tool-generated review temporary file were removed. The reusable worktree
+`backend/.venv` remains; no shared environment was modified.
 
 One earlier failing browser traceback exposed a disposable test authorization
 code, not a reusable provider credential. That provider/database were destroyed.
