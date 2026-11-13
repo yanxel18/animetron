@@ -4,6 +4,12 @@ The API currently provides only process liveness. A PostgreSQL engine factory
 is available for future persistence, but the API does not yet use a database
 or implement authentication, storage, workflows, or creator features.
 
+The internal workflow graph validator checks graph limits, node and edge IDs,
+allowlisted node types, port connections, required inputs, and cycles against
+caller-supplied definitions. It is not exposed as an API or connected to run
+dispatch. Workflow serialization, node configuration validation, and durable
+execution are not yet implemented.
+
 From this directory in PowerShell, using Python 3.12 or newer:
 
 ```powershell
