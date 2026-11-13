@@ -41,6 +41,18 @@ does not establish the exact approved gap/fold behavior. Verify the selected
 version with real time-zone boundary cases and enforce the approved policy
 rather than silently adopting library defaults.
 
+The first implementation slice supplies internal next-five preview only:
+`app.services.scheduling.preview.preview_occurrences`. It uses croniter 7.0.0
+wall-clock candidates and explicit `zoneinfo` UTC round-trips, choosing fold 0.
+Its POSIX-style syntax accepts numeric lists/ranges/steps, wildcards and
+three-letter month/weekday names; croniter-specific macros, hashed/random,
+`L`/`W`/`#`, seconds and years are outside this interface. A bounded
+50-calendar-year search fails explicitly rather than returning partial results.
+An offset-bearing local time, UTC due time and zone/wall-clock slot key are
+returned. Future persistence/dispatch must reuse this calculation and namespace
+slot keys by schedule identity. No authorized preview endpoint or persisted
+dispatch exists yet. [Implementation findings](../tasks/scheduling-preview-report.md).
+
 ## Testing and acceptance criteria
 
 1. Two due-dispatch attempts produce one persisted run intent using a unique

@@ -209,6 +209,11 @@ schedule creates at most one run intent per due slot and never grants approval.
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
+  - [ ] P6-02a Internal next-five preview core is in review on
+    `feature/schedule-preview`: approved five-field/OR/IANA matching, gap skip,
+    earlier fold only and deterministic zone/local-slot keys. Tests do not
+    establish persistence, authorized CRUD, overlap/restart or dispatch.
+    [Preview verification and findings](scheduling-preview-report.md).
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
   skipped slots; test pause, restart, overlap, DST and duplicate dispatch.
 
