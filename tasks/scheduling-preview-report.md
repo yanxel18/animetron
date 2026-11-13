@@ -3,8 +3,9 @@
 Scope: P6-02a internal next-five calculation only, not complete scheduling.
 Baseline reconciled against master `9019044`, including merged approval
 records #30/#31 and scoped model consent/foundation verification #32.
-Implementation is in review on `feature/schedule-preview`; checklist completion
-requires a verified merge.
+Implementation merged in [#35](https://github.com/yanxel18/animetron/pull/35)
+after direct complete source/test review and successful GitGuardian checks.
+Only this internal preview slice is complete; scheduling remains unfinished.
 
 ## Verified behavior
 

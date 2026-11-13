@@ -30,6 +30,28 @@ This report records unresolved findings; implementation progress remains in
   double-linked or orphaned files. Explicit offline reconciliation, retention,
   aggregate quotas, media probing and coordinated backup/restore are still needed
   before exposing uploads/downloads or declaring Phase 0 complete.
+- **F-007: Approved model feasibility is capacity-blocked.** Real synchronized
+  CUDA kernels passed, but conservative shared-host/Docker RAM headroom was not
+  established. No model payload or scene was acquired/generated. See the merged
+  [Wan findings](wan-benchmark-report.md); this is not intrinsic GPU/model
+  incompatibility or permission to alter shared-machine settings.
+- **F-008: Authentication merge gates need correction.** Independent review
+  of [#33](https://github.com/yanxel18/animetron/pull/33) found blanket auth-table
+  resets from a caller-provided test DB URL without an ownership guard, and
+  unbounded persistent audit writes from unauthenticated denials. GitGuardian
+  also flagged high-entropy test material. Corrections/regression tests are in
+  progress; no waiver or self-approval is permitted. The check is not evidence
+  that the protected local Hugging Face key leaked.
+- **F-009: A test audit omitted its cache override once.** The auth task reports
+  a possible shared-cache write before correcting subsequent auditing to an
+  explicitly project-contained cache. The shared cache was left untouched,
+  not inspected/deleted outside the authorized project boundary. This exception
+  is recorded rather than claiming every transient write was contained.
+- **F-010: Broader UI acceptance remains open.** P7-01's real browser component
+  foundation is merged and independently verified, not a working workflow
+  editor or connected service suite. DPR 2 at a 720px viewport does not prove
+  native browser UI zoom at 200%; screen-reader/AT, real graph responsiveness
+  and P9 owner-involved acceptance remain unverified.
 
 ## P0-P9 readiness assessment - 2026-11-14
 
@@ -273,9 +295,10 @@ Official evidence:
   declare Apache-2.0 licensing. These records are not legal advice or a
   performance/voice-rights guarantee.
 
-A bounded independent feasibility task is in progress on
-`benchmark/wan-ti2v-5b`. It must establish safe runtime compatibility before
-loading the approved models. A short scene does not satisfy the final
+The bounded independent feasibility report is merged in
+[#34](https://github.com/yanxel18/animetron/pull/34). Tensor-only CUDA
+compatibility passed; the RAM planning gate stopped model acquisition.
+A proposed short scene was not executed and cannot satisfy the final
 30-60-second narrated reel, human visual review or P9 acceptance.
 
 Scheduling-policy documentation and the studio target are merged in
@@ -318,3 +341,38 @@ These checks strengthen foundation evidence but do not complete P0-09:
 authenticated APIs, malformed-media handling, coordinated backup/restore and
 full pipeline recovery are still outstanding. Approved benchmark outputs and
 owner-involved system acceptance remain separate.
+
+## Reviewed implementation checkpoint - 2026-11-14
+
+Reconciled through master `20948fc`:
+
+- [#32](https://github.com/yanxel18/animetron/pull/32): exact constrained Wan
+  consent and isolated foundation verification, reviewed and merged.
+- [#35](https://github.com/yanxel18/animetron/pull/35): approved internal
+  next-five cron preview, reviewed and merged. 25 new boundary cases; native
+  suite 187 passed/77 unchanged integration skips; Ruff/strict Linux mypy
+  (25 files)/dependency consistency and GitGuardian passed.
+- [#34](https://github.com/yanxel18/animetron/pull/34): truthful CUDA and
+  RAM-blocker findings, reviewed and merged. Torch 2.9.1/cu128 sm_120 compute
+  passed; no model/output/READY claim. Exact-owned workers/runtime were removed.
+- [#36](https://github.com/yanxel18/animetron/pull/36): dark/cyan P7-01
+  foundation, independently reviewed and merged. 3 unit/6 Chromium cases,
+  typecheck/build, frozen script-disabled install, audit and GitGuardian passed.
+  Reproduced 375/768/1024/1440px layouts, keyboard focus/menu, reduced motion
+  and sampled contrast. Native zoom/AT/full service flows remain open.
+- [#33](https://github.com/yanxel18/animetron/pull/33): unmerged auth work under
+  correction for the independent findings above. The author's earlier
+  278-pass/20-skip evidence, including three isolated real Keycloak/Edge flows,
+  does not waive failed merge gates or certify the forthcoming fixes.
+
+Both merged backend and frontend main-checkout dependencies were restored only
+inside the project after manifest changes. Backend native tests passed 187/77,
+and frontend typecheck/3 unit tests/build passed. No permanent service was
+started. The parent's unexpected report-leading blank line and existing empty
+untracked findings file were preserved rather than reverted or committed.
+
+**P9 remains incomplete.** Resource headroom, other explicit model/voice rights,
+working authorized workflow/media/review/publishing/scheduler/MCP services,
+recovery and the owner's real narrated-reel/eligible-platform acceptance are
+still required. No shared-host/WSL/Docker settings were changed to force model
+capacity, and no Hugging Face credential was read.
