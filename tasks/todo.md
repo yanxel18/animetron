@@ -137,6 +137,13 @@ hardware and failures never appear ready.
   corrupt, inaccessible, concurrent and disk-constrained acquisitions.
 - [ ] P2-06 Benchmark approved model candidates and document real resource
   usage, compatibility, runtime and visual quality before selecting defaults.
+  - [ ] P2-06a Run the explicitly approved pinned Wan 2.2 TI2V 5B feasibility
+    experiment. In review on `benchmark/wan-ti2v-5b`; see
+    [bounded execution evidence](wan-benchmark-report.md).
+    PyTorch 2.9.1/cu128 synchronized sm_120 kernels passed; conservative
+    shared-host/Linux RAM capacity was not established. No model acquisition,
+    READY status, scene output or P3/P9 acceptance. Exact-owned containers and
+    transient runtime were removed after worker-termination verification.
 
 ## Phase 3 - Local media generation
 
