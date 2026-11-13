@@ -45,6 +45,12 @@ deduplication, and acknowledge only confirmed delivery. Consumers must make
 effects idempotent; a lease cannot fence an external effect or prove that a
 timed-out publication did not happen.
 
+The internal review scope value binds a run, artifact revision and SHA-256,
+caption SHA-256, and an unordered set of provider/account identities. Callers
+must calculate and verify the hashes against the exact content themselves.
+This value is not an approval proof and provides no authorization, persistence,
+expiry, decision handling, Telegram delivery, or publishing.
+
 From this directory in PowerShell, using Python 3.12 or newer:
 
 ```powershell
