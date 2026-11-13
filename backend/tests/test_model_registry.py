@@ -4,8 +4,68 @@ import io
 import pytest
 
 from app.services.models.integrity import ModelIntegrityError, verify_model_file
+from app.services.models.manifest import ModelFile, ModelManifest
 from app.services.models.preflight import AcquisitionBlocker, check_acquisition
 from app.services.models.reference import ModelReference
+
+
+def test_manifest_preserves_pinned_reference_and_file_metadata() -> None:
+    reference = ModelReference("huggingface", "creator/model", "a" * 40)
+    weights = ModelFile("weights/model.safetensors", 20, "b" * 64)
+    config = ModelFile("config.json", 10, "c" * 64)
+    manifest = ModelManifest(reference, "comfyui", "license-1", (weights, config), 40)
+    assert manifest.reference == reference
+    assert manifest.files == (weights, config)
+    assert manifest.estimated_bytes == 40
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["", "/weights", "../weights", "a/../b", "a//b", "a\\b", "C:weights", "a/"],
+)
+def test_manifest_file_rejects_unsafe_relative_names(path: str) -> None:
+    with pytest.raises(ValueError):
+        ModelFile(path, 1, "a" * 64)
+
+
+@pytest.mark.parametrize(
+    ("size", "digest"), [(-1, "a" * 64), (True, "a" * 64), (1, "a" * 63), (1, "A" * 64)]
+)
+def test_manifest_file_rejects_invalid_integrity_metadata(
+    size: int, digest: str
+) -> None:
+    with pytest.raises(ValueError):
+        ModelFile("model.safetensors", size, digest)
+
+
+def test_manifest_rejects_duplicate_file_names_and_insufficient_estimate() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    file = ModelFile("model.safetensors", 10, "b" * 64)
+    duplicate = ModelFile("MODEL.safetensors", 1, "c" * 64)
+    with pytest.raises(ValueError):
+        ModelManifest(ref, "comfyui", "license-1", (file, duplicate), 20)
+    with pytest.raises(ValueError):
+        ModelManifest(ref, "comfyui", "license-1", (file,), 9)
+
+
+def test_manifest_rejects_files_that_are_also_parent_directories() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    parent = ModelFile("model", 1, "b" * 64)
+    child = ModelFile("MODEL/weights", 1, "c" * 64)
+    with pytest.raises(ValueError):
+        ModelManifest(ref, "comfyui", "license-1", (parent, child), 2)
+
+
+def test_manifest_requires_files_and_explicit_engine_and_license() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    file = ModelFile("model.safetensors", 10, "b" * 64)
+    for engine, license_id, files in [
+        ("", "license-1", (file,)),
+        ("comfyui", " ", (file,)),
+        ("comfyui", "license-1", ()),
+    ]:
+        with pytest.raises(ValueError):
+            ModelManifest(ref, engine, license_id, files, 10)
 
 
 def test_model_file_integrity_accepts_exact_size_and_hash() -> None:

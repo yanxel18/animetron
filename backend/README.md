@@ -101,3 +101,7 @@ repository or revision exists or is allowlisted, accepted, downloaded, or ready.
 The internal file verifier checks a stream's exact size and SHA-256 using bounded
 reads. Its caller must securely open the intended file and obtain trusted
 expectations; matching one file does not establish model readiness.
+An internal manifest value groups a pinned reference, engine and license
+identifiers, expected file sizes and digests, and a minimum storage estimate.
+It does not establish license acceptance, repository allowlisting, safe file
+access, adequate staging space, verified downloads, or model readiness.
