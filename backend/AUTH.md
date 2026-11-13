@@ -54,6 +54,7 @@ available. Configuration changes invalidate previously issued sessions and
 pending login challenges. Only test code can explicitly permit a loopback HTTP
 provider; production environment loading has no such switch, and browser origin
 and session cookies remain HTTPS/Secure even in tests.
+Roll configuration to every worker; running workers retain their startup policy.
 
 In Keycloak, provision a dedicated realm and confidential client. Enable
 standard authorization-code flow; disable direct access grants, implicit flow
@@ -193,7 +194,13 @@ PostgreSQL, Keycloak and port-probe containers, the test network and the
 port-probe network. Container removal included their anonymous volumes.
 `data/oidc-test-temp` (browser profiles and test temporaries) and the exact
 tool-generated review temporary file were removed. The reusable worktree
-`backend/.venv` remains; no shared environment was modified.
+`backend/.venv` remains; no shared Python environment was installed into.
+
+One dependency-audit invocation omitted an explicit HTTP cache location;
+pip-audit can use a per-user cache. That potentially shared cache was not
+inspected or deleted. The audit was repeated successfully with an explicit
+`--cache-dir` under worktree `data/oidc-test-temp`, then that owned cache/temp
+was removed. Do not infer all audit cache writes were confined to the worktree.
 
 One earlier failing browser traceback exposed a disposable test authorization
 code, not a reusable provider credential. That provider/database were destroyed.
