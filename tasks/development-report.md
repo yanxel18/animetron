@@ -3,7 +3,7 @@
 This report records unresolved findings; implementation progress remains in
 [todo.md](todo.md). Findings are not evidence of production readiness.
 
-## Open
+## Findings
 
 - **F-001: Execution is not ready.** Workflow snapshots do not pin handler
   implementations, configuration defaults or models; node dispatch and
@@ -15,11 +15,11 @@ This report records unresolved findings; implementation progress remains in
   media generation, human decisions, official publishing, scheduler, studio
   and MCP are incomplete. Live model/provider use and final system acceptance
   require the relevant consent and owner involvement.
-- **F-004: Specifications are not shared yet.** The current specification
-  drafts are local and untracked; they need owner approval before adding them
-  to version control.
-- **F-005: Authentication architecture remains undecided.** The draft permits
-  either a trusted gateway or an identity provider. No authenticated session,
+- **F-004: Resolved - specifications are shared.** Owner-approved module
+  specifications are merged in [#27](https://github.com/yanxel18/animetron/pull/27).
+- **F-005: Authentication implementation remains incomplete.** The owner chose
+  a maintained identity-provider integration and delegated provider selection.
+  Implementation/verification is in progress; no merged authenticated session,
   CSRF defense, protected WebSocket, trusted-host policy, or authorized
   readiness endpoint exists. Security response headers do not provide these.
 - **F-006: Byte-storage recovery remains incomplete.** On 2026-11-14 the owner
@@ -236,3 +236,85 @@ Constraint-driven development is floor-only during this autonomous run:
 no new suppressions, unfinished success-shaped stubs, weakened checks or
 unexplained skipped/deleted tests. No coverage percentage, CI security policy
 or extra performance budget was silently invented or marked enforced.
+
+## Pinned-model consent - 2026-11-14
+
+The owner explicitly accepted the applicable model license terms and authorized
+acquisition and a local test of this candidate, conditional on capacity,
+integrity and framework safety checks. This consent does not authorize other
+models, voices, cloud inference, content transmission or publication.
+
+Repository: `Comfy-Org/Wan-2.2`.
+Revision: `ee6f4a40737a995bf5818954cfce6d59443b0f04`.
+Public API metadata reported an ungated repository and Apache-2.0 license.
+The older Comfy-Org repository alias redirects to this canonical identity.
+
+| File within the pinned repository | Bytes | Published SHA-256 |
+| --- | ---: | --- |
+| `split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors` | 9,999,658,848 | `456f901338bd9eadbded3828b819109a9b68e8a525ca5cf8d0049a69fcfeca1e` |
+| `split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors` | 6,735,906,897 | `c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68` |
+| `split_files/vae/wan2.2_vae.safetensors` | 1,409,400,960 | `e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156` |
+
+Total: 18,144,966,705 bytes, before staging, runtime packages or output headroom.
+Public metadata was retrieved without accessing the local Hugging Face key.
+Published hashes are trusted expectations for subsequent byte verification,
+not proof that any files have been acquired or are ready.
+
+Official evidence:
+
+- [ComfyUI native Wan2.2 workflow](https://docs.comfy.org/tutorials/video/wan/wan2_2):
+  identifies all three files and says 5B should fit 8GB with native offloading.
+- [ComfyUI maintainer example](https://comfyanonymous.github.io/ComfyUI_examples/wan22/):
+  provides native text/image-to-video examples and the required encoder/VAE.
+- [Pinned repository metadata](https://huggingface.co/api/models/Comfy-Org/Wan-2.2/revision/ee6f4a40737a995bf5818954cfce6d59443b0f04?blobs=true):
+  provides file sizes and LFS SHA-256 values.
+- [Wan model card](https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B) and
+  [UMT5 model card](https://huggingface.co/google/umt5-xxl):
+  declare Apache-2.0 licensing. These records are not legal advice or a
+  performance/voice-rights guarantee.
+
+A bounded independent feasibility task is in progress on
+`benchmark/wan-ti2v-5b`. It must establish safe runtime compatibility before
+loading the approved models. A short scene does not satisfy the final
+30-60-second narrated reel, human visual review or P9 acceptance.
+
+Scheduling-policy documentation and the studio target are merged in
+[#30](https://github.com/yanxel18/animetron/pull/30) and
+[#31](https://github.com/yanxel18/animetron/pull/31); only their approval
+checklist items are reconciled, not runtime implementation.
+
+## Isolated foundation verification - 2026-11-14
+
+Previously skipped boundary checks were exercised separately without modifying
+application source or weakening tests:
+
+- **Linux artifact storage: 21 tests passed** in the existing
+  `python:3.12-slim` image, including 20 Linux-only tests and the native-refusal
+  case. Real process-crash, concurrent-write, permission, symlink/hardlink and
+  integrity boundaries were exercised. Code was mounted read-only, network was
+  disabled, CPU/RAM/process counts were bounded and a fresh private test volume
+  used service UID 10001. Exact owned container/volume removal was confirmed.
+- **PostgreSQL foundations: 92 selected tests passed** after
+  `alembic upgrade head`; `alembic check` reported no new upgrade operations.
+  The selected files cover database, artifact metadata, outbox, run events,
+  run/revision binding and workflow revisions, including previously skipped
+  integration cases. This is not a single Linux-plus-database full-suite run.
+- The isolated official PostgreSQL 17 image was downloaded only after its
+  absence was confirmed, and executed at digest
+  `sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07`.
+  The service used an ephemeral loopback port, generated disposable credentials,
+  read-only root, bounded CPU/RAM/processes and tmpfs database storage.
+  No inherited database URLs or real user database were used.
+
+The first disposable DB attempt omitted the documented migrations and produced
+50 failures/42 passes from missing tables. This was test setup error, not a
+new product regression. Its cleanup also encountered Windows native-argument
+quoting in a Docker Go-template expression. The exact session-labeled container
+was subsequently identified and removed. The corrected attempt applied the
+documented migrations and read label JSON instead of using quoted index syntax;
+all 92 selected tests passed and its exact container removal was confirmed.
+
+These checks strengthen foundation evidence but do not complete P0-09:
+authenticated APIs, malformed-media handling, coordinated backup/restore and
+full pipeline recovery are still outstanding. Approved benchmark outputs and
+owner-involved system acceptance remain separate.
