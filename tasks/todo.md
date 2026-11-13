@@ -116,8 +116,8 @@ hardware and failures never appear ready.
   [#7](https://github.com/yanxel18/animetron/pull/7)
 - [ ] P2-02 Inspect actual VRAM, driver, WSL2/CUDA and available storage; record
   supported runtime choices and benchmark plan.
-  - [ ] P2-02a Record host resources and Linux-container NVIDIA visibility.
-    In review on branch `docs/hardware-readiness`; no CUDA kernel, model
+  - [x] P2-02a Record host resources and Linux-container NVIDIA visibility.
+    [#28](https://github.com/yanxel18/animetron/pull/28); no CUDA kernel, model
     compatibility, Docker-volume capacity or inference benchmark is certified.
     See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
@@ -194,6 +194,11 @@ Depends on: Phase 1 and approved schedule/DST policy. Complete when a persisted
 schedule creates at most one run intent per due slot and never grants approval.
 
 - [ ] P6-01 Approve cron, time zone, overlap, missed-run and DST behavior.
+  - Owner approved five-field/IANA/OR matching, skipped GPU overlap and missed
+    slots without catch-up, spring-forward gaps skipped and fall-back's earlier
+    occurrence once on 2026-11-14. The policy documentation is in review on
+    branch `docs/approve-scheduling-policy`; runtime boundary tests remain
+    required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
