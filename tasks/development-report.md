@@ -18,3 +18,7 @@ This report records unresolved findings; implementation progress remains in
 - **F-004: Specifications are not shared yet.** The current specification
   drafts are local and untracked; they need owner approval before adding them
   to version control.
+- **F-005: Authentication architecture remains undecided.** The draft permits
+  either a trusted gateway or an identity provider. No authenticated session,
+  CSRF defense, protected WebSocket, trusted-host policy, or authorized
+  readiness endpoint exists. Security response headers do not provide these.
