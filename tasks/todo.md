@@ -51,7 +51,8 @@ have the security and recovery guarantees below.
     ([#21](https://github.com/yanxel18/animetron/pull/21); not byte
     storage, content verification or authorization).
   - [ ] P0-07b Implement bounded, integrity-checked internal Linux byte storage
-    with no-replace publication (in review; no HTTP, media probing, authorization,
+    with no-replace publication (in review: [#23](https://github.com/yanxel18/animetron/pull/23);
+    no HTTP, media probing, authorization,
     byte/metadata atomicity or automatic orphan recovery).
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
