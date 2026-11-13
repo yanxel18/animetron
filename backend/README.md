@@ -111,6 +111,83 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
+## Internal Linux artifact bytes
+
+`app.core.artifact_bytes.ArtifactByteStore` adds byte storage only, with no HTTP,
+authorization, database writes or deployment. `put(id, binary_stream, max_bytes=...)`
+computes immutable `StoredBytes(id, sha256, byte_size)` facts and publishes at
+`artifacts/<UUID4 hex>`, matching metadata's locator. Trusted callers generate and
+retain IDs; **even identical writes to an existing ID fail with FileExistsError**.
+Build `ArtifactMetadata` from these facts plus caller-validated owner/revision/media
+type. For reads, construct `StoredBytes(metadata.id, metadata.sha256,
+metadata.byte_size)` from trusted metadata and call `read_verified(..., max_bytes=...)`.
+Content is returned only after full hash/size verification, not progressively.
+
+**Approved boundary:** run as a dedicated Linux service UID on a private, local
+Docker named volume (the approved exception to project-directory-only storage).
+Provision the root as that UID, exactly mode `0700`; ancestors must be root/service
+owned and not group/other writable. Never share the UID or volume with untrusted
+workers or other writer identities. Host admins/privileged actors are outside the
+threat model. Runtime does not repair root ownership/permissions. Paths are walked
+from `/` using pinned directory descriptors and `O_NOFOLLOW`, never `Path.resolve`;
+files must be service-owned, mode `0600`, regular and single-link. Linux capability,
+permission, link, sync and filesystem errors fail closed; native Windows is refused.
+Network filesystems and Windows byte-storage bind mounts are not supported.
+
+**Concurrency/crashes:** cooperating service writers take an exclusive directory
+`flock`; readers take shared locks. Separate open descriptions also serialize
+threads sharing an instance. Lock acquisition waits at most five seconds, then
+raises `BlockingIOError`; close must not race operations, and stream callbacks must
+not reenter storage. Input reads are at most 64 KiB, with one excess byte used to
+detect overflow. Caller-supplied limits bound disk bytes and read memory (about
+twice content size); synchronous source reads and filesystem I/O need caller-owned
+execution deadlines and aggregate disk/concurrency quotas.
+
+Publication uses `fsync(file)`, atomic no-replace `linkat`, removal of **only this
+attempt's O_EXCL-created `.pending-<UUID hex>`**, then `fsync(directory)`. Errors
+after linking may leave published bytes: never assume failure rolled them back.
+A process crash before linking leaves an unused pending file; a crash between
+linking and unlinking leaves two names for one inode, which reads reject. After
+unlinking, a complete file can be read using trusted expectations. No pending
+files are swept at startup, and no published files are deleted on failure.
+Offline, explicitly authorized reconciliation must identify exact pending names,
+verify UID/mode and inode/link relationships plus trusted hashes, and stop writers
+before cleanup; it is **not implemented** here. Process-crash tests do not certify
+power-loss durability; durability depends on local filesystem/device sync behavior.
+
+Byte publication and metadata commit are **not atomic**: DB rollback/crash can
+leave orphan bytes. No recovery/retention, coordinated backup, encryption, media
+signature/probing validation or readiness certification is supplied. Hashes detect
+corruption, not malicious edits to both bytes and metadata. Callers must validate
+media and enforce access policy before making artifacts usable.
+
+Dependency-free Linux tests use the existing `python:3.12-slim` image, read-only
+code, no network, a fresh private named volume and service UID 10001. From this
+worktree's `backend` directory in PowerShell:
+
+```powershell
+$tag = [guid]::NewGuid().ToString('N')
+$volume = "animetron-byte-test-$tag"; $container = "animetron-byte-test-$tag"
+$code = (Get-Location).Path
+docker volume create $volume
+if ($LASTEXITCODE -ne 0) { throw 'Volume creation failed' }
+try {
+  docker run --name $container --pull never --network none --read-only --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --mount "type=bind,source=$code,target=/code,readonly" --mount "type=volume,source=$volume,target=/volume" -w /code -e PYTHONDONTWRITEBYTECODE=1 -e ARTIFACT_TEST_ROOT=/volume --entrypoint python python:3.12-slim -c "import os,sys,runpy; os.mkdir('/volume/foreign',0o755); os.chmod('/volume',0o700); os.chown('/volume',10001,10001); os.setgroups([]); os.setgid(10001); os.setuid(10001); sys.argv=['unittest','discover','-s','tests','-p','test_artifact_bytes.py','-v']; runpy.run_module('unittest',run_name='__main__')"
+  if ($LASTEXITCODE -ne 0) { throw 'Linux tests failed' }
+} finally {
+  docker rm -f $container
+  docker volume rm $volume
+}
+```
+
+On Windows, use the existing interpreter for `pytest tests -q -p no:cacheprovider`,
+`ruff check --no-cache app tests migrations`, and
+`mypy --platform linux --cache-dir .mypy_cache app`. Linux-only filesystem tests
+are skipped on Windows; Windows refusal still runs. Runtime and tests add no deps.
+Syscall references: [linkat](https://man7.org/linux/man-pages/man2/link.2.html),
+[flock](https://man7.org/linux/man-pages/man2/flock.2.html),
+[fsync](https://man7.org/linux/man-pages/man2/fsync.2.html).
+
 `GET /api/v1/health` returns `{"status":"ok"}` when the process responds.
 It is a liveness check, not a readiness or security check. Interactive API
 documentation is disabled to avoid loading third-party assets.
