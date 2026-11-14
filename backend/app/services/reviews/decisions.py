@@ -18,10 +18,8 @@ from app.services.reviews.store import (
     _validate_request_id,
     decide_review,
     get_review_decision,
-    get_review_request,
-    review_requests,
+    lock_review_request,
 )
-from app.services.workflows.runs import runs
 
 # Reserved for this service's trusted writers, not a publication topic.
 APPROVED_TOPIC = "internal.review-approved.v1"
@@ -67,17 +65,7 @@ def record_decision(
     # Savepoint also undoes the store transition if enqueue fails and the caller
     # catches the exception then commits unrelated work in the outer transaction.
     with connection.begin_nested():
-        request = get_review_request(connection, review_id)
-        # The stored run (not caller-supplied scope) determines lock ownership.
-        connection.execute(
-            select(runs.c.id).where(runs.c.id == request.scope.run_id).with_for_update()
-        ).scalar_one()
-        connection.execute(
-            select(review_requests.c.id)
-            .where(review_requests.c.id == review_id)
-            .with_for_update()
-        ).scalar_one()
-        request = get_review_request(connection, review_id)
+        request = lock_review_request(connection, review_id)
         _require_unexpired(connection, expiry, request.expires_at)
         if request.scope != expected_scope:
             raise ReviewConflict("Review scope does not match expected scope")

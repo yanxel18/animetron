@@ -289,6 +289,24 @@ def get_review_request(connection: Connection, review_id: UUID) -> ReviewRequest
     return _request_from_row(row._mapping)
 
 
+def lock_review_request(connection: Connection, review_id: UUID) -> ReviewRequest:
+    """Lock stored run then request, matching supersession; reread after waits."""
+    _require_transaction(connection)
+    _validate_request_id(review_id)
+    request = get_review_request(connection, review_id)
+    connection.execute(
+        select(workflow_runs.c.id)
+        .where(workflow_runs.c.id == request.scope.run_id)
+        .with_for_update()
+    ).scalar_one()
+    connection.execute(
+        select(review_requests.c.id)
+        .where(review_requests.c.id == review_id)
+        .with_for_update()
+    ).scalar_one()
+    return get_review_request(connection, review_id)
+
+
 def create_review_request(
     connection: Connection,
     review_id: UUID,
