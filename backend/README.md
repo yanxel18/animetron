@@ -32,7 +32,7 @@ checks the digest on read. Identical writes are idempotent. It has no workflow
 ownership or authorization model, and does not prevent privileged direct
 database changes. Digests detect corruption, not malicious tampering. It does
 not pin handler implementations or schema defaults or make execution safe
-across upgrades. Do not enqueue work until those guarantees exist.
+across upgrades. Do not enqueue execution work until those guarantees exist.
 
 An internal dependency plan derives each node's distinct predecessors from a
 validated workflow. It does not bind to a stored snapshot, schedule nodes,
@@ -44,6 +44,43 @@ to a stored revision and prevents deletion of referenced revisions. Existing
 unbound runs and the original creation function remain available internally.
 Neither path creates node intents, dispatches jobs, authorizes actions, or
 implements review and publication. Only use them behind those future controls.
+
+### Internal run-request records (P1-09a)
+
+`app.services.workflows.run_requests.request_run(connection, request_id,
+workflow_id, revision, expected_sha256)` atomically claims a stable caller-supplied
+RFC-variant UUID4 request identity, creates a server UUID4 run through
+`create_run_with_revision`, and enqueues one reserved INTERNAL notification.
+The exact stored snapshot must match the expected lowercase SHA-256; the
+existing loader verifies its bytes. Frozen `RunRequest` metadata contains
+`request_id`, `run_id`, `workflow_id`, `revision`, `sha256`, `created_at`.
+
+Use a caller-owned explicit non-AUTOCOMMIT psycopg/SQLAlchemy transaction at
+READ COMMITTED. The service uses a savepoint, never commits the outer transaction,
+and rolls back all its writes even if the caller catches an error and commits
+unrelated work. Callers own statement/lock timeout budgets and whole-transaction
+retries for database serialization/deadlock failures. The request primary key
+serializes concurrent duplicates; identical retries return the same checked
+association, and changed payload/expected digest raises `RunRequestConflict`.
+Missing/corrupt revisions propagate their existing errors. Replay checks the run,
+exact binding, initial QUEUED event and reserved intent; inconsistent or missing
+evidence raises `RunRequestCorrupt`, never recreating or adopting storage.
+
+The reserved outbox ID equals the request ID; its resource is the run ID and its
+topic is `internal.workflow-run-requested.v1`, distinct from actual dispatch.
+An existing reserved ID causes failure, even if its topic looks correct.
+There is **no consumer**. Request records and their association have **no automatic
+expiry/deletion**; the database guards their mutation. The additive
+`p1_09a_run_requests` migration preserves existing tables and the single head;
+downgrading it destroys replay evidence (require authorization and recovery
+planning on populated databases).
+
+This is not authorization, dispatcher/handler/model readiness or an execution
+claim. No role/default principal or source path is accepted. No node intents,
+workflow HTTP/CRUD, scheduling, workers or external effects are implemented.
+P1-08 implementation/default/model pinning remains an EXECUTION prerequisite.
+Privileged SQL tampering is outside the trust boundary. See the
+[internal contract](../docs/SPEC-workflow-runtime.md#bounded-internal-p1-09a-contract).
 
 The internal transactional outbox stores intent IDs, topics, and resource IDs
 in a caller-managed transaction. Claims use expiring database leases and a
