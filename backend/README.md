@@ -286,6 +286,17 @@ $env:PYTHONTZPATH = ""
 .\.venv\Scripts\python.exe -m pytest tests\test_scheduling.py -q -p no:cacheprovider
 ```
 
-There are no schedule HTTP endpoints, database rows, Beat process, durable slot
-claims, run intents, overlap/restart handling or publication permissions in this
-slice. These remain required before enabling scheduling.
+The internal `app.services.scheduling.store` persists descriptors bound to an
+existing immutable workflow revision. Create and update require an explicit
+non-autocommit caller transaction, an aware cursor and an explicit enabled
+boolean. An enabled descriptor's next due time is the first preview occurrence
+strictly after that cursor; a paused descriptor has no next due time. Resuming
+recalculates from the supplied cursor and does not catch up missed occurrences.
+Updates require the current version; stale writes conflict. Lists are ordered by
+UUID with an exclusive cursor and a maximum page size of 100. The only persisted
+overlap and missed-run descriptors are the approved `skip` policies.
+
+These are descriptor semantics, not dispatch guarantees. There are no schedule
+HTTP endpoints, Beat process, durable slot claims, run intents, overlap/restart
+handling or publication permissions in this slice. These remain required before
+enabling scheduling.

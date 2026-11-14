@@ -53,6 +53,14 @@ returned. Future persistence/dispatch must reuse this calculation and namespace
 slot keys by schedule identity. No authorized preview endpoint or persisted
 dispatch exists yet. [Implementation findings](../tasks/scheduling-preview-report.md).
 
+P6-02b adds internal schedule descriptors only. Enabled records calculate
+`nextDueAt` from an explicitly supplied aware cursor using the same preview;
+paused records store no next due time. Resume recalculates strictly after its
+cursor without catch-up. Version-checked edits bind an existing immutable
+workflow revision and leave existing runs unchanged. The stored overlap and
+missed-run descriptors are `skip`, not an implementation of dispatch,
+arbitration, slot identity, restart recovery, or skipped-slot audit.
+
 ## Testing and acceptance criteria
 
 1. Two due-dispatch attempts produce one persisted run intent using a unique
