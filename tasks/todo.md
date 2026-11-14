@@ -82,11 +82,11 @@ have the security and recovery guarantees below.
   and tested backup/restore for metadata and artifacts.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
-  - [ ] P0-09a Add the owner's explicit local credential-file exclusion.
+  - [x] P0-09a Add the owner's explicit local credential-file exclusion.
     Existing `*.env` protection remains intact; the local file is preserved.
-    Names-only tracking and ignore checks passed. In review in
-    [#39](https://github.com/yanxel18/animetron/pull/39);
-    not a fix for the blocked auth scanner.
+    Names-only tracking and ignore checks passed. Merged in
+    [#39](https://github.com/yanxel18/animetron/pull/39); this is not a fix
+    for or clearance of the blocked auth scanner.
     [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
 
 ## Phase 1 - Workflow runtime
@@ -199,6 +199,12 @@ authorized human can decide on the exact output without occupying a worker.
   [#12](https://github.com/yanxel18/animetron/pull/12)
 - [ ] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
+  - In review in [#40](https://github.com/yanxel18/animetron/pull/40); leave
+    unchecked until the PR is merged. See the
+    [review records design and verification report](review-records-report.md).
+    Independent QA failed at `21ca53f` on insert-state enforcement, reviewer-ID
+    validation and DB expiry-guard coverage. Correction cycle 1/3 addresses
+    those three findings; same-reviewer reassessment remains required.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
