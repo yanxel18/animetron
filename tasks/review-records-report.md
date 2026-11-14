@@ -51,9 +51,9 @@ outcomes record only a bounded error code and never transmit content.
 
 - No outstanding P4-02-specific correctness finding was identified in the
   implementation and verification above. This is not an independent approval
-  or a production-readiness claim. GitGuardian passed for PR #40's initial head
-  `e714991ce07a4c2e4d1531d7ec1391c9fc0c20c2`; subsequent head updates require a
-  fresh check, and independent PR review remains pending.
+  or a production-readiness claim. GitGuardian passed on the checked PR heads;
+  any later update must pass a fresh check. Independent PR review remains
+  pending.
 - Auth #33 remains independently blocked by its historical GitGuardian result
   and conflicts. The merged credential-exclusion PR #39 is not Auth #33
   clearance.
@@ -71,12 +71,10 @@ After verification, removed only the exact P4-02-owned PostgreSQL container
 `f33409614c309a5e93e9baca48bae0fcd841a42d3c561a1ec0a4f3763d487b91` using its
 immutable ID after confirming the pinned image and `P4-02` task/session/owner
 labels. A subsequent inspect confirmed the container was absent. Worktree-local
-temporary directories are task-labeled and will be removed after the remaining
-GitHub checks.
+temporary directories used for this task are task-labeled and will be removed
+after the final PR check; absence will be verified.
 
 ## Pull request
 
 Open PR [#40](https://github.com/yanxel18/animetron/pull/40), targeting
-`master` from `feature/review-records`. The branch head was pushed at
-`e714991ce07a4c2e4d1531d7ec1391c9fc0c20c2`; the report and in-review task link
-are being added in a follow-up commit.
+`master` from `feature/review-records`. P4-02 remains unchecked pending merge.
