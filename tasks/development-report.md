@@ -611,3 +611,47 @@ preserved.
 The branch is not on the remote. No source upload, PR, remote check or merge is
 claimed, and P4-03 remains unchecked. This is an internal trusted-caller
 service, not authentication or a publication-approval proof.
+
+### Verified owner-only service merge - 2026-11-14
+
+The preceding local/publication blockers are historical. #43 was created for
+the already-pushed branch and merged normally at
+`70035139e69a601d68ac0bc8d55b66102d9d7046` after direct corrected-source
+review, independent 380-test QA and exact-head GitGuardian success. The final
+documentation checkpoint did not change the tested backend/spec core.
+Root master was pulled with pre-existing unrelated report edits preserved.
+No formal self-approval, force-push or protection/check waiver occurred.
+
+The next slice is a caller-transactional current-approval lookup, with exact
+scope/current owner/state/expiry and reserved intent checks. It cannot be used
+as a cached permission or a replacement for content verification, authorized
+transports or publishing safeguards. Full P9 and historical #33 scanner triage
+remain open.
+
+### Current-approval lookup local implementation - 2026-11-14
+
+The internal lookup is implemented at
+`69374397fc8fdd47a8f26b0d0004c9d13f1ee64e`; its author report is at
+`0989d27aa3fc48a511eab07e4aadedb3416e5fed`. Direct source review checked
+the tests, shared run/request locking, unchanged decision savepoint and expiry
+behavior, current owner derivation against `AuthStore.create_session`, exact
+scope/state/intent checks and advancing expiry check after the final lock.
+No required source correction was found.
+
+Author checks passed 28 focused tests, 408 full tests with 20 existing Windows
+skips, migration lifecycle, Ruff, strict Linux-target mypy33 and dependency
+consistency. A private combined guard mutation failed 11 focused tests.
+Independent final execution at `0989d27` reproduced 408 passed/20 skips,
+including all 28 lookup cases and both prior decision expiry-lock cases.
+Migration lifecycle, Ruff, strict Linux-target mypy33 and dependency consistency
+passed. The no-DB invocation skipped all 28 cases. The owned harness retained
+its guards and used cached images with `--pull never`; captured containers,
+network and anonymous volume were removed. No source was changed by QA.
+The parent edited reconciliation documentation while QA was preparing; that
+explains its observed pre-run task-file hash change.
+
+The remote branch remains absent, so no PR, remote checks or merge are claimed.
+Source upload is not performed in this session; the owner's push/merge
+authorization is acknowledged, not missing. Keep P4-04 unchecked.
+See [the lookup report](review-approval-lookup-report.md) for reproduction,
+resource cleanup, limitations and remaining transport/publisher boundaries.

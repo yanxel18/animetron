@@ -145,3 +145,30 @@ upload, push, PR, GitHub operation or live publication effect occurred.
   Linux artifact-byte suite was not run for this lookup-only slice.
 - No outstanding implementation or verification blocker. Independent review,
   publishing integration and any remote/merge action remain outside this handoff.
+
+## Independent final checkpoint
+
+Independent QA verified HEAD `0989d27aa3fc48a511eab07e4aadedb3416e5fed`
+and implementation ancestor `69374397fc8fdd47a8f26b0d0004c9d13f1ee64e`.
+The full owned harness reproduced **408 passed, 20 skipped**, including all
+28 lookup cases, the actual final intent-lock expiry wait and both existing
+decision-service expiry-lock regressions. Migration lifecycle, Ruff, strict
+Linux-target mypy (33 files) and `pip check` passed. Without database URLs,
+the focused lookup invocation produced **28 skipped**.
+
+QA used the requested interpreter and worktree import provenance. Its in-process
+wrapper added Docker `--pull never` and verbose pytest reporting without
+changing the checked-in harness or ownership guards. Both captured containers,
+the network and anonymous volume were confirmed removed. Source and protected
+files were unchanged during execution. Parent reconciliation edits explain the
+task-file hash change between QA's earlier preparation probes.
+
+Direct source review found no required correction after checking test coverage,
+current-owner identity against AuthStore, exact scope/state/intent association,
+shared lock ordering, post-lock advancing expiry and unchanged decision
+savepoint behavior. This is not a formal GitHub approval.
+
+The remote branch is absent at the final check. No source upload, PR, remote
+check or merge is claimed; local verification does not complete P4-04 or P9.
+Owner authorization to push and merge is acknowledged. Remote publication
+remains a separate unresolved workflow step.
