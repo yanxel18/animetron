@@ -397,3 +397,118 @@ def test_review_request_delivery_and_decision_share_caller_rollback(engine):
             connection.scalar(text("SELECT to_regclass('review_rollback_probe')"))
             is None
         )
+
+
+@pytest.mark.parametrize("state", ["APPROVED", "REJECTED"])
+def test_raw_insert_cannot_start_with_decided_state(engine, state):
+    run_id, request_id = uuid4(), uuid4()
+    with engine.begin() as connection:
+        create_run(connection, run_id)
+        with (
+            pytest.raises(DBAPIError, match="must start pending delivery"),
+            connection.begin_nested(),
+        ):
+            connection.execute(
+                text(
+                    "INSERT INTO review_requests "
+                    "(id, run_id, artifact_revision, artifact_sha256, "
+                    "caption_sha256, destinations, expires_at, state) "
+                    "VALUES (:id, :run_id, 'render-1', :artifact, :caption, "
+                    """'[{"provider":"facebook","account_id":"page-1"}]'::jsonb, """
+                    "clock_timestamp() + interval '1 hour', :state)"
+                ),
+                {
+                    "id": request_id,
+                    "run_id": run_id,
+                    "artifact": "a" * 64,
+                    "caption": "b" * 64,
+                    "state": state,
+                },
+            )
+            connection.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+        assert connection.scalar(text("SELECT 1")) == 1
+        with pytest.raises(ReviewNotFound):
+            get_review_request(connection, request_id)
+
+
+@pytest.mark.parametrize("reviewer_id", ["reviewer id", "", "-reviewer", "a" * 129])
+def test_invalid_reviewer_id_preserves_caller_transaction(engine, reviewer_id):
+    scope = ReviewScope(
+        run_id=uuid4(),
+        artifact_revision="render-1",
+        artifact_sha256="a" * 64,
+        caption_sha256="b" * 64,
+        destinations=(ReviewDestination("facebook", "page-1"),),
+    )
+    request_id = uuid4()
+    with engine.begin() as connection:
+        create_run(connection, scope.run_id)
+        create_review_request(
+            connection,
+            request_id,
+            scope,
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+        delivered = deliver_review_request(
+            connection, request_id, outcome=DeliveryOutcome.DELIVERED
+        )
+        # No savepoint masks a database error or partially written decision.
+        with pytest.raises(ValueError, match="reviewer identifier"):
+            decide_review(
+                connection,
+                request_id,
+                DecisionOutcome.APPROVED,
+                reviewer_id=reviewer_id,
+            )
+        assert connection.scalar(text("SELECT 1")) == 1
+        assert get_review_request(connection, request_id) == delivered
+        with pytest.raises(ReviewNotFound):
+            get_review_decision(connection, request_id)
+        decision = decide_review(
+            connection,
+            request_id,
+            DecisionOutcome.APPROVED,
+            reviewer_id="Reviewer_1.:@-",
+        )
+    with engine.connect() as connection:
+        assert get_review_decision(connection, request_id) == decision
+
+
+def test_raw_expired_request_cannot_transition_to_awaiting_decision(engine):
+    run_id, request_id = uuid4(), uuid4()
+    with engine.begin() as connection:
+        create_run(connection, run_id)
+        # Past timestamps avoid relying on a sleep or the application expiry guard.
+        connection.execute(
+            text(
+                "INSERT INTO review_requests "
+                "(id, run_id, artifact_revision, artifact_sha256, caption_sha256, "
+                "destinations, created_at, expires_at) "
+                "VALUES (:id, :run_id, 'render-1', :artifact, :caption, "
+                """'[{"provider":"facebook","account_id":"page-1"}]'::jsonb, """
+                "clock_timestamp() - interval '2 hours', "
+                "clock_timestamp() - interval '1 hour')"
+            ),
+            {
+                "id": request_id,
+                "run_id": run_id,
+                "artifact": "a" * 64,
+                "caption": "b" * 64,
+            },
+        )
+        with (
+            pytest.raises(DBAPIError, match="review request has expired"),
+            connection.begin_nested(),
+        ):
+            connection.execute(
+                text(
+                    "UPDATE review_requests SET state = 'AWAITING_DECISION' "
+                    "WHERE id = :id"
+                ),
+                {"id": request_id},
+            )
+        assert (
+            get_review_request(connection, request_id).state
+            is ReviewState.PENDING_DELIVERY
+        )
+        assert expire_review_request(connection, request_id).state is ReviewState.EXPIRED

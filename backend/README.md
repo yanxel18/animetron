@@ -71,6 +71,13 @@ does not implement authorization or role checks, a valid-approval proof, HTTP,
 Telegram, an outbox effect, or publishing. Records are not approval or
 authorization proofs; do not use them to authorize publication.
 
+Reviewer identifiers are stored labels, not role or identity authorization:
+1-128 ASCII characters matching `[A-Za-z0-9][A-Za-z0-9_.:@-]{0,127}`.
+Invalid identifiers are rejected before decision writes, without aborting the
+caller's transaction. Raw SQL request inserts must start in `PENDING_DELIVERY`;
+the database also rejects an expired request's transition to
+`AWAITING_DECISION`, even when application guards are bypassed.
+
 The `p4_02_review_records_20261114` migration adds the internal review tables.
 The independent Auth #33 migration also descends from `0005_artifact_metadata`;
 when that branch is integrated, reconcile the parallel Alembic heads with an

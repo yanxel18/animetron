@@ -117,6 +117,23 @@ def upgrade() -> None:
     )
     op.execute(
         """
+        CREATE FUNCTION guard_review_request_insert() RETURNS trigger
+        LANGUAGE plpgsql AS $$
+        BEGIN
+            IF NEW.state IS DISTINCT FROM 'PENDING_DELIVERY' THEN
+                RAISE EXCEPTION 'review request must start pending delivery'
+                    USING ERRCODE = '23514';
+            END IF;
+            RETURN NEW;
+        END;
+        $$;
+        CREATE TRIGGER review_request_insert_guard
+            BEFORE INSERT ON review_requests
+            FOR EACH ROW EXECUTE FUNCTION guard_review_request_insert();
+        """
+    )
+    op.execute(
+        """
         CREATE FUNCTION guard_review_request_update() RETURNS trigger
         LANGUAGE plpgsql AS $$
         BEGIN
@@ -252,3 +269,4 @@ def downgrade() -> None:
     op.execute("DROP FUNCTION guard_review_decision_insert()")
     op.execute("DROP FUNCTION reject_review_request_delete()")
     op.execute("DROP FUNCTION guard_review_request_update()")
+    op.execute("DROP FUNCTION guard_review_request_insert()")

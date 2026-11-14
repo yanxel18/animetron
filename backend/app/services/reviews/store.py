@@ -29,7 +29,6 @@ from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.engine import Connection, RowMapping
 
 from app.services.reviews.scope import ReviewDestination, ReviewScope
-from app.services.workflows.document import validate_revision_identifier
 from app.services.workflows.runs import runs as workflow_runs
 
 metadata = MetaData()
@@ -483,17 +482,19 @@ def decide_review(
     *,
     reviewer_id: str,
 ) -> ReviewDecision:
-    """Persist one immutable decision from a trusted caller in its transaction."""
+    """Persist a trusted decision, not an authorization or approval proof.
+
+    Reviewer IDs use the DB format: 1-128 ASCII characters, starting with an
+    alphanumeric character, followed by alphanumerics or ``_.:@-``.
+    """
     _require_transaction(connection)
     _validate_request_id(review_id)
     if type(outcome) is not DecisionOutcome:
         raise TypeError("Invalid review decision")
     if not isinstance(reviewer_id, str):
         raise TypeError("Invalid reviewer identifier")
-    try:
-        validate_revision_identifier(reviewer_id)
-    except ValueError:
-        raise ValueError("Invalid reviewer identifier") from None
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:@-]{0,127}", reviewer_id) is None:
+        raise ValueError("Invalid reviewer identifier")
 
     existing_row = connection.execute(
         select(review_decisions).where(review_decisions.c.review_id == review_id)

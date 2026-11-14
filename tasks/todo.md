@@ -202,6 +202,9 @@ authorized human can decide on the exact output without occupying a worker.
   - In review in [#40](https://github.com/yanxel18/animetron/pull/40); leave
     unchecked until the PR is merged. See the
     [review records design and verification report](review-records-report.md).
+    Independent QA failed at `21ca53f` on insert-state enforcement, reviewer-ID
+    validation and DB expiry-guard coverage. Correction cycle 1/3 addresses
+    those three findings; same-reviewer reassessment remains required.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
