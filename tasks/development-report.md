@@ -40,7 +40,8 @@ This report records unresolved findings; implementation progress remains in
   reassessment of [#33](https://github.com/yanxel18/animetron/pull/33) resolved
   the prior unguarded test resets and unbounded per-denial audit-row findings.
   Final-head GitGuardian still fails with a generic high-entropy finding
-  reported in the API tests; exact remaining detector/history scope is unknown.
+  reported in the API tests. New check-output analysis associates the finding
+  with historical PR commit `61a80f9`; its exact line remains unavailable.
   Three correction iterations are exhausted. No waiver, force push or
   self-approval is permitted; the result is not evidence that the protected
   local Hugging Face key leaked.
@@ -421,3 +422,57 @@ The author reports exact-name absence checks after removing owned PostgreSQL/
 Keycloak containers, anonymous volumes, networks and bounded temporaries;
 the private worktree virtual environment is retained. No deployment or live
 content transmission occurred. P0-06b and P9 remain unchecked.
+
+## GitHub secret-scan provenance - 2026-11-14
+
+Development still uses GitHub. GitGuardian is an existing third-party
+secret-scanning check on this repository's GitHub pull requests, not a second
+code host or a newly introduced integration. The review workflow does not
+permit merging a failed configured security check.
+
+Further read-only analysis of check `132207548516` produced new provenance:
+
+- The check's report row associates `backend/tests/test_auth_api.py`, the
+  `Generic High Entropy Secret` category and historical PR commit
+  [`61a80f9`](https://github.com/yanxel18/animetron/commit/61a80f9d485a89c68230830c257c4df79091f4af).
+  That is not the current head `ff5e676`.
+- There are still zero GitHub annotations and no exposed line metadata.
+  This association identifies a historical occurrence; it does not establish
+  the scanner's full scan scope or prove that there are no current findings.
+- AST-only comparisons identified removed fixture literals, including a public
+  unsigned JWT header used in a negative test. No exact literal-to-finding
+  match was established from the report. Do not classify the finding as a
+  false positive or a live credential solely from that candidate.
+- Inspection captured report/source data in process memory and emitted only
+  commit, path, category and literal-location metadata. No matched values,
+  token strings, credential contents or Hugging Face file contents were emitted.
+
+New commits do not change the contents of the older reported commit. Repeated
+current-file edits cannot be assumed to resolve this historical occurrence.
+Leave #33 open for finding-level triage; do not waive scanning, rewrite shared
+history, delete tests or claim that a documentation-only green check clears
+the authentication implementation.
+
+The owner's request to continue does not grant new model, transmission or
+deployment permissions. Independent internal tasks may proceed on verified
+master while authenticated control APIs and their dependent acceptance remain
+blocked. This clarification does not complete P0-06b or P9.
+
+### Hugging Face credential-file exclusion
+
+At the owner's request, the existing `*.env` exclusion is supplemented by an
+explicit root `/huggingfaceinfo.env` entry. The local file is preserved.
+Names-only checks found no tracked copy in master or the auth worktree.
+
+Path-history checks found an addition/removal in local agent checkpoint
+references, not ancestors of `origin/master` or the auth remote-tracking
+branch. No evidence of this file being pushed in those branches was found;
+local checkpoint references were not removed or rewritten.
+
+No credential-file contents were read. Ignoring this path protects future
+normal staging; it neither purges older Git objects nor clears the separate
+GitGuardian finding associated with historical auth API tests. Do not merge
+#33 merely because this credential-exclusion change passes its own checks.
+The live auth PR check also reports merge conflicts. It remains open and
+unmerged; [#39](https://github.com/yanxel18/animetron/pull/39) is the separate
+credential-exclusion and provenance task, not authentication clearance.
