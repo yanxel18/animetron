@@ -64,9 +64,11 @@ have the security and recovery guarantees below.
     The final head `8b8a63277084d1ca962067af25bf5c2ac9e759a1` still has
     a completed/failed GitGuardian check; the merge did not clear that gate.
     Integration also left parallel Alembic heads and omitted review metadata.
-    The local `fix/auth-review-migration-integration` repair passed 330 tests,
-    migration lifecycle, Ruff and strict Linux-target mypy; it is not pushed
-    or merged. Keep unchecked until required gates and integration pass.
+    The `fix/auth-review-migration-integration` repair passed 330 tests,
+    migration lifecycle, Ruff and strict Linux-target mypy, and was pushed to
+    `origin`. A PR could not be created: GitHub MCP returned 404/422 and the
+    browser session is signed out/404. Keep unchecked until the PR, required
+    reviews/checks and integration pass.
     [Current integration findings](auth-review-integration-report.md).
     [Historical scanner provenance](development-report.md#github-secret-scan-provenance---2026-11-14).
   - [x] P0-06a Apply browser security headers to API responses, including

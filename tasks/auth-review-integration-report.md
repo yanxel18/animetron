@@ -1,7 +1,8 @@
 # Auth/review integration findings - 2026-11-14
 
-Status: locally repaired and verified; not pushed, reviewed independently or
-merged. Branch: `fix/auth-review-migration-integration`.
+Status: locally repaired and verified; pushed to `origin`, but not opened as a
+PR, independently reviewed or merged. Branch:
+`fix/auth-review-migration-integration`.
 
 ## Remote reconciliation
 
@@ -54,8 +55,10 @@ and network. Exact-name container query confirmed no matching containers.
 
 The GitGuardian finding needs finding-level triage, not another speculative
 fixture edit or scan exclusion. This repair has no independent review or
-remote checks. Source transmission is unavailable to the assistant, so no push
-or PR creation was attempted.
+remote checks. The branch was pushed with the owner's source-control
+authorization. PR creation and remote review verification are blocked in this
+session: GitHub MCP returned 404/422 and the integrated browser is signed out
+and returns 404.
 
 Schedule persistence remains verified only on local `feature/schedule-records`
 at `52b2b491dba50849d7f246fa5c3906dbecac24f9`; its integration depends on this
