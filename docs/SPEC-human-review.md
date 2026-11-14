@@ -48,3 +48,14 @@ Inherit shared boundaries. Telegram review necessarily transmits content outside
 the workstation. Consent is configured explicitly. Review callbacks never carry
 secrets or arbitrary paths. Dashboard and MCP decisions require the same role and
 state checks. Rejection/expiry never creates a publication intent.
+
+## P4-02 persistence boundary
+
+The internal persistence slice stores exact `ReviewScope` values, caller-supplied
+aware expiry, delivery outcome state and one immutable decision per request in
+caller-owned PostgreSQL transactions. A changed scope supersedes the prior
+active request without rewriting its historic decision. The proposed 24-hour
+expiry is not assumed as a default. This slice does not implement reviewer
+authorization, `getValidApproval`, HTTP/UI, Telegram or any other content
+transmission, outbox effects, or publication; persisted rows are not
+authorization or approval proofs.
