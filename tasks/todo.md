@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `f315e9bbb877893d871174d6542355c767c2e80a` on
-2026-11-14. Merged #41 through #47 were checked against exact-head checks,
+verified remote `master` at `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69` on
+2026-11-14. Merged #41 through #48 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -123,9 +123,25 @@ immutable workflow and recover its state without duplicate effects.
   [#11](https://github.com/yanxel18/animetron/pull/11)
 - [ ] P1-08 Pin handler implementations, configuration defaults and model
   revisions so an old snapshot remains executable as approved.
+  - [ ] P1-08a Verified locally on `feature/workflow-execution-pins`: internal,
+    immutable execution snapshot values binding handler artifact digests,
+    materialized validated configuration defaults and existing pinned model
+    manifests. Preserve legacy workflow snapshot behavior. This slice does
+    not acquire models, load code, establish readiness, authorize execution
+    or complete persisted/runtime enforcement of P1-08.
+    Corrected core `36eae705d9d20a7336357d225df17120d030995f` passed
+    independent QA: 552 full tests/20 existing Windows skips, 69 focused,
+    migrations, Ruff, strict Linux-target mypy39 and dependency consistency.
+    Direct review reproduced numeric-default type comparison and empty-alias
+    defects; correction cycle 1 added 16 cases (10 failed before/16 passed
+    after). Exact input/output byte limits and complete handler/model pinning
+    passed. Source/user files were unchanged by QA. Remote/merge gates remain
+    pending. [Pinning verification](workflow-execution-pins-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09a Verified locally on `feature/run-request-records`: internal
+  - [x] P1-09a Merged in
+    [#48](https://github.com/yanxel18/animetron/pull/48) at
+    `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69`: internal
     caller-transactional idempotent run-request persistence, exact immutable
     revision/digest binding and one stable internal outbox intent. No HTTP,
     role authority, handler/model readiness, node intents, worker execution
@@ -139,8 +155,10 @@ immutable workflow and recover its state without duplicate effects.
     correction. Independent QA reproduced 483 passed/20 skips, all 32 focused
     cases, migrations, Ruff/mypy38 and dependency consistency at that core.
     No-DB checks: 1 passed/34 skipped. Captured test resources were removed;
-    baseline files/resources remained unchanged. Remote/merge gates remain
-    pending; this item remains unchecked until verified merge.
+    baseline files/resources remained unchanged. Exact-head GitGuardian
+    passed at `aaccce7`; normal merge followed review/independent QA with
+    no self-approval or check/protection waiver. Root master was pulled and
+    backend/spec matched the tested core. Parent P1-09 remains unchecked.
     [Run-request verification](run-request-records-report.md).
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.

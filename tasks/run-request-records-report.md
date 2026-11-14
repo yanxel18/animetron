@@ -137,3 +137,15 @@ parent reconciliation/user files were preserved.
 
 The persistence slice is verified locally. Remote checks and normal merge
 remain pending; P1-09a remains unchecked in the sole tracker.
+
+## Verified merge checkpoint
+
+Merged normally in [#48](https://github.com/yanxel18/animetron/pull/48) at
+`d5f7f43e3ccaafdc2f4b24dc294633158c29bf69` after the direct review and
+independent execution above. Exact-head GitGuardian passed at
+`aaccce7f2c3a1c6066afed371e875a72494508ef`; mergeability was clean, with
+no outstanding requested reviewers or branch rules. No self-approval or
+check/protection waiver occurred. Root master was pulled and backend/spec
+matched the independently tested core. Prior pending statuses are historical.
+[todo.md](todo.md) remains the sole current checklist. Only P1-09a is complete;
+this does not complete workflow APIs, node execution or P9.

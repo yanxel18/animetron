@@ -228,3 +228,32 @@ Both disposable cache directories were absent at correction start, recreated
 only by the owned gate, removed by exact worktree-local path, and verified
 absent afterward. No install, shared/root change, push, PR or merge occurred.
 P1-08 durable binding/runtime enforcement remain incomplete.
+
+## Independent final execution - 2026-11-14
+
+Direct correction review found no remaining required finding. Independent QA
+verified HEAD `3d71311c23ee18d278eb4ec77ca5ff8631975387`, corrected core
+`36eae705d9d20a7336357d225df17120d030995f`, base `d5f7f43` and matching
+source/test hashes. The evidence commit changed only this report.
+
+- Full owned harness: **552 passed, 20 existing Windows skips** (48.65s).
+- Complete focused suite: **69 passed**.
+- All 16 correction cases passed; exact input/output byte boundaries and
+  handler/model pinning selections passed.
+- No-DB migration tests: **1 passed, 2 skipped**.
+- Migration lifecycle/metadata parity, Ruff, strict Linux-target mypy
+  (**39 source files**) and dependency consistency passed.
+- Both worktrees' tracked-file hashes/status and the existing root findings
+  file were unchanged. The three parent task files retained their recorded
+  hashes; only the two designated generated cache paths were cleaned.
+- Full container IDs, network IDs and volume names matched exact sorted
+  baseline inventories afterward (4 containers, 4 networks, 78 volumes).
+  The harness reported cleanup including anonymous volumes. QA did not live
+  capture this run's resource IDs; unlike author evidence above, this is
+  harness-reported cleanup plus exact inventory identity return, not separate
+  live-captured ownership verification by resource ID.
+
+Historical RED and mutation results above are author evidence; QA did not
+change source or reproduce them. This verifies the value slice, not durable
+binding, installed-code verification or model readiness. Remote checks and
+normal merge remain pending.

@@ -815,3 +815,36 @@ and dependency consistency. No-DB checks: 1 passed/34 skipped. Captured test
 resources were removed and baseline files/resources remained unchanged.
 No new PR or merge is claimed. This remains persistence only,
 not authorized execution or readiness. [Detailed report](run-request-records-report.md).
+
+### Verified run-request merge and execution pinning start - 2026-11-14
+
+[#48](https://github.com/yanxel18/animetron/pull/48) merged normally at
+`d5f7f43e3ccaafdc2f4b24dc294633158c29bf69` after direct review,
+independent 483-test QA and exact-head GitGuardian success at `aaccce7`.
+Root master was pulled; backend/spec matched the independently tested core.
+Prior unmerged statuses are historical. P1-09a is complete, not P1-09/P9.
+
+Next P1-08a on `feature/workflow-execution-pins` binds immutable handler
+artifact identity, materialized configuration defaults and existing model
+manifest identities into bounded internal execution snapshot values. Legacy
+snapshots retain their existing behavior. This does not load code, acquire
+models, persist execution authority or establish executable/ready status.
+Durable binding and runtime enforcement remain subsequent P1-08 work.
+
+### Corrected execution pinning verification - 2026-11-14
+
+Direct review reproduced two defects: Python equality masked type-changing
+numeric defaults, and truthiness discarded valid empty serialization aliases.
+Correction cycle 1 reuses recursive type/value comparison with a separate
+prevalidation copy and chooses aliases by explicit presence. Sixteen cases
+include nested transformations, mutation and alias collisions; 10 failed before
+the correction and all 16 passed afterward. Direct correction review found no
+remaining required finding.
+
+Independent execution at `3d71311` verified corrected core
+`36eae705d9d20a7336357d225df17120d030995f`: 552 passed/20 existing Windows
+skips, 69 focused cases, migration lifecycle, Ruff, strict Linux-target mypy39
+and dependency consistency. No-DB migration checks: 1 passed/2 skipped.
+Source and user files remained unchanged. Only generated project-local caches
+were cleaned. [Detailed evidence](workflow-execution-pins-report.md).
+Remote checks/merge remain pending; P1-08a is still unchecked.
