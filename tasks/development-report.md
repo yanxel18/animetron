@@ -914,3 +914,44 @@ Exact captured resources were independently verified absent; complete Docker
 inventories and root/target files/status were unchanged. Only newly generated
 owned cache directories were removed. [Detailed evidence](run-read-replay-api-report.md).
 Remote checks and merge remain pending; P1-11a stays unchecked.
+
+### Verified run API merge and frontend contract start - 2026-11-14
+
+[#51](https://github.com/yanxel18/animetron/pull/51) merged normally at
+`4e31490deac801002cd7c73f49c87fb9c58d516a` after direct review,
+independent 622-test QA and exact-head GitGuardian success at `5c65b2b`.
+Root master was pulled; backend/spec matched the tested core. Prior pending
+statements are historical. Only P1-11a is complete, not cancellation, live
+updates, execution or P9.
+
+Next P7-01b on `feature/backend-api-contract-types` establishes local
+backend-derived TypeScript contracts and a drift check before client/UI
+integration. The existing npm policy disables dependency scripts; Node/npm
+match the pinned frontend toolchain. The selected development generator
+`openapi-typescript` 7.13.0 is MIT-licensed; its documented Node API accepts
+in-memory schemas, avoiding a live endpoint or schema transmission.
+Source: https://openapi-ts.dev/node#usage.
+No auth/session flow, runtime schema fetch, client or screen was implemented.
+
+### Owner-requested session closeout - 2026-11-14
+
+The owner requested cleanup, documentation updates, final push/PR/merge and
+then a session stop. The proposed P7-01b contract generation was stopped before
+implementation or verification. Its incomplete repository test and four
+manifest additions were removed; no dependency installation, lockfile change
+or generated contract is included in the final documentation-only change.
+The attached editor snapshot was not edited.
+
+The script-disabled dependency install attempt failed with `ERESOLVE`:
+`openapi-typescript@7.13.0` requires a TypeScript 5 peer range, while the
+project pins TypeScript 7.0.2. No dependency or lockfile was changed; no forced
+install, peer-check bypass or unrelated downgrade was used. Resolve generator
+compatibility before resuming P7-01b. The metadata/license investigation did
+not establish toolchain compatibility.
+
+The authoritative [todo.md](todo.md) now reconciles verified #51 and leaves
+P7-01b paused/unchecked. Earlier "next" and "in progress" statements in this
+chronological report are historical, not a second checklist. Full P0-P9 is
+still incomplete, and scanner, runtime, model, publishing and human-acceptance
+gates have not been waived. [Closeout evidence](session-closeout-report.md)
+records exactly what was cleaned and what was preserved.

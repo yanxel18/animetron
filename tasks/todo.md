@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `a871aaaf32120207c3876ba93739ddde04191dcc` on
-2026-11-14. Merged #41 through #50 were checked against exact-head checks,
+verified remote `master` at `4e31490deac801002cd7c73f49c87fb9c58d516a` on
+2026-11-14. Merged #41 through #51 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -26,6 +26,15 @@ and human-acceptance gates still apply. This checklist does not replace them.
 - The owner has authorized the assistant to merge reviewed, verified PRs.
   This checklist does not authorize deployment, live publishing, model licenses,
   model downloads or external transmission.
+
+### Session handoff - 2026-11-14
+
+The owner requested cleanup, final documentation publication and a session
+stop. No further implementation is running. P7-01b is paused and unimplemented;
+its incomplete test and manifest changes were removed, not shipped.
+P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
+See the [closeout report](session-closeout-report.md) for cleanup scope and
+verification. This checklist remains the only current progress source.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -190,7 +199,9 @@ immutable workflow and recover its state without duplicate effects.
     dispatch).
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
-  - [ ] P1-11a Verified locally on `feature/run-read-replay-api`: authenticated
+  - [x] P1-11a Merged in
+    [#51](https://github.com/yanxel18/animetron/pull/51) at
+    `4e31490deac801002cd7c73f49c87fb9c58d516a`: authenticated
     owner-only HTTP reads of actual persisted run state and bounded ordered
     event replay. Reuse fresh-session/origin policy. No execution, cancellation,
     WebSocket/live push, node-state journal or recovery authority in this slice.
@@ -201,7 +212,10 @@ immutable workflow and recover its state without duplicate effects.
     tail/append, strict query limits, revocation/logout and role/origin guards
     passed. Author pagination mutation failed three cases and was restored.
     Captured resources were verified removed; inventories/files unchanged.
-    Remote/merge gates pending. [Run replay evidence](run-read-replay-api-report.md).
+    Exact-head GitGuardian passed at `5c65b2b`; normal merge followed direct
+    review/independent QA without self-approval or gate waiver. Root master
+    was pulled and tested backend/spec matched.
+    [Run replay evidence](run-read-replay-api-report.md).
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
   end-to-end, including duplicate message handling.
 
@@ -459,6 +473,18 @@ accessibility checks pass, not merely when mock screens exist.
   frozen install, audit and GitGuardian passed. Native 200% browser zoom and
   assistive technology remain unverified; P7-05/P7-06/P9 are not complete.
   [Measured foundation evidence](studio-foundation-report.md).
+  - [ ] P7-01b Paused at the owner's session-stop request: generate
+    TypeScript contracts directly from local backend OpenAPI and detect drift.
+    No live schema fetch, credential reading, runtime client or new screen.
+    Unimplemented; incomplete test and manifest edits were removed. No
+    dependency was installed or generated contract shipped. Resume with
+    implementation, checks and review on a new task branch.
+    Tooling finding: the attempted `openapi-typescript@7.13.0` install failed
+    with `ERESOLVE` because its TypeScript 5 peer range conflicts with the
+    project's pinned TypeScript 7.0.2. Do not force installation or downgrade
+    unrelated tooling; resolve compatibility first.
+    [Closeout findings](session-closeout-report.md).
+    This is a prerequisite to backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
