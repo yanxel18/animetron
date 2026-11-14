@@ -199,6 +199,9 @@ authorized human can decide on the exact output without occupying a worker.
   [#12](https://github.com/yanxel18/animetron/pull/12)
 - [ ] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
+  - In review in [#40](https://github.com/yanxel18/animetron/pull/40); leave
+    unchecked until the PR is merged. See the
+    [review records design and verification report](review-records-report.md).
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
