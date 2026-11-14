@@ -78,16 +78,9 @@ def record_decision(
             .with_for_update()
         ).scalar_one()
         request = get_review_request(connection, review_id)
-        # clock_timestamp advances even during long transactions and lock waits.
-        database_now = connection.scalar(select(func.clock_timestamp()))
-        if not isinstance(database_now, datetime):
-            raise TypeError("Database clock unavailable")
-        if expiry <= database_now:
-            raise AuthDenied("UNAUTHENTICATED", 401)
+        _require_unexpired(connection, expiry, request.expires_at)
         if request.scope != expected_scope:
             raise ReviewConflict("Review scope does not match expected scope")
-        if request.expires_at <= database_now:
-            raise ReviewConflict("Review request has expired")
         if request.state not in (
             ReviewState.AWAITING_DECISION, ReviewState.APPROVED, ReviewState.REJECTED,
         ):
@@ -115,7 +108,10 @@ def record_decision(
             if outcome is DecisionOutcome.REJECTED and intent is not None:
                 raise OutboxConflict("Rejected review has an approval intent")
             # Delegate identical replay to the existing immutable state machine.
-            return decide_review(connection, review_id, outcome, reviewer_id=principal.id)
+            decision = decide_review(connection, review_id, outcome, reviewer_id=principal.id)
+            # Recheck after the intent lock wait, the last potentially blocking step.
+            _require_unexpired(connection, expiry, request.expires_at)
+            return decision
 
         if intent is not None:
             raise OutboxConflict("Undecided review already has a reserved approval intent")
@@ -124,4 +120,19 @@ def record_decision(
         )
         if outcome is DecisionOutcome.APPROVED:
             enqueue(connection, intent_id, APPROVED_TOPIC, review_id)
+        # The savepoint undoes both effects if time passed during lock/insert waits.
+        _require_unexpired(connection, expiry, request.expires_at)
         return decision
+
+
+def _require_unexpired(
+    connection: Connection, principal_expiry: datetime, request_expiry: datetime,
+) -> None:
+    # clock_timestamp advances even during long transactions and lock waits.
+    database_now = connection.scalar(select(func.clock_timestamp()))
+    if not isinstance(database_now, datetime):
+        raise TypeError("Database clock unavailable")
+    if principal_expiry <= database_now:
+        raise AuthDenied("UNAUTHENTICATED", 401)
+    if request_expiry <= database_now:
+        raise ReviewConflict("Review request has expired")

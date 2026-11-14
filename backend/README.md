@@ -317,7 +317,9 @@ server **on every call, including retries**; never deserialize `Principal` from
 client input or treat a cached Principal as fresh authentication. Operator/viewer
 are denied. The service requires an explicit non-AUTOCOMMIT SQLAlchemy psycopg
 transaction, exact typed review scope, UUID4 review ID and `DecisionOutcome`.
-Owner expiry must be aware and later than the database clock after locking.
+Owner expiry must be aware. Owner and request expiry must be later than a fresh
+database clock after the final intent lock/insert (also checked earlier),
+before any successful return.
 
 Locks follow `workflow_runs` then `review_requests`, matching supersession.
 Scope, current state and expiry are checked again on replay. The existing review

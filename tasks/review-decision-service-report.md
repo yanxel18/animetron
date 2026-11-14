@@ -7,10 +7,11 @@ single scoped local feature commit; its SHA is returned in the caller handoff.
 
 ## Implemented boundary
 
-- Added `backend/app/services/reviews/decisions.py` (127 lines): typed
+- Added `backend/app/services/reviews/decisions.py` (138 lines after the source-review correction): typed
   `record_decision(connection, principal, expected_scope, review_id, outcome)`.
 - Explicit non-AUTOCOMMIT SQLAlchemy psycopg caller transaction; owner-only,
-  aware Principal expiry checked against advancing database time after locks.
+  aware Principal and request expiry checked against a fresh advancing database
+  clock after run/request locks and again after the final intent lock/insert.
   Fresh server authentication before every invocation is the caller's contract,
   not something this function can infer from a Principal value.
 - Stored run lock precedes request lock, matching scope supersession. Exact
@@ -60,6 +61,38 @@ No dependency installs, source push, PR, GitHub access, model downloads or agent
   connections, same valid replay across transactions, changed scope fields,
   stale/naive Principal, expired/superseded replay, low-level approval refusal,
   rejection without intents, outer rollback and explicit transaction/UUID typing.
+
+## Parent source-review correction 1 (of maximum 3)
+
+1. **No-URL regression:** the focused file's `engine` fixture raised `KeyError`
+   without `ANIMETRON_TEST_DATABASE_URL` (parent repro: 1 setup error with
+   `--maxfail=1`). Restored the same conditional missing-infrastructure
+   `pytest.skip` used by existing DB suites. Now: **39 skipped**, no errors.
+2. **Time-of-check flaw:** `database_now` was taken after run/request locks but
+   before `select(outbox).with_for_update()`, so an identical approval replay
+   blocked on a held intent row could return APPROVED after the Principal or
+   request expired. Added a real PostgreSQL regression (parametrized principal/
+   request expiry): a second connection holds the intent row lock, the replay
+   runs on another connection, `pg_stat_activity.wait_event_type = 'Lock'` is
+   observed, the test waits until the database clock passes expiry, then
+   releases the blocker and expects `AuthDenied` / `ReviewConflict` with the
+   decision and single intent unchanged.
+   - **RED on prior code (owned harness, focused):** **2 failed, 37 passed**;
+     failures were `DID NOT RAISE AuthDenied` and `DID NOT RAISE ReviewConflict`
+     after the lock wait assertion passed.
+   - **Fix:** `_require_unexpired` uses a fresh `clock_timestamp()`; called after
+     run/request locks (unchanged early guard) and again after the last
+     potentially blocking intent lock/insert before any successful return
+     (replay and new decision). Failure inside the savepoint rolls back any
+     decision/intent. Scope, current-state, collision guards and savepoint
+     atomicity are unchanged.
+   - **GREEN:** focused **39 passed**; full harness **380 passed, 20 skipped**
+     (same 20 existing Linux-only Windows skips); Ruff clean; Linux-target mypy
+     and `--strict` clean (32 files); `pip check` clean; `git diff --check` clean.
+   Docs (SPEC/README) wording updated to match the recheck placement.
+   Five correction harness runs (RED, two RED diagnostics, focused GREEN, full) each
+   removed their owned containers/volumes/network; final Docker listings showed
+   no `animetron-oidc` containers or networks. No mutation scratch copies used.
 
 ## Corrections, cleanup and limits
 

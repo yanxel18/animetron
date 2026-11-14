@@ -72,7 +72,8 @@ explicit non-AUTOCOMMIT SQLAlchemy psycopg transaction, a trusted-server
 The trusted caller must freshly authenticate before **every** invocation,
 including retries; `Principal` must never come from client deserialization.
 This boundary checks owner role and aware expiry against PostgreSQL
-`clock_timestamp()` after lock acquisition. It does not independently authenticate
+`clock_timestamp()` after run/request locks and again after the final intent
+lock/insert, before any successful return. It does not independently authenticate
 the session or check revocation; a cached Principal is not an authentication
 mechanism. Operator and viewer are denied for both outcomes.
 
@@ -106,7 +107,8 @@ store lookup and type/validation errors for invalid inputs, and database/enqueue
 failures without broad catches. Callers must configure transaction-local lock
 and statement timeouts; any bounded retry must reauthenticate and reuse the
 same review ID/scope/outcome. Lock waits can outlast principal/request expiry
-and are rechecked using the advancing database clock.
+and both are rechecked using a fresh advancing database clock after the last
+potentially blocking intent lock/insert; failure rolls back the savepoint.
 
 No HTTP/MCP/Telegram endpoint, outbound delivery, automatic publish consumer,
 `getValidApproval`, publication intent/proof, live integration or deployment is

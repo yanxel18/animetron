@@ -32,7 +32,12 @@ from app.services.workflows.runs import create_run
 
 @pytest.fixture
 def engine():
-    engine = create_database_engine(os.environ["ANIMETRON_TEST_DATABASE_URL"])
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip(
+            "Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database"
+        )
+    engine = create_database_engine(url)
     try:
         yield engine
     finally:
@@ -249,6 +254,53 @@ def test_real_concurrent_opposite_decisions_have_single_winner(engine, owner):
         assert winner in results
         assert get_review_request(conn, review_id).state.value == winner.value
         assert len(intents(conn, review_id)) == (1 if winner is DecisionOutcome.APPROVED else 0)
+
+@pytest.mark.parametrize("expiring", ["principal", "request"])
+def test_replay_rechecks_expiry_after_waiting_on_intent_lock(engine, owner, expiring):
+    review_id, scope = ready(engine, seconds=4 if expiring == "request" else 3600)
+    with engine.begin() as conn:
+        decision = service.record_decision(conn, owner, scope, review_id, DecisionOutcome.APPROVED)
+    principal = owner if expiring == "request" else replace(
+        owner, expires_at=datetime.now(UTC) + timedelta(seconds=2),
+    )
+    deadline = principal.expires_at if expiring == "principal" else None
+    with engine.connect() as blocker, ThreadPoolExecutor(max_workers=1) as pool:
+        blocker.begin()
+        blocker.execute(select(outbox.c.id).where(
+            outbox.c.id == service.approval_intent_id(review_id),
+        ).with_for_update())
+        pid = []
+
+        def replay():
+            with engine.begin() as conn:
+                conn.execute(text("SET LOCAL lock_timeout = '15s'"))
+                pid.append(conn.scalar(text("SELECT pg_backend_pid()")))
+                service.record_decision(conn, principal, scope, review_id, DecisionOutcome.APPROVED)
+
+        future = pool.submit(replay)
+        with engine.connect() as observer:
+            for _ in range(100):
+                waiting = pid and observer.scalar(text(
+                    "SELECT wait_event_type FROM pg_stat_activity WHERE pid = :pid"
+                ), {"pid": pid[0]}) == "Lock"
+                if waiting:
+                    break
+                time.sleep(0.05)
+            assert waiting, "replay did not wait on the held intent lock"
+            if deadline is None:
+                deadline = get_review_request(observer, review_id).expires_at
+            while observer.scalar(select(func.clock_timestamp())) <= deadline + timedelta(
+                milliseconds=200,
+            ):
+                time.sleep(0.1)
+        assert not future.done()
+        blocker.commit()
+        with pytest.raises(AuthDenied if expiring == "principal" else ReviewConflict):
+            future.result(timeout=20)
+    with engine.connect() as conn:
+        assert get_review_decision(conn, review_id) == decision
+        rows = intents(conn, review_id)
+        assert [row.id for row in rows] == [service.approval_intent_id(review_id)]
 
 
 def test_explicit_transaction_and_typed_identifier_required(engine, owner):
