@@ -473,3 +473,6 @@ No credential-file contents were read. Ignoring this path protects future
 normal staging; it neither purges older Git objects nor clears the separate
 GitGuardian finding associated with historical auth API tests. Do not merge
 #33 merely because this credential-exclusion change passes its own checks.
+The live auth PR check also reports merge conflicts. It remains open and
+unmerged; [#39](https://github.com/yanxel18/animetron/pull/39) is the separate
+credential-exclusion and provenance task, not authentication clearance.

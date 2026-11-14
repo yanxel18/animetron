@@ -84,8 +84,9 @@ have the security and recovery guarantees below.
   transaction recovery and backup/restore with integration tests.
   - [ ] P0-09a Add the owner's explicit local credential-file exclusion.
     Existing `*.env` protection remains intact; the local file is preserved.
-    Names-only tracking and ignore checks passed. In review on
-    `chore/hf-credential-exclusion`; not a fix for the blocked auth scanner.
+    Names-only tracking and ignore checks passed. In review in
+    [#39](https://github.com/yanxel18/animetron/pull/39);
+    not a fix for the blocked auth scanner.
     [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
 
 ## Phase 1 - Workflow runtime
