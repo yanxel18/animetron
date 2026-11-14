@@ -3,17 +3,15 @@
 import base64
 import binascii
 import re
-from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import RFC_4122, UUID
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from starlette.responses import Response
 
 from app.api.auth import ErrorResponse
+from app.api.bounded_json import BoundedJSONRoute
 from app.api.dependencies import auth_dependencies
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 from app.core.outbox import OutboxConflict
@@ -29,57 +27,7 @@ from app.services.reviews.store import (
     list_review_requests,
 )
 
-_MAX_DECISION_BODY_BYTES = 4096
 _CURSOR_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
-
-
-class BoundedJSONRoute(APIRoute):
-    """Cap review mutation bodies before FastAPI/Pydantic parses JSON."""
-
-    def get_route_handler(
-        self,
-    ) -> Callable[[Request], Coroutine[Any, Any, Response]]:
-        handler = super().get_route_handler()
-
-        async def bounded(request: Request) -> Response:
-            if request.method != "POST":
-                return await handler(request)
-
-            lengths = request.headers.getlist("content-length")
-            media_types = request.headers.getlist("content-type")
-            encodings = request.headers.getlist("content-encoding")
-            if (
-                len(lengths) > 1
-                or len(media_types) != 1
-                or media_types[0].split(";", 1)[0].strip().lower() != "application/json"
-                or len(encodings) > 1
-                or encodings and encodings[0].lower() != "identity"
-            ):
-                raise AuthDenied("INVALID_REVIEW_HEADERS", 422)
-            if lengths:
-                declared = lengths[0]
-                if not declared.isascii() or not declared.isdigit():
-                    raise AuthDenied("INVALID_CONTENT_LENGTH", 422)
-                # Compare canonical decimals without converting attacker-sized
-                # integers; leading zeros retain their existing numeric meaning.
-                canonical = declared.lstrip("0") or "0"
-                maximum = str(_MAX_DECISION_BODY_BYTES)
-                if len(canonical) > len(maximum) or (
-                    len(canonical) == len(maximum) and canonical > maximum
-                ):
-                    raise AuthDenied("REVIEW_BODY_TOO_LARGE", 422)
-
-            body = bytearray()
-            async for chunk in request.stream():
-                if len(body) + len(chunk) > _MAX_DECISION_BODY_BYTES:
-                    raise AuthDenied("REVIEW_BODY_TOO_LARGE", 422)
-                body.extend(chunk)
-            # FastAPI reads Request.body() for its typed JSON model. The stream
-            # has been bounded above; cache only those bounded bytes for parsing.
-            request.__dict__["_body"] = bytes(body)
-            return await handler(request)
-
-        return bounded
 
 
 class PublicModel(BaseModel):
