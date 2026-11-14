@@ -254,6 +254,16 @@ schedule creates at most one run intent per due slot and never grants approval.
     Ruff/strict Linux mypy and GitGuardian passed. Tests do not
     establish persistence, authorized CRUD, overlap/restart or dispatch.
     [Preview verification and findings](scheduling-preview-report.md).
+  - [ ] P6-02b Persist internal schedule descriptors on
+    `feature/schedule-records` (implementation; no PR completion claim).
+    - Bind an existing immutable workflow revision and reuse the approved
+      cron/IANA preview calculation with an aware cursor.
+    - Require caller-owned transactions, bounded reads and optimistic edit
+      conflicts; resume computes a future occurrence without catch-up.
+    - Verify fresh PostgreSQL persistence, rollback, edit races, preview/DST
+      parity and the migration lifecycle, plus Ruff and strict mypy.
+    This slice adds no HTTP/role authorization, due slots, GPU arbitration,
+    scheduler process, run/outbox dispatch or publication approval.
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
   skipped slots; test pause, restart, overlap, DST and duplicate dispatch.
 
