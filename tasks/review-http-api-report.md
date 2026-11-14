@@ -105,3 +105,16 @@ hash changes during preparation; subsequent hashes remained stable.
 Direct source review found no remaining required correction after the bounded
 decimal fix. No formal GitHub self-approval is implied. PR/remote checks/merge
 remain pending at this checkpoint, and full P9 is not complete.
+
+## Verified merge checkpoint
+
+Merged normally in [#46](https://github.com/yanxel18/animetron/pull/46)
+at `b008e1c5c6d037c48a2fdacc346a820becf11028`. Exact-head GitGuardian
+passed at `57ab7a8bfb02ca7a8f8d56af4920e156e655a6af`; mergeability was clean,
+with no outstanding requested reviews or branch rules. Direct corrected-source
+review and independent final QA above passed. No self-approval or check waiver
+was used. Root master was pulled; backend/spec matched the reviewed core.
+Prior unmerged/publication statuses are historical.
+
+[todo.md](todo.md) is the sole current checklist. P4-04 is complete for its
+bounded HTTP APIs and internal lookup; full P4 and P9 remain incomplete.

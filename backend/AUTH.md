@@ -100,6 +100,12 @@ invalid pagination or review input, 429 shared login quota, and 503 unavailable
 or disabled dependencies. Responses have no-store and existing browser security
 headers, plus HTTPS HSTS. No credentialed CORS or arbitrary redirect is enabled.
 
+Schedule descriptor and preview routes are also owner-only. Each request
+revalidates the opaque session; POST and PUT require exact Origin and CSRF.
+The 4096-byte bounded JSON guard is shared with review decisions without changing
+their error codes. See the [scheduling HTTP contract](../docs/SPEC-scheduling.md).
+These routes do not authorize or perform dispatch or publication.
+
 The review queue is ordered by `(created_at, id)` ascending. Its opaque cursor
 contains the last row's UTC timestamp at database precision plus UUID tie-breaker;
 each request fetches at most `limit + 1`, with no offset or total count. It is a

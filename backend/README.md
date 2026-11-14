@@ -307,10 +307,13 @@ Updates require the current version; stale writes conflict. Lists are ordered by
 UUID with an exclusive cursor and a maximum page size of 100. The only persisted
 overlap and missed-run descriptors are the approved `skip` policies.
 
-These are descriptor semantics, not dispatch guarantees. There are no schedule
-HTTP endpoints, Beat process, durable slot claims, run intents, overlap/restart
-handling or publication permissions in this slice. These remain required before
-enabling scheduling.
+The owner-only scheduling HTTP slice exposes create, get, keyset list, versioned
+replacement and next-five preview. See the [contract](../docs/SPEC-scheduling.md).
+Writes use the PostgreSQL clock, not a client cursor; preview may use an explicit
+aware historical cursor without changing the schedule. These are descriptor
+semantics, not dispatch guarantees. There is no Beat process, durable slot claim,
+run intent, overlap/restart handling or publication permission in this slice.
+These remain required before enabling scheduling.
 
 ## Internal review decisions (P4-03a)
 

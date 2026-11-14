@@ -50,8 +50,8 @@ three-letter month/weekday names; croniter-specific macros, hashed/random,
 50-calendar-year search fails explicitly rather than returning partial results.
 An offset-bearing local time, UTC due time and zone/wall-clock slot key are
 returned. Future persistence/dispatch must reuse this calculation and namespace
-slot keys by schedule identity. No authorized preview endpoint or persisted
-dispatch exists yet. [Implementation findings](../tasks/scheduling-preview-report.md).
+slot keys by schedule identity. No persisted dispatch exists yet.
+[Implementation findings](../tasks/scheduling-preview-report.md).
 
 P6-02b adds internal schedule descriptors only. Enabled records calculate
 `nextDueAt` from an explicitly supplied aware cursor using the same preview;
@@ -60,6 +60,42 @@ cursor without catch-up. Version-checked edits bind an existing immutable
 workflow revision and leave existing runs unchanged. The stored overlap and
 missed-run descriptors are `skip`, not an implementation of dispatch,
 arbitration, slot identity, restart recovery, or skipped-slot audit.
+
+### P6-02c HTTP descriptor contract
+
+All endpoints require a fresh opaque owner session on every request. Mutations
+and previews additionally require the exact configured Origin and CSRF token;
+the existing origin, security-header and error-envelope rules apply. Missing
+auth configuration or persistence fails closed. Inputs are strict camelCase,
+reject unknown fields, and JSON request bodies are limited to 4096 bytes.
+
+- `POST /api/v1/schedules` creates a UUID4 descriptor and returns 201.
+- `GET /api/v1/schedules/{id}` reads a descriptor.
+- `GET /api/v1/schedules?limit=50&cursor=<uuid4>` returns `data` and
+  `nextCursor`, ordered by UUID with an exclusive cursor. Limit is 1–100.
+  A full page supplies a cursor even if the following page is empty.
+- `PUT /api/v1/schedules/{id}` replaces the descriptor using `expectedVersion`.
+  Pause and resume are versioned replacements, not deletion.
+- `POST /api/v1/schedules/{id}/previews` returns `occurrences`, exactly five
+  `localTime`, `dueAt`, and `slotKey` values from the existing preview logic.
+  Its body is `{}` or `{"after":"<offset-bearing ISO datetime>"}`. If omitted,
+  `after` uses the database clock. An explicit historical cursor is permitted
+  for preview only; it does not change the descriptor or create work.
+  Authentication can still update the session's last-seen timestamp.
+
+Create and replacement bodies require `workflowId`, `revision`, `expression`,
+`timeZone`, `enabled`, `overlapPolicy`, and `missedRunPolicy`; policies must
+both explicitly be `skip`. Responses contain those fields plus `id`,
+`nextDueAt`, `version`, `createdAt`, and `updatedAt`. The immutable revision
+must already exist. Create and replacement use PostgreSQL's advancing
+`clock_timestamp()` as the calculation cursor; no write accepts a client
+cursor. Create is not idempotent and must not be blindly retried.
+
+Unknown or repeated query parameters are rejected. Invalid IDs, queries or
+inputs yield 422; absent schedules or revisions 404;
+version collisions 409; missing sessions 401; forbidden role/origin/CSRF 403;
+unavailable auth/persistence 503. No endpoint dispatches, creates a run or
+outbox intent, or grants approval. P6-02 remains incomplete until dispatch.
 
 ## Testing and acceptance criteria
 

@@ -41,7 +41,9 @@ def wait_for(check):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--storage", action="store_true")
-    parser.add_argument("--pytest-file", choices=["tests/test_reviews_api.py"])
+    parser.add_argument("--pytest-file", choices=[
+        "tests/test_reviews_api.py", "tests/test_schedules_api.py",
+    ])
     args = parser.parse_args()
     env = dict(os.environ)
     # Never inherit a production/test URL, auth setting or proxy.
