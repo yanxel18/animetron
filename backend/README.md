@@ -2,9 +2,11 @@
 
 Project-wide progress and remaining work: [task checklist](../tasks/todo.md).
 
-The API currently provides only process liveness. A PostgreSQL engine factory
-is available for future persistence, but the API does not yet use a database
-or implement authentication, storage, workflows, or creator features.
+The API provides minimal public liveness and a bounded authenticated control
+plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
+[AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
+CSRF, audit/readiness/WebSocket controls and security limitations. It does not
+implement artifact HTTP, workflow CRUD, model/media or creator features.
 
 The internal workflow graph validator checks graph limits, node and edge IDs,
 allowlisted node types, port connections, required inputs, and cycles against
@@ -131,11 +133,20 @@ From this directory in PowerShell, using Python 3.12 or newer:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m pytest tests -q
+.\.venv\Scripts\python.exe tests/run_auth_checks.py
 .\.venv\Scripts\python.exe -m ruff check app tests
 .\.venv\Scripts\python.exe -m mypy app
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
+
+The full auth harness requires Docker and installed Edge on Windows; it creates
+only disposable, loopback-bound test resources and ignores inherited database
+URLs. A supplied `ANIMETRON_TEST_DATABASE_URL` must carry the harness-generated
+capability and matching in-database ownership marker; otherwise pytest refuses
+before collection or mutation. Do not point tests at shared databases or bypass
+the guard. See [the ownership and denial-audit contract](AUTH.md).
+The plain HTTP server command above is liveness-only: authenticated
+operation requires the explicitly configured HTTPS origin and TLS boundary.
 
 ## Internal Linux artifact bytes
 
@@ -206,7 +217,7 @@ try {
 }
 ```
 
-On Windows, use the existing interpreter for `pytest tests -q -p no:cacheprovider`,
+On Windows, use the auth harness above for the full suite, and the existing interpreter for
 `ruff check --no-cache app tests migrations`, and
 `mypy --platform linux --cache-dir .mypy_cache app`. Linux-only filesystem tests
 are skipped on Windows; Windows refusal still runs. Runtime and tests add no deps.
@@ -218,24 +229,18 @@ Syscall references: [linkat](https://man7.org/linux/man-pages/man2/link.2.html),
 It is a liveness check, not a readiness or security check. Interactive API
 documentation is disabled to avoid loading third-party assets.
 HTTP responses include restrictive browser security headers, including on
-unhandled errors. They do not authenticate requests, prevent CSRF, enforce
+unhandled errors. Headers alone do not authenticate requests, prevent CSRF, enforce
 trusted hosts, or replace a secure gateway. Routes are registered on `api`;
 serve the outer ASGI `app` so the headers also cover error responses. See
 [Starlette middleware documentation](https://www.starlette.io/middleware/#corsmiddleware-global-enforcement).
 
 The database factory requires an explicit `postgresql+psycopg` URL including a
-host and database. Do not commit credentials. To run the optional PostgreSQL
-integration test, set `ANIMETRON_TEST_DATABASE_URL` to a disposable database
-before running pytest. The test creates and removes a uniquely named table;
-the database must not contain production data. Without that variable the
-integration test is skipped.
-
-Run-event tests also require the migration to be applied to that disposable
-database. Set `ANIMETRON_DATABASE_URL` to the same URL, then run:
-
-```powershell
-.\.venv\Scripts\python.exe -m alembic upgrade head
-```
+host and database. Do not commit credentials. Run PostgreSQL integration and
+run-event tests using `tests/run_auth_checks.py`, which provisions its actual
+owned disposable database, installs ownership proof and applies/checks migrations.
+Manually setting a test database URL is insufficient and fails closed at pytest
+startup. Without a test URL, optional foundation PostgreSQL smoke tests skip;
+auth persistence tests deliberately require the owned harness database.
 
 Back up existing databases before applying migrations. A downgrade removes run
 and event data and must not be used without explicit authorization.

@@ -69,6 +69,26 @@ have the security and recovery guarantees below.
   - [x] P0-06a Apply browser security headers to API responses, including
     unhandled errors ([#19](https://github.com/yanxel18/animetron/pull/19);
     not authentication or CSRF protection).
+  - [ ] P0-06b Bounded Keycloak/Authlib OIDC browser sessions, principal roles,
+    CSRF logout, audit history, authorized readiness and origin-checked
+    WebSocket handshake. **In review**
+    ([#33](https://github.com/yanxel18/animetron/pull/33)) on
+    `feature/oidc-browser-sessions`;
+    dependency [#27](https://github.com/yanxel18/animetron/pull/27) is merged.
+    See [auth contract and acceptance evidence](../backend/AUTH.md).
+    Original independent-review blockers were unguarded disposable-test DB
+    resets and unbounded denial auditing; both now have verified fixes awaiting
+    same-reviewer reassessment. GitGuardian's test-material finding still
+    requires a passing final-head check. Do not merge or check complete before
+    all gates pass.
+    Review repair: 314 passed / 20 existing Linux-only skips, 70 auth tests,
+    Ruff and Linux mypy (29 files) passed, including owned-database rejection
+    and bounded shared denial-count regressions. Migration upgrade/check/
+    downgrade/re-upgrade and dependency audit passed. Same-PR
+    [repair findings](../backend/AUTH-FINDINGS.md) retain the required
+    GitGuardian and independent reassessment gates; not ready to merge.
+    No deployment, artifact/workflow HTTP, provider publishing, back-channel
+    logout or phase-completion certification is included.
 - [ ] P0-07 Implement bounded artifact upload, metadata and authorized
   download with opaque IDs, content checks and safe storage.
   - [x] P0-07a Persist immutable artifact metadata in caller-owned transactions
