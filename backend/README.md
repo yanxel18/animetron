@@ -307,3 +307,37 @@ These are descriptor semantics, not dispatch guarantees. There are no schedule
 HTTP endpoints, Beat process, durable slot claims, run intents, overlap/restart
 handling or publication permissions in this slice. These remain required before
 enabling scheduling.
+
+## Internal review decisions (P4-03a)
+
+`app.services.reviews.decisions.record_decision(connection, principal,
+expected_scope, review_id, outcome) -> ReviewDecision` is an internal owner-only
+approve/reject boundary. Callers must freshly authenticate through the trusted
+server **on every call, including retries**; never deserialize `Principal` from
+client input or treat a cached Principal as fresh authentication. Operator/viewer
+are denied. The service requires an explicit non-AUTOCOMMIT SQLAlchemy psycopg
+transaction, exact typed review scope, UUID4 review ID and `DecisionOutcome`.
+Owner expiry must be aware and later than the database clock after locking.
+
+Locks follow `workflow_runs` then `review_requests`, matching supersession.
+Scope, current state and expiry are checked again on replay. The existing review
+store records the immutable winner; simultaneous approve/reject cannot both win.
+An approval and one namespaced `internal.review-approved.v1` outbox notification
+intent share a savepoint, so caught enqueue failures cannot leave a decision or
+partial intent committed. Valid identical retries add no effects; changed
+reviewer/outcome, stale scope and expired/superseded requests fail explicitly.
+Rejection never creates an approval/publication intent.
+
+The reserved service-owned topic/intent identity is trusted internal evidence,
+not cryptographic proof or publication authority. Low-level APPROVED rows
+without matching evidence fail closed and are not repaired by enqueueing.
+Other trusted writers must not forge reserved intents; retention must preserve
+them for replay. See [the approved boundary](../docs/SPEC-human-review.md) for
+the exact namespace, error semantics and trust limits. There is no HTTP/MCP/
+Telegram adapter, outbound notification or automatic publication consumer.
+
+The caller owns outer commit/rollback and sets transaction-local lock/statement
+budgets. Timeout/connection/enqueue errors propagate; retry only with fresh
+authentication and the same review identity and exact intent. Focused tests are
+`tests/test_review_decision_service.py`; run the full owned PostgreSQL/Keycloak/
+browser harness with `python tests/run_auth_checks.py` (never inherited DB URLs).

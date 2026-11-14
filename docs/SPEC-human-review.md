@@ -59,3 +59,58 @@ expiry is not assumed as a default. This slice does not implement reviewer
 authorization, `getValidApproval`, HTTP/UI, Telegram or any other content
 transmission, outbox effects, or publication; persisted rows are not
 authorization or approval proofs.
+
+## P4-03a bounded internal decision service
+
+Owner-only approve/reject was explicitly selected on November 14, 2026.
+`app.services.reviews.decisions.record_decision(connection, principal,
+expected_scope, review_id, outcome) -> ReviewDecision` accepts only a caller-owned
+explicit non-AUTOCOMMIT SQLAlchemy psycopg transaction, a trusted-server
+`Principal`, an exact `ReviewScope`, an RFC-variant UUID4 review ID and a typed
+`DecisionOutcome`. No expiry, role or content-hash defaults are supplied.
+
+The trusted caller must freshly authenticate before **every** invocation,
+including retries; `Principal` must never come from client deserialization.
+This boundary checks owner role and aware expiry against PostgreSQL
+`clock_timestamp()` after lock acquisition. It does not independently authenticate
+the session or check revocation; a cached Principal is not an authentication
+mechanism. Operator and viewer are denied for both outcomes.
+
+The service locks the stored `workflow_runs` row before `review_requests`,
+matching scope supersession ordering, then rereads the request and guards exact
+scope, expiry and current state before effects **and identical replay**.
+Concurrent opposing decisions have one winner. The existing
+`get_review_request`, `get_review_decision` and `decide_review` store operations
+remain the state machine; no second transition implementation is introduced.
+
+An approval and one stable internal notification intent commit or roll back
+together inside a savepoint, even if the caller catches an enqueue exception and
+commits other work. Outer commit/rollback remains caller-owned. The topic
+`internal.review-approved.v1` and UUID5 namespace
+`fd3e1bf7-f2a6-51b9-bdaa-2299c3124a19` (name: canonical review UUID) are reserved
+for this service's trusted writers. Identical valid retries do not enqueue.
+Changed topic/resource collisions fail explicitly. An undecided request with a
+pre-existing reserved intent is a conflict, even with identical contents.
+
+An existing low-level APPROVED row without the matching reserved service intent
+is rejected, never retroactively enqueued/promoted. This association is evidence
+only within the trusted-writer contract: arbitrary database/outbox writers could
+forge it. It is **not** an authenticated publication approval proof. Rejected
+reviews create no approval or publication intent. Preserve the reserved intent
+when maintaining outbox history; deleting it deliberately makes approval replay
+fail closed.
+
+Errors propagate: `AuthDenied` for authorization/expiry, `ReviewConflict` for
+scope/state/replay conflicts, `OutboxConflict` for reserved intent collisions,
+store lookup and type/validation errors for invalid inputs, and database/enqueue
+failures without broad catches. Callers must configure transaction-local lock
+and statement timeouts; any bounded retry must reauthenticate and reuse the
+same review ID/scope/outcome. Lock waits can outlast principal/request expiry
+and are rechecked using the advancing database clock.
+
+No HTTP/MCP/Telegram endpoint, outbound delivery, automatic publish consumer,
+`getValidApproval`, publication intent/proof, live integration or deployment is
+implemented. The broader commands/provider contracts above remain future work.
+Focused database tests: `tests/test_review_decision_service.py`, executed only
+through the ownership-checked disposable auth harness; full verification uses
+`python tests/run_auth_checks.py`.
