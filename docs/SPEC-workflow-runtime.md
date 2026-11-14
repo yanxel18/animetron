@@ -34,6 +34,47 @@ Run states: QUEUED, RUNNING, WAITING_REVIEW, SUCCEEDED, PARTIAL_FAILURE, FAILED,
 CANCELLING, CANCELLED. Review decisions and publication states are separate
 domain records, not overloaded generation success.
 
+## Authenticated read-only run status and event replay (P1-11a)
+
+The owner-only, authenticated HTTP contract exposes only persisted workflow-run
+state and ordered events:
+
+- `GET /api/v1/runs/{id}` returns exactly
+  `{ "runId": "<UUID>", "state": "<RunState>", "lastSequence": <integer> }`.
+- `GET /api/v1/runs/{id}/events?afterSequence=0&limit=50` returns exactly
+  `{ "data": [{ "runId": "<UUID>", "sequence": <integer>, "state":
+  "<RunState>", "message": "<plain JSON string>", "occurredAt":
+  "<timezone-aware UTC timestamp>" }], "nextAfterSequence": <integer>,
+  "hasMore": <boolean> }`.
+
+The `afterSequence` cursor is exclusive, defaults to `0`, and is bounded to
+`0..2147483647`. `limit` defaults to `50` and is bounded to `1..100`. Decimal
+values accept ASCII digits only, at most 10 characters for the cursor and 3
+for the limit; leading zeroes are accepted within those encoded lengths.
+Unknown or repeated query parameters, malformed UUIDs, and invalid bounds
+return the standard generic `422` error. Event reads request at most
+`limit + 1` stored rows; only the first `limit` are returned. `hasMore` reports
+whether that extra row exists. `nextAfterSequence` is the final returned
+sequence, or the input cursor when the page is empty. A future cursor is not
+clamped: an empty page retains it and reports `hasMore: false`, so the caller
+can poll with the same cursor later. `hasMore: false` is not a terminal-run
+signal.
+
+Both routes reuse the existing fresh-session, exact-origin, owner dependency.
+Unauthenticated requests return `401`, non-owner roles return `403` before
+run lookup, and missing runs return `404`. Disabled auth/database
+configuration fails closed with the standard `503` envelope. Responses use
+the standard security/no-store headers and never expose session, auth,
+configuration, artifact-byte or filesystem-path data. Event messages remain
+untrusted plain JSON text: consumers must not interpret them as HTML or
+instructions, and future event producers remain responsible for redaction.
+
+These are domain-read-only endpoints; existing session authentication may
+update its last-seen timestamp. Reads do not require model readiness, dispatch,
+or execution claims and do not start, cancel, recover, or report simulated
+execution progress. They return only the durable state and event rows already
+stored. This contract does not add node state, a journal, or WebSockets.
+
 ## Bounded internal P1-08a value contract
 
 `app.services.workflows.execution_snapshot.create_execution_snapshot(data,

@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `65bd2daff2483ed214c62bc0e403c734ad3c1b4d` on
-2026-11-14. Merged #41 through #49 were checked against exact-head checks,
+verified remote `master` at `a871aaaf32120207c3876ba93739ddde04191dcc` on
+2026-11-14. Merged #41 through #50 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -142,7 +142,9 @@ immutable workflow and recover its state without duplicate effects.
     no self-approval or check/protection waiver. Root master was pulled and
     backend/spec matched the tested core.
     [Pinning verification](workflow-execution-pins-report.md).
-  - [ ] P1-08b Verified locally on `feature/execution-revision-bindings`: persist
+  - [x] P1-08b Merged in
+    [#50](https://github.com/yanxel18/animetron/pull/50) at
+    `a871aaaf32120207c3876ba93739ddde04191dcc`: persist
     immutable execution snapshot bytes bound to an exact stored workflow
     revision/digest, with checked loading, atomic save/replay and conflict
     rejection. No implicit repinning, installed-code verification, model
@@ -153,7 +155,10 @@ immutable workflow and recover its state without duplicate effects.
     mypy40 and dependency consistency. No-DB: 1 passed/33 skipped. Real
     contention, SQL rollback and catalog drift passed; author digest mutation
     failed its regression. Captured test resources were verified removed,
-    inventories and source/user files unchanged. Remote/merge gates pending.
+    inventories and source/user files unchanged. Exact-head GitGuardian passed
+    at `711e78a`; normal merge followed review/independent QA without
+    self-approval or gate waiver. Root master was pulled; tested source,
+    migrations, tests and spec matched. Runtime enforcement remains open.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
@@ -185,6 +190,18 @@ immutable workflow and recover its state without duplicate effects.
     dispatch).
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
+  - [ ] P1-11a Verified locally on `feature/run-read-replay-api`: authenticated
+    owner-only HTTP reads of actual persisted run state and bounded ordered
+    event replay. Reuse fresh-session/origin policy. No execution, cancellation,
+    WebSocket/live push, node-state journal or recovery authority in this slice.
+    Core `33f68b4b46509ed52ff8a9320a66fee076de7a32` passed direct source
+    review and independent QA: 622 full tests/20 existing Windows skips,
+    39 focused, migrations, Ruff, strict Linux-target mypy41 and dependency
+    consistency. No-DB new-file checks: 1 passed/38 skipped. Pagination,
+    tail/append, strict query limits, revocation/logout and role/origin guards
+    passed. Author pagination mutation failed three cases and was restored.
+    Captured resources were verified removed; inventories/files unchanged.
+    Remote/merge gates pending. [Run replay evidence](run-read-replay-api-report.md).
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
   end-to-end, including duplicate message handling.
 

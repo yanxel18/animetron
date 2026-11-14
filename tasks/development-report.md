@@ -881,3 +881,36 @@ absent, Docker inventories matched entry-for-entry, and all 135 root/138 target
 baseline files and user changes remained unchanged. Only newly generated owned
 caches were removed. [Detailed evidence](execution-revision-bindings-report.md).
 Remote checks and merge remain pending; P1-08b stays unchecked.
+
+### Verified durable binding merge and run replay start - 2026-11-14
+
+[#50](https://github.com/yanxel18/animetron/pull/50) merged normally at
+`a871aaaf32120207c3876ba93739ddde04191dcc` after direct review,
+independent 583-test QA and exact-head GitGuardian success at `711e78a`.
+Root master was pulled; source/tests/migrations/spec matched the tested core.
+Prior pending statements are historical. P1-08b persistence is complete,
+not installed-code verification, model readiness or runtime execution.
+
+Next P1-11a on `feature/run-read-replay-api` exposes owner-only persisted run
+state and capped ordered HTTP event replay using the existing fresh-session
+dependencies. It returns actual stored state, not readiness or fabricated
+progress. Cancellation, recovery, node journals and live WebSocket delivery
+remain separate tasks; no new auth flow or broad resource grants are added.
+
+### Authenticated run replay verification - 2026-11-14
+
+Direct source/test/contract review found no required correction at
+`33f68b4b46509ed52ff8a9320a66fee076de7a32`. Independent execution reproduced
+622 passed/20 existing Windows skips, 39 focused, migrations, Ruff, strict
+Linux-target mypy41 and dependency consistency. No-DB new-file checks:
+1 passed/38 skipped. Existing storage cases also passed (22).
+Pagination, tail/append polling, exact cursor limits, fresh authorization,
+logout and origin guards passed. Author pagination mutation produced three
+failures and was restored. The author's unsupported whole-suite No-DB attempt
+failed existing DB-dependent tests; it is not the validation command and QA
+did not repeat it or weaken those tests.
+
+Exact captured resources were independently verified absent; complete Docker
+inventories and root/target files/status were unchanged. Only newly generated
+owned cache directories were removed. [Detailed evidence](run-read-replay-api-report.md).
+Remote checks and merge remain pending; P1-11a stays unchecked.

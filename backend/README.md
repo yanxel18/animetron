@@ -84,6 +84,20 @@ unbound runs and the original creation function remain available internally.
 Neither path creates node intents, dispatches jobs, authorizes actions, or
 implements review and publication. Only use them behind those future controls.
 
+### Authenticated run status and event replay (P1-11a)
+
+The owner-only `GET /api/v1/runs/{id}` and
+`GET /api/v1/runs/{id}/events?afterSequence=0&limit=50` endpoints expose only
+durable run state and ordered event metadata. Event cursors are exclusive;
+pages default to 50 and cap at 100. Empty/future-cursor pages retain the input
+cursor, and `hasMore: false` does not mean the run is terminal. These routes
+reuse existing session/origin/owner controls and are domain-read-only. They
+neither trigger nor imply dispatch, readiness, cancellation, recovery, or
+execution progress. Event messages are plain untrusted JSON strings, not HTML
+or instructions; future producers still need to redact them. See the
+[P1-11a contract](../docs/SPEC-workflow-runtime.md#authenticated-read-only-run-status-and-event-replay-p1-11a)
+for exact response shapes, limits, and error semantics.
+
 ### Internal run-request records (P1-09a)
 
 `app.services.workflows.run_requests.request_run(connection, request_id,
