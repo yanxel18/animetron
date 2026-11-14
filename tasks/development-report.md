@@ -476,3 +476,17 @@ GitGuardian finding associated with historical auth API tests. Do not merge
 The live auth PR check also reports merge conflicts. It remains open and
 unmerged; [#39](https://github.com/yanxel18/animetron/pull/39) is the separate
 credential-exclusion and provenance task, not authentication clearance.
+
+## Auth/review integration reconciliation - 2026-11-14
+
+The preceding open-PR/conflict statements are historical. The owner manually
+merged #33 at `c39d4851dda89c9aa07f617a7e6d90a62a0eb371`; it has been pulled.
+The exact final-head GitGuardian check still reports completed/failure.
+The merge left two Alembic heads and omitted review models from migration
+metadata. Both defects were reproduced and repaired on the local
+`fix/auth-review-migration-integration` branch, with 330 passing tests,
+20 unchanged Windows skips, migration lifecycle, Ruff, strict mypy and
+dependency consistency checks. No assistant push, PR or merge is claimed.
+See the [current integration findings](auth-review-integration-report.md).
+Full P9 remains incomplete; the unresolved scanner and source-control gates
+must not be bypassed.

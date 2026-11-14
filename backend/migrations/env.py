@@ -29,6 +29,7 @@ try:
                 binding_metadata,
                 artifact_metadata,
                 auth_metadata,
+                review_metadata,
             ],
         )
         with context.begin_transaction():
