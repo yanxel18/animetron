@@ -67,3 +67,37 @@ path. Parent-owned `tasks/todo.md`, `tasks/development-report.md`, and
 `tasks/execution-revision-bindings-report.md` were not edited or staged.
 
 No push, PR, or merge was performed.
+
+## Independent final execution
+
+Direct source/test/contract review found no required correction. QA verified
+HEAD `33f68b4b46509ed52ff8a9320a66fee076de7a32`, base `a871aaa`, runtime
+import provenance and reuse of the unchanged canonical fresh-session/owner
+dependencies. API source SHA-256 matched the restored value above.
+
+- Full owned harness: **622 passed, 20 existing Windows filesystem skips**.
+- Focused owned API harness: **39 passed**; existing storage selection:
+  **22 passed**.
+- No-DB new API file: **1 passed, 38 skipped**. The unsupported whole-suite
+  No-DB attempt above was not repeated; existing DB-dependent tests were not
+  changed or waived.
+- Migrations, Ruff, strict Linux-target mypy (**41 source files**) and
+  dependency consistency passed.
+- Pagination/tail append, cursor/page boundaries, fresh session revocation,
+  logout and role/origin cases passed. Historical RED/mutation evidence remains
+  author-only; QA did not modify source.
+
+All exact captured identities below returned not found after owned cleanup;
+Keycloak attached no volume:
+
+| Selection | Network | PostgreSQL | Anonymous volume | Keycloak |
+| --- | --- | --- | --- | --- |
+| Storage | 0d677fd983a3af11e1a5fc753f73425e2f145536cb49b89c607f3a732c5df78a | 9663295ef3efb203d3fcc12de857d4aa382502a26816a73eee6e36fd640a6340 | 412d08a63072ee8960bdfcfa1261ce1f6c47e419f9eae0eb1c8f44406798555e | none |
+| Focused | 0c0f2679f139a8085e8bd3f47953d94bc95e025a378bcc28f1872bdc3e2c0f68 | daacf05b163fc0b5841d868091ff6eb1fab7268cd1b4f522781c28ac62ca94d3 | 6091e75bf15441c97d38a4ddc03b9f1271dae9507486824221934e2eb029cbfa | none |
+| Full | e3e024f5bf8370cdc74a8c9ff3caee3c6079126297fb0794252bca9dfc6090ec | 3cc430704cfce44bdc6daf87bffb29e5b19edbc5d9f3b25f6d1932231fb5c05e | 2bd6379b7d454d71782dbacf5d3c7c5376a24b2fd346054f212febda1db2e4ba | 389b37edd6cf1cccec5ae32dc8cac505b92eaa223717800c87e3565195a177aa |
+
+Full container/network/volume/image inventories matched entry-for-entry, and
+root/target file hashes/status remained unchanged, including three dirty parent
+task files. Only newly generated target pytest/mypy caches were removed.
+Remote checks and normal merge remain pending. P1-11a does not complete runtime
+execution, cancellation, live updates or P9.

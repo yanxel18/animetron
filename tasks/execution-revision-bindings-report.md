@@ -73,3 +73,14 @@ cache and its initially absent, empty parent were removed. A verifier's
 case-sensitive not-found classification was corrected; cleanup did not fail.
 
 This verifies persistence only. Remote checks and normal merge remain pending.
+
+## Verified merge checkpoint
+
+Merged normally in [#50](https://github.com/yanxel18/animetron/pull/50) at
+`a871aaaf32120207c3876ba93739ddde04191dcc` after direct review and
+independent execution above. Exact-head GitGuardian passed at
+`711e78ab2b840d833f800cf0c023ec952d5613e0`; clean mergeability, no outstanding
+requested reviews or branch rules. No self-approval or check/protection waiver.
+Root master was pulled and tested source/tests/migrations/spec matched.
+Prior pending statements are historical. [todo.md](todo.md) is the sole
+current checklist; only P1-08b is complete, not runtime readiness or P9.
