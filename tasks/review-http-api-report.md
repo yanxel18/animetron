@@ -49,3 +49,33 @@ configured auth and engine remains fail-closed.
 
 Parent-owned `tasks/todo.md` and `tasks/development-report.md` were not staged
 or included in the implementation commit.
+
+## Required correction cycle 1: Content-Length digit limit
+
+Corrected implementation SHA:
+`ed1635479b113b4cdf0c55452682bd3174ff9dd2`
+(original implementation: `e47737e78fb05b5a131cdbf4fee8d6aba0707c3f`).
+
+Direct review reproduced an attacker-sized decimal Content-Length raising
+Python's integer digit-limit ValueError and returning the generic 503. Replaced
+integer conversion with canonical decimal length/lexicographic comparison.
+ASCII decimal validation and leading-zero numeric semantics are preserved;
+oversized values now return the explicit 422 `REVIEW_BODY_TOO_LARGE`.
+No parser or auth redesign was needed.
+
+Added seven no-database regressions for extreme/zero-padded lengths, streaming
+without Content-Length above 4096 bytes, leading-zero acceptance, and the
+exact-4096-byte parsing/auth paths. Requests assert shared redacted envelopes
+and security headers. Chunked cases assert that Content-Length was absent.
+
+- Smallest focused RED (`pytest tests/test_reviews_api.py -k body_guard -q
+  --tb=short -p no:cacheprovider`): **4 failed, 3 passed, 27 deselected**.
+  Oversized declarations incorrectly returned 503; long zero-padded accepted
+  values returned `DEPENDENCY_UNAVAILABLE` instead of reaching fail-closed auth.
+- Same focused GREEN after correction: **7 passed, 27 deselected**.
+- Full owned cached-image harness: **442 passed, 20 skipped**; Ruff and strict
+  Linux mypy passed (35 source files), as did Alembic checks/round trip.
+- `pip check`: no broken requirements; diff whitespace checks passed.
+- All captured owned containers/volumes/network were removed. No preview,
+  shared settings, parent tracker/report, remote branch, PR or deployment was
+  changed. Short failure output contained no credentials.
