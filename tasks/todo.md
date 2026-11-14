@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `70035139e69a601d68ac0bc8d55b66102d9d7046` on
-2026-11-14. Merged #41, #42 and #43 were checked against exact-head checks,
+verified remote `master` at `61b3cad16ee2d0ce264b271be3e59b4f92d8e724` on
+2026-11-14. Merged #41, #42, #43 and #44 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -249,9 +249,9 @@ authorized human can decide on the exact output without occupying a worker.
     separate tasks.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
   approval lookup for publication; reject stale, unauthorized and replayed actions.
-  - Current internal slice: exact-scope approval lookup on
-    `feature/review-approval-lookup`, based on verified #43; implemented locally
-    at `69374397fc8fdd47a8f26b0d0004c9d13f1ee64e`, not yet merged.
+  - [x] P4-04b Internal exact-scope approval lookup merged in
+    [#44](https://github.com/yanxel18/animetron/pull/44) at
+    `61b3cad16ee2d0ce264b271be3e59b4f92d8e724`, based on verified #43.
     Require current APPROVED state, exact scope, unexpired request, matching
     current configured owner identity and the decision service's reserved
     intent association. Use the advancing DB clock after lock waits; reject
@@ -265,9 +265,15 @@ authorized human can decide on the exact output without occupying a worker.
     Independent final execution at `0989d27` reproduced 408 passed/20 skips,
     all 28 lookup cases and both existing decision expiry-lock regressions,
     Ruff/mypy33 and dependency consistency; no-DB invocation skipped all 28.
-    Captured containers, network and anonymous volume were removed. The remote
-    branch is absent; no PR, remote checks or merge are claimed. Leave unchecked.
+    Captured containers, network and anonymous volume were removed. Exact-head
+    GitGuardian passed at `5228271`; normal merge followed direct source review
+    and independent QA, without self-approval or check/protection waivers.
     [Lookup verification and findings](review-approval-lookup-report.md).
+  - [ ] P4-04a Next: authenticated paginated review queue and exact-scope
+    decision HTTP APIs, reusing current session/origin/CSRF controls and
+    owner-only decision authority. No Telegram, artifact bytes, live
+    transmission or publishing. Parent P4-04 stays unchecked until these
+    remaining capabilities pass verification and merge.
 - [ ] P4-05 Implement explicitly consented Telegram polling, durable update
   deduplication, single-use callback tokens and reviewer/chat identity checks.
 - [ ] P4-06 Show exact preview, caption, destinations and expiry; expose
