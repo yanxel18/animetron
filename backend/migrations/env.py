@@ -6,6 +6,7 @@ from app.core.artifacts import metadata as artifact_metadata
 from app.core.auth import metadata as auth_metadata
 from app.core.database import create_database_engine
 from app.core.outbox import metadata as outbox_metadata
+from app.services.reviews.store import metadata as review_metadata
 from app.services.workflows.revisions import metadata as revision_metadata
 from app.services.workflows.run_revisions import metadata as binding_metadata
 from app.services.workflows.runs import metadata as run_metadata

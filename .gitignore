@@ -10,6 +10,7 @@ dist/
 .env
 .env.*
 *.env
+/huggingfaceinfo.env
 .worktrees/
 data/
 .npm-cache/

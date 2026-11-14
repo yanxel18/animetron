@@ -55,6 +55,17 @@ have the security and recovery guarantees below.
   [#6](https://github.com/yanxel18/animetron/pull/6)
 - [ ] P0-06 Implement authenticated sessions, authorization, CSRF protection,
   audit records, authorized readiness, and protected WebSocket handshakes.
+  - [ ] P0-06b OIDC/Keycloak session foundation is in review in
+    [#33](https://github.com/yanxel18/animetron/pull/33), **blocked** at
+    `ff5e67654b8aacde440671e5411414e114daf323` by a failed GitGuardian check.
+    Independent source reassessment resolved the prior disposable-DB reset
+    and denial-audit findings. Author verification: 314 passed/20 unchanged
+    Linux skips, including 70 auth tests and 3 real Keycloak/Edge flows.
+    Three correction iterations are exhausted. Check output now associates the
+    reported test-file finding with historical PR commit `61a80f9`; the finding
+    line remains unavailable. No merge, waiver or completion claim.
+    [Final auth gate evidence](development-report.md#authentication-gate-checkpoint---2026-11-14).
+    [Scanner provenance clarification](development-report.md#github-secret-scan-provenance---2026-11-14).
   - [x] P0-06a Apply browser security headers to API responses, including
     unhandled errors ([#19](https://github.com/yanxel18/animetron/pull/19);
     not authentication or CSRF protection).
@@ -91,6 +102,12 @@ have the security and recovery guarantees below.
   and tested backup/restore for metadata and artifacts.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
+  - [x] P0-09a Add the owner's explicit local credential-file exclusion.
+    Existing `*.env` protection remains intact; the local file is preserved.
+    Names-only tracking and ignore checks passed. Merged in
+    [#39](https://github.com/yanxel18/animetron/pull/39); this is not a fix
+    for or clearance of the blocked auth scanner.
+    [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
 
 ## Phase 1 - Workflow runtime
 
@@ -202,6 +219,12 @@ authorized human can decide on the exact output without occupying a worker.
   [#12](https://github.com/yanxel18/animetron/pull/12)
 - [ ] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
+  - In review in [#40](https://github.com/yanxel18/animetron/pull/40); leave
+    unchecked until the PR is merged. See the
+    [review records design and verification report](review-records-report.md).
+    Independent QA failed at `21ca53f` on insert-state enforcement, reviewer-ID
+    validation and DB expiry-guard coverage. Correction cycle 1/3 addresses
+    those three findings; same-reviewer reassessment remains required.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
