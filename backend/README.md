@@ -34,6 +34,29 @@ database changes. Digests detect corruption, not malicious tampering. It does
 not pin handler implementations or schema defaults or make execution safe
 across upgrades. Do not enqueue execution work until those guarantees exist.
 
+### Internal execution snapshot values (P1-08a)
+
+`app.services.workflows.execution_snapshot.create_execution_snapshot` accepts
+v1 graph bytes, graph/byte limits and a **trusted backend-selected** catalog of
+`ExecutionNodeDefinition` records (existing node definition, exact
+`HandlerArtifact` ID/SHA-256 and complete model manifests). It returns a distinct
+frozen bytes-backed value with a derived SHA-256. It materializes and strictly
+validates defaults, rejects extras/non-JSON/non-finite values, uses serialization
+aliases consistently, and bounds both input and expanded output bytes.
+Empty serialization aliases are preserved; collisions fail. Default and
+explicit-value comparisons distinguish native JSON types recursively, including
+boolean/integer/float differences, even when Python considers them equal.
+Every graph/revision/config/handler/model field participates in the digest.
+Clients cannot supply pins/default overrides; catalogs are not client input.
+See the [value contract](../docs/SPEC-workflow-runtime.md#bounded-internal-p1-08a-value-contract)
+for the exact encoding and failure semantics.
+
+This does not change or promote legacy snapshots, add durable execution
+bindings, or load code/models. SHA metadata is not authorization or proof of
+installed artifacts. Future runtime code must verify the installed handler
+artifact and model readiness. P1-08 remains incomplete.
+Focused test: `python -m pytest tests/test_execution_snapshot.py -q -p no:cacheprovider`.
+
 An internal dependency plan derives each node's distinct predecessors from a
 validated workflow. It does not bind to a stored snapshot, schedule nodes,
 track outcomes, or execute work; document order is not execution order.

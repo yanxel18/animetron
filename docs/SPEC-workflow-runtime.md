@@ -34,6 +34,65 @@ Run states: QUEUED, RUNNING, WAITING_REVIEW, SUCCEEDED, PARTIAL_FAILURE, FAILED,
 CANCELLING, CANCELLED. Review decisions and publication states are separate
 domain records, not overloaded generation success.
 
+## Bounded internal P1-08a value contract
+
+`app.services.workflows.execution_snapshot.create_execution_snapshot(data,
+catalog, limits, max_bytes=...)` builds a distinct internal `ExecutionSnapshot`,
+not a v1 `WorkflowSnapshot`. The trusted backend caller selects an approved
+catalog mapping node types to `ExecutionNodeDefinition`: existing
+`NodeDefinition`, `HandlerArtifact` (opaque artifact ID and exact lowercase
+SHA-256), and a tuple of existing `ModelManifest` values. Catalog selection is
+trusted; clients supply only the existing v1 graph document, never pins or
+default overrides. Artifact IDs match `[A-Za-z0-9][A-Za-z0-9_-]{0,127}`.
+Unknown node types and missing pins fail closed.
+
+The canonical JSON object has `kind: "internal.workflow-execution"`,
+`schemaVersion: 1`, `revision`, `nodes`, `edges`, and `nodePins` keyed by every
+node ID. Each pin contains `handler: {artifactId, sha256}` and
+`pinnedModelManifest`, an ordered list of complete manifests: `reference`
+(`provider`, `repository`, exact commit `revision`), `engine`, `license_id`,
+`files` (`path`, `size`, `sha256`) and `estimated_bytes`. Empty model lists
+explicitly mean no model dependency; absence of a node pin is never acceptable.
+
+Node configs are validated with the backend model using strict types and
+`extra="forbid"`. Materialized defaults are validated too; omitted, invalid,
+non-JSON or non-finite defaults must not silently repair invalid input.
+Configuration keys serialize using model serialization aliases, consistently
+for defaults and explicit inputs (including nested models and validation alias
+choices/paths). Empty serialization aliases are valid keys, not absent aliases;
+colliding aliases fail. Validation that transforms explicit or materialized
+default values is rejected, comparing native JSON value types recursively
+(`true`, `1` and `1.0` are distinct) against an independent prevalidation copy,
+rather than relying on Python numeric equality. Serialization reads actual
+model fields, including excluded fields; custom serializers cannot conceal an invalid default or
+introduce executable content. Only JSON-native values are accepted; JSON
+encoding never invokes a fallback string conversion. Nodes without a config
+model still accept only empty config. Selected config models/validators/default
+factories are trusted backend code and must be deterministic and side-effect
+free; this builder is not a sandbox.
+
+Encoding uses sorted object keys, compact separators, ASCII JSON escapes and
+finite numbers, preserving node/edge/model/file order. SHA-256 covers every
+canonical byte, including revision, full graph, resolved configs and all pins.
+The frozen value retains only bytes, with its digest derived from those bytes:
+mutating caller catalog/default/port/config objects cannot mutate a value.
+Both original input bytes and generated canonical bytes must fit `max_bytes`
+exactly; defaults, aliases, metadata and Unicode escaping may expand output.
+Existing document/graph failures remain typed; resolved value/config failures
+use `InvalidExecutionSnapshot` without echoing config contents. Invalid catalog
+records raise `InvalidExecutionSnapshot`; the reused SHA validator raises
+`ValueError` for malformed artifact digests.
+
+This is a pure value/serialization contract, with no decoder or runtime loader.
+Existing v1 create/parse/save/run APIs and behavior are unchanged: legacy
+snapshots are never automatically promoted. No durable binding, migration,
+node intents, HTTP/auth, registry readiness, downloads, network, executable
+configuration, URLs, dynamic code import or pickle loading is added. Artifact
+IDs are opaque labels, not paths, URLs or import instructions. SHA metadata is
+neither authorization nor proof of installed code; future runtime enforcement
+must verify the installed artifact against its pin and enforce model readiness.
+Durable binding and enforcement remain subsequent, unchecked P1-08 work.
+
 ## Bounded internal P1-09a contract
 
 `app.services.workflows.run_requests.request_run(connection, request_id,
