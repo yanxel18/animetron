@@ -42,3 +42,34 @@ and optional Keycloak container ID; all IDs are full length.
 | 3ca3d81ea7e20f5f23373e68dfd615bf | 0ee6e1d4146744bcd55783e862a2ebce799520d45935e33ee70921f947bfbf60 | c2e168c3d2de5edc2d619fa3912fda0e55823f3d74bcabaa09f60d0e75e1408e | ccbe579a20698ff45e7ce13f3961aff8367b851f55ff41dd2b8e59183ba187a7 | 136926eec9329c9ef53a4b18878bb9f029f10de9ecc3d9f1244ebda0e797522c |
 | 76e7687d51176a9dea5a7743622f9869 | c8dc382c7a16060a4b319048685d6e211467e198bedfa0f3dcb1577300e50d48 | ab333471175110b450f7a8f0b37e74ed8345d1b7d13d8fb55a10fd74f1a0d2c2 | 6f71d8504d613feb9a9fbe24697e7269c641c46cf0726308e2262addb0c96971 | — |
 | 10dff9e5e899a02a7f5d50792a618efd | 3f27c8b9f5d3986b26c141782e70ab3799c7ccd5ac0e0b6a94e86576d34b92f3 | 618fe431aa6d805cbd198ee6a0cd24f2735c8c8a3a1debe71836d24d54e4bc53 | 6cc34e22e9bc0ed076dacf9af257797a0b80e306d3897b06ca2991ebbfdf9259 | 6c74ad15a6e72baf78114f44e3a6df28f64d8fd4692059b8de045acc4c3c0eb5 |
+
+## Independent final execution - 2026-11-14
+
+Direct source/test/migration/harness review found no required correction.
+Independent QA verified core `19213f60d45fd1f9fac054b7faa85db1d0020a0d`,
+base `65bd2da`, target import provenance and HEAD blob identity.
+
+- Full owned harness: **583 passed, 20 existing Windows filesystem skips**.
+- Focused owned harness: **30 passed**, including real unique-key contention,
+  actual late SQL rejection/outer rollback and all catalog-drift cases.
+- No-DB migration/binding tests: **1 passed, 33 skipped**.
+- Ruff, strict Linux-target mypy (**40 source files**), migration lifecycle/
+  metadata parity and dependency consistency passed. Historical RED/mutation
+  results remain author evidence; QA did not mutate source.
+- Source SHA: `0e815fe554da8553b774aefcd2ca0bf724e796e511eff34eb98168125b17d317`.
+- Test SHA: `f07be799cf987d7007dc199c5d1820707d403e31e7a5f31a15ebbd8c6f70714e`.
+
+QA captured and verified absent these exact resource identities:
+
+| Run | Network | PostgreSQL | Anonymous volume | Keycloak |
+| --- | --- | --- | --- | --- |
+| Storage | 63a26da6629eaa64c819fde31d32dc83610665077674b3905feaa8c1651960a7 | 4fb3d30c1175481c59b29d748b4a513e7988e627e2708412ec71c5bb7035459b | ddb96b1a82533512392ee0cfcbcc471d16f7b7befaa4cfc6c35aff5a15a9dd10 | none |
+| Full | 85b5084ec85517e982b86060fdb00be6ea83493be1e1c00a6c65f4e0737f5a4c | 855ed2baf42a34534c3f10c0e861b4295c7470737f0c9c192f2bc3b3bc66cdd9 | f52edc56265309d1053e11f3f14c808e23d1cf1850cc9838f9262e146e362a62 | e9fe73514d8e534c95d7952f676789645aa98993d722440a04b6b9dc77ee6028 |
+
+No Keycloak volume was attached. Exact Docker inventories returned to baseline;
+135 root and 138 target Git-listed files/status remained unchanged, including
+three parent-owned task files and existing user edits. Only the newly generated
+cache and its initially absent, empty parent were removed. A verifier's
+case-sensitive not-found classification was corrected; cleanup did not fail.
+
+This verifies persistence only. Remote checks and normal merge remain pending.

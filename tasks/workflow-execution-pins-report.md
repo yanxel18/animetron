@@ -257,3 +257,15 @@ Historical RED and mutation results above are author evidence; QA did not
 change source or reproduce them. This verifies the value slice, not durable
 binding, installed-code verification or model readiness. Remote checks and
 normal merge remain pending.
+
+## Verified merge checkpoint
+
+Merged normally in [#49](https://github.com/yanxel18/animetron/pull/49) at
+`65bd2daff2483ed214c62bc0e403c734ad3c1b4d` after direct review/correction
+and independent execution above. Exact-head GitGuardian passed at
+`419e8eaddb63a239ff8697412cccfed95e9d2990`; mergeability was clean, with
+no outstanding requested reviewers or branch rules. No self-approval or
+check/protection waiver occurred. Root master was pulled and backend/spec
+matched the independently tested core. Prior pending statuses are historical.
+[todo.md](todo.md) remains the sole current checklist; only P1-08a is complete,
+not durable binding, executable readiness or P9.

@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69` on
-2026-11-14. Merged #41 through #48 were checked against exact-head checks,
+verified remote `master` at `65bd2daff2483ed214c62bc0e403c734ad3c1b4d` on
+2026-11-14. Merged #41 through #49 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -123,7 +123,9 @@ immutable workflow and recover its state without duplicate effects.
   [#11](https://github.com/yanxel18/animetron/pull/11)
 - [ ] P1-08 Pin handler implementations, configuration defaults and model
   revisions so an old snapshot remains executable as approved.
-  - [ ] P1-08a Verified locally on `feature/workflow-execution-pins`: internal,
+  - [x] P1-08a Merged in
+    [#49](https://github.com/yanxel18/animetron/pull/49) at
+    `65bd2daff2483ed214c62bc0e403c734ad3c1b4d`: internal,
     immutable execution snapshot values binding handler artifact digests,
     materialized validated configuration defaults and existing pinned model
     manifests. Preserve legacy workflow snapshot behavior. This slice does
@@ -135,8 +137,24 @@ immutable workflow and recover its state without duplicate effects.
     Direct review reproduced numeric-default type comparison and empty-alias
     defects; correction cycle 1 added 16 cases (10 failed before/16 passed
     after). Exact input/output byte limits and complete handler/model pinning
-    passed. Source/user files were unchanged by QA. Remote/merge gates remain
-    pending. [Pinning verification](workflow-execution-pins-report.md).
+    passed. Source/user files were unchanged by QA. Exact-head GitGuardian
+    passed at `419e8ea`; normal merge followed review/independent QA with
+    no self-approval or check/protection waiver. Root master was pulled and
+    backend/spec matched the tested core.
+    [Pinning verification](workflow-execution-pins-report.md).
+  - [ ] P1-08b Verified locally on `feature/execution-revision-bindings`: persist
+    immutable execution snapshot bytes bound to an exact stored workflow
+    revision/digest, with checked loading, atomic save/replay and conflict
+    rejection. No implicit repinning, installed-code verification, model
+    readiness, worker execution, HTTP or authorization authority.
+    Core `19213f60d45fd1f9fac054b7faa85db1d0020a0d` passed direct source
+    review and independent QA: 583 full tests/20 existing Windows skips,
+    30 focused, migration lifecycle/metadata parity, Ruff, strict Linux-target
+    mypy40 and dependency consistency. No-DB: 1 passed/33 skipped. Real
+    contention, SQL rollback and catalog drift passed; author digest mutation
+    failed its regression. Captured test resources were verified removed,
+    inventories and source/user files unchanged. Remote/merge gates pending.
+    [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
   - [x] P1-09a Merged in
