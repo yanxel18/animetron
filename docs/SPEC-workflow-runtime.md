@@ -91,7 +91,34 @@ configuration, URLs, dynamic code import or pickle loading is added. Artifact
 IDs are opaque labels, not paths, URLs or import instructions. SHA metadata is
 neither authorization nor proof of installed code; future runtime enforcement
 must verify the installed artifact against its pin and enforce model readiness.
-Durable binding and enforcement remain subsequent, unchecked P1-08 work.
+This P1-08a value alone does not provide durable binding or enforcement.
+
+## Bounded internal P1-08b binding contract
+
+The internal binding service accepts a caller-owned connection, workflow UUID,
+revision, exact expected source SHA-256, trusted catalog, limits and byte limit.
+It reads the checked stored revision through `get_revision`, rejects missing,
+corrupt or mismatched source, and builds only from those stored bytes using
+`create_execution_snapshot`. It accepts no caller-deserialized execution value.
+One immutable row per workflow and revision retains the source SHA, exact
+execution bytes and SHA, and server creation time; returned metadata is frozen.
+An atomic unique insert serializes contenders. Exact retry replays the checked
+record; changed defaults, configuration, handler or model metadata conflict.
+Never overwrite, repin, adopt or repair: a new revision is required.
+
+The internal checked load validates both stored digests, association with the
+current checked source revision, and execution revision and kind without
+consulting current catalog or defaults. Unbound legacy revisions are not
+promoted. Hashes are integrity checks, not authorization or provenance;
+privileged SQL is outside the trusted-writer boundary. No decoder loads code.
+Calls require an explicit non-autocommit psycopg transaction; an inner
+savepoint preserves unrelated outer work on failure. The caller owns commit,
+timeouts and whole-transaction retries at READ COMMITTED. No runs, nodes or
+outbox effects are created. P1-08 remains incomplete until runtime enforcement.
+
+Downgrading a populated binding table destroys replay evidence and requires
+explicit authorization and a recovery plan. Destructive migration tests run
+only against the harness-owned disposable database.
 
 ## Bounded internal P1-09a contract
 
