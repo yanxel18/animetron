@@ -96,6 +96,22 @@ class RunEvent:
     occurred_at: datetime
 
 
+@dataclass(frozen=True)
+class RunStatus:
+    run_id: UUID
+    state: RunState
+    last_sequence: int
+
+
+def get_run_status(connection: Connection, run_id: UUID) -> RunStatus:
+    row = connection.execute(
+        select(runs.c.id, runs.c.state, runs.c.sequence).where(runs.c.id == run_id)
+    ).one_or_none()
+    if row is None:
+        raise RunNotFound("Run not found")
+    return RunStatus(row.id, RunState(row.state), row.sequence)
+
+
 def create_run(connection: Connection, run_id: UUID) -> None:
     if not connection.in_transaction():
         raise RuntimeError("An explicit transaction is required")

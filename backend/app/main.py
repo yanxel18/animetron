@@ -14,6 +14,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.api.auth import auth_router
 from app.api.reviews import reviews_router
+from app.api.runs import runs_router
 from app.api.schedules import schedules_router
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, request_id
 from app.core.database import create_database_engine
@@ -58,6 +59,7 @@ def create_api(config: AuthConfig | None = None, engine: Engine | None = None) -
     api.add_api_route("/api/v1/health", health, methods=["GET"])
     store = AuthStore(engine, config) if engine is not None and config is not None else None
     api.include_router(auth_router(config, store))
+    api.include_router(runs_router(config, store))
     api.include_router(reviews_router(config, store))
     api.include_router(schedules_router(config, store))
 
