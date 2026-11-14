@@ -1,7 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-`master` and GitHub pull requests on 2026-11-14. The owner approved the
+fetched `origin/master` at `c39d4851dda89c9aa07f617a7e6d90a62a0eb371` on
+2026-11-14. GitHub PR metadata queries returned 404/422 in this session; merge
+commits and remaining review/check evidence were reconciled from local reports.
+The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
@@ -201,16 +204,16 @@ authorized human can decide on the exact output without occupying a worker.
 - [x] P4-01 Define an internal immutable scope for run, artifact revision and
   digest, caption digest and destination identities.
   [#12](https://github.com/yanxel18/animetron/pull/12)
-- [x] P4-02 Persist review requests, delivery states, expiry and immutable
+- [ ] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
   - Merged in [#40](https://github.com/yanxel18/animetron/pull/40) at
-    `2ac321366c96bf062370d4d774a073dc03292431` after independent correction
-    reassessment: 258 passed/20 unchanged Windows skips, migrations,
-    Ruff, strict mypy and GitGuardian passed. See the
+    `2ac321366c96bf062370d4d774a073dc03292431`. Author verification reports
+    258 passed/20 unchanged Windows skips, migration lifecycle, Ruff,
+    strict mypy and GitGuardian. The report records an earlier independent QA
+    failure and correction cycle 1/3, but no independent reassessment result;
+    keep unchecked until that required gate is evidenced. See the
     [review records design and verification report](review-records-report.md).
-    The earlier insert-state, reviewer-ID and expiry-guard findings were fixed
-    at `d7c345d` and independently passed. The later #33 migration integration
-    regression is tracked separately above, not waived by this completion.
+    The #33 migration integration regression is tracked separately above.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
