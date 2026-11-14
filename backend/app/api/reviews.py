@@ -60,7 +60,13 @@ class BoundedJSONRoute(APIRoute):
                 declared = lengths[0]
                 if not declared.isascii() or not declared.isdigit():
                     raise AuthDenied("INVALID_CONTENT_LENGTH", 422)
-                if int(declared) > _MAX_DECISION_BODY_BYTES:
+                # Compare canonical decimals without converting attacker-sized
+                # integers; leading zeros retain their existing numeric meaning.
+                canonical = declared.lstrip("0") or "0"
+                maximum = str(_MAX_DECISION_BODY_BYTES)
+                if len(canonical) > len(maximum) or (
+                    len(canonical) == len(maximum) and canonical > maximum
+                ):
                     raise AuthDenied("REVIEW_BODY_TOO_LARGE", 422)
 
             body = bytearray()

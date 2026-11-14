@@ -139,6 +139,75 @@ def assert_status(response, status):
     )
 
 
+@pytest.mark.parametrize(
+    "declared", ["9" * 5000, "0" * 5000 + "4097"],
+    ids=["extreme-digits", "zero-padded-oversized"],
+)
+def test_decision_body_guard_rejects_extreme_content_length_without_database(declared):
+    with TestClient(
+        SecurityHeaders(create_api()), base_url="https://control.example",
+        raise_server_exceptions=False,
+    ) as client:
+        response = client.post(
+            "/api/v1/reviews/00000000-0000-4000-8000-000000000001/decisions",
+            content=b"{}",
+            headers={"Content-Type": "application/json", "Content-Length": declared},
+        )
+    assert_error(response, 422)
+    assert response.json()["error"]["code"] == "REVIEW_BODY_TOO_LARGE"
+
+
+def test_decision_body_guard_caps_chunked_body_without_content_length():
+    with TestClient(
+        SecurityHeaders(create_api()), base_url="https://control.example",
+        raise_server_exceptions=False,
+    ) as client:
+        response = client.post(
+            "/api/v1/reviews/00000000-0000-4000-8000-000000000001/decisions",
+            content=iter([b" " * 2048, b" " * 2049]),
+            headers={"Content-Type": "application/json"},
+        )
+    assert "content-length" not in response.request.headers
+    assert response.request.headers["transfer-encoding"] == "chunked"
+    assert_error(response, 422)
+    assert response.json()["error"]["code"] == "REVIEW_BODY_TOO_LARGE"
+
+
+@pytest.mark.parametrize(
+    "declared", ["4096", "0" * 5000 + "4096", "0" * 5000],
+    ids=["exact-cap", "zero-padded-cap", "all-zero"],
+)
+def test_decision_body_guard_allows_bounded_leading_zero_lengths(declared):
+    with TestClient(
+        SecurityHeaders(create_api()), base_url="https://control.example",
+        raise_server_exceptions=False,
+    ) as client:
+        response = client.post(
+            "/api/v1/reviews/00000000-0000-4000-8000-000000000001/decisions",
+            content=b" " * 4094 + b"{}",
+            headers={"Content-Type": "application/json", "Content-Length": declared},
+        )
+    # Valid JSON at exactly the cap reaches the existing fail-closed auth path.
+    assert_error(response, 503)
+    assert response.json()["error"]["code"] == "AUTH_UNAVAILABLE"
+
+
+def test_decision_body_guard_parses_chunked_json_at_exact_cap():
+    with TestClient(
+        SecurityHeaders(create_api()), base_url="https://control.example",
+        raise_server_exceptions=False,
+    ) as client:
+        response = client.post(
+            "/api/v1/reviews/00000000-0000-4000-8000-000000000001/decisions",
+            content=iter([b" " * 2048, b" " * 2047 + b"{"]),
+            headers={"Content-Type": "application/json"},
+        )
+    assert "content-length" not in response.request.headers
+    # Malformed JSON at exactly the cap reaches parsing, not the size rejection.
+    assert_error(response, 422)
+    assert response.json()["error"]["code"] == "INVALID_REQUEST"
+
+
 def test_reviews_api_is_disabled_without_both_auth_configuration_and_engine():
     with TestClient(
         SecurityHeaders(create_api()), base_url="https://control.example",

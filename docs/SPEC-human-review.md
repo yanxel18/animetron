@@ -212,7 +212,11 @@ The decision JSON is strict and camelCase:
 ```
 
 Unknown body fields, a body over 4096 bytes, invalid media type, malformed
-scope/UUID or invalid outcome return 422. `ReviewScope` performs canonical
+scope/UUID or invalid outcome return 422. Content-Length accepts ASCII decimal
+digits, including leading zeros, using their numeric value; oversized values
+return 422 without integer conversion. The streaming cap also applies when
+Content-Length is absent, and a body of exactly 4096 bytes proceeds to normal
+JSON parsing and authentication. `ReviewScope` performs canonical
 destination normalization and the decision service enforces exact equality
 against the stored request. The server derives the principal and reviewer
 identity exclusively from the current `AuthStore` opaque session on every
