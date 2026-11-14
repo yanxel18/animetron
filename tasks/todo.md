@@ -61,9 +61,11 @@ have the security and recovery guarantees below.
     Independent source reassessment resolved the prior disposable-DB reset
     and denial-audit findings. Author verification: 314 passed/20 unchanged
     Linux skips, including 70 auth tests and 3 real Keycloak/Edge flows.
-    Three correction iterations are exhausted; exact remaining detector/history
-    scope is unknown. No merge, waiver or completion claim.
+    Three correction iterations are exhausted. Check output now associates the
+    reported test-file finding with historical PR commit `61a80f9`; the finding
+    line remains unavailable. No merge, waiver or completion claim.
     [Final auth gate evidence](development-report.md#authentication-gate-checkpoint---2026-11-14).
+    [Scanner provenance clarification](development-report.md#github-secret-scan-provenance---2026-11-14).
   - [x] P0-06a Apply browser security headers to API responses, including
     unhandled errors ([#19](https://github.com/yanxel18/animetron/pull/19);
     not authentication or CSRF protection).
@@ -80,6 +82,11 @@ have the security and recovery guarantees below.
   and tested backup/restore for metadata and artifacts.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
+  - [ ] P0-09a Add the owner's explicit local credential-file exclusion.
+    Existing `*.env` protection remains intact; the local file is preserved.
+    Names-only tracking and ignore checks passed. In review on
+    `chore/hf-credential-exclusion`; not a fix for the blocked auth scanner.
+    [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
 
 ## Phase 1 - Workflow runtime
 
