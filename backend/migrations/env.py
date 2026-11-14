@@ -8,6 +8,9 @@ from app.core.database import create_database_engine
 from app.core.outbox import metadata as outbox_metadata
 from app.services.reviews.store import metadata as review_metadata
 from app.services.scheduling.store import metadata as schedule_metadata
+from app.services.workflows.execution_bindings import (
+    metadata as execution_binding_metadata,
+)
 from app.services.workflows.revisions import metadata as revision_metadata
 from app.services.workflows.run_requests import metadata as request_metadata
 from app.services.workflows.run_revisions import metadata as binding_metadata
@@ -34,6 +37,7 @@ try:
                 review_metadata,
                 schedule_metadata,
                 request_metadata,
+                execution_binding_metadata,
             ],
         )
         with context.begin_transaction():

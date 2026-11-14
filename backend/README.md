@@ -57,6 +57,22 @@ installed artifacts. Future runtime code must verify the installed handler
 artifact and model readiness. P1-08 remains incomplete.
 Focused test: `python -m pytest tests/test_execution_snapshot.py -q -p no:cacheprovider`.
 
+### Internal execution revision bindings (P1-08b)
+
+`app.services.workflows.execution_bindings.bind_execution_snapshot` generates
+execution bytes from a checked stored workflow revision, exact expected source
+digest and trusted catalog. One immutable binding per workflow/revision permits
+exact replay; changed defaults, handler or model pins conflict and require a new
+revision. `get_execution_binding` verifies retained byte/digest associations
+without resolving current defaults. Unbound legacy revisions remain unbound.
+Both functions require an explicit non-autocommit psycopg transaction; failed
+operations roll back their savepoint, not unrelated outer work.
+See the [binding contract](../docs/SPEC-workflow-runtime.md#bounded-internal-p1-08b-binding-contract).
+These records are not authorization, installed-code verification, model
+readiness or execution. Downgrading a populated binding table destroys replay
+evidence and requires authorization and recovery planning.
+Focused owned check: `python tests/run_auth_checks.py --storage --pytest-file tests/test_execution_bindings.py`.
+
 An internal dependency plan derives each node's distinct predecessors from a
 validated workflow. It does not bind to a stored snapshot, schedule nodes,
 track outcomes, or execute work; document order is not execution order.

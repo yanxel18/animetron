@@ -848,3 +848,36 @@ and dependency consistency. No-DB migration checks: 1 passed/2 skipped.
 Source and user files remained unchanged. Only generated project-local caches
 were cleaned. [Detailed evidence](workflow-execution-pins-report.md).
 Remote checks/merge remain pending; P1-08a is still unchecked.
+
+### Verified execution value merge and durable binding start - 2026-11-14
+
+[#49](https://github.com/yanxel18/animetron/pull/49) merged normally at
+`65bd2daff2483ed214c62bc0e403c734ad3c1b4d` after direct review/correction,
+independent 552-test QA and exact-head GitGuardian success at `419e8ea`.
+Root master was pulled; backend/spec matched the independently tested core.
+Prior pending statements are historical. Only the value slice P1-08a is
+complete; installed-code verification and full runtime enforcement remain.
+
+Next P1-08b on `feature/execution-revision-bindings` stores immutable execution
+bytes generated from exact checked stored revisions and trusted catalogs.
+It must reject changed default/handler/model repinning under the same revision,
+verify retained byte/digest associations on load, and preserve caller-owned
+transaction atomicity. It adds no code/model loading, readiness, worker
+dispatch, HTTP, authorization or external effects.
+
+### Durable binding verification - 2026-11-14
+
+Core `19213f60d45fd1f9fac054b7faa85db1d0020a0d` received direct source,
+test, migration and harness review with no required correction. Independent
+execution reproduced 583 passed/20 existing Windows skips, 30 focused tests,
+migration lifecycle/metadata parity, Ruff, strict Linux-target mypy40 and
+dependency consistency. No-DB checks: 1 passed/33 skipped. Real unique-key
+contention, actual SQL rollback and catalog drift preserved one immutable
+binding with no run/node/outbox effects. Author digest mutation failed its
+regression and was restored.
+
+Exact captured PostgreSQL/Keycloak/network/volume identities were verified
+absent, Docker inventories matched entry-for-entry, and all 135 root/138 target
+baseline files and user changes remained unchanged. Only newly generated owned
+caches were removed. [Detailed evidence](execution-revision-bindings-report.md).
+Remote checks and merge remain pending; P1-08b stays unchecked.

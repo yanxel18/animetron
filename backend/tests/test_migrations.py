@@ -42,7 +42,9 @@ def test_run_request_downgrade_reupgrade_preserves_existing_tables(migration_con
             assert "workflow_run_requests" in before
         command.downgrade(migration_config, "p4_04a_review_queue_20261114")
         with engine.connect() as conn:
-            assert set(inspect(conn).get_table_names()) == before - {"workflow_run_requests"}
+            assert set(inspect(conn).get_table_names()) == before - {
+                "workflow_run_requests", "workflow_execution_bindings",
+            }
             assert conn.scalar(text("SELECT to_regprocedure('guard_workflow_run_request()')")) is None
             assert any(
                 item["name"] == "ix_review_queue_created_id"
@@ -52,5 +54,26 @@ def test_run_request_downgrade_reupgrade_preserves_existing_tables(migration_con
         command.check(migration_config)
         with engine.connect() as conn:
             assert set(inspect(conn).get_table_names()) == before
+    finally:
+        engine.dispose()
+
+
+def test_execution_binding_downgrade_removes_only_own_table_and_guard(migration_config, monkeypatch):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Use the owned disposable database harness")
+    monkeypatch.setenv("ANIMETRON_DATABASE_URL", url)
+    command.upgrade(migration_config, "head")
+    engine = create_engine(url)
+    try:
+        with engine.connect() as conn:
+            before = set(inspect(conn).get_table_names())
+            assert "workflow_execution_bindings" in before
+        command.downgrade(migration_config, "p1_09a_run_requests")
+        with engine.connect() as conn:
+            assert set(inspect(conn).get_table_names()) == before - {"workflow_execution_bindings"}
+            assert conn.scalar(text("SELECT to_regprocedure('guard_workflow_execution_binding()')")) is None
+        command.upgrade(migration_config, "head")
+        command.check(migration_config)
     finally:
         engine.dispose()

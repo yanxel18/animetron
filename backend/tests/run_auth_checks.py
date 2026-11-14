@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--storage", action="store_true")
     parser.add_argument("--pytest-file", choices=[
         "tests/test_reviews_api.py", "tests/test_schedules_api.py",
-        "tests/test_run_requests.py",
+        "tests/test_run_requests.py", "tests/test_execution_bindings.py",
     ])
     args = parser.parse_args()
     env = dict(os.environ)
@@ -80,12 +80,18 @@ def main():
         # Docker 29 internal bridges omit host port mappings. A dedicated bridge
         # with exclusively loopback bindings permits host-side acceptance checks.
         network_id = docker("network", "create", *labels, network)
+        print("Owned network ID:", network_id, "owner:", owner, flush=True)
         created[db] = docker("run", "--pull=never", "--detach", "--name", db, *labels, "--network", network_id,
                "--network-alias", "postgres", "--publish", "127.0.0.1::5432",
                "--memory", "512m", "--cpus", "2",
                "-e", "POSTGRES_PASSWORD", "-e", "POSTGRES_DB=animetron",
                "postgres:18", env=env)
         verify_container(created[db])
+        print("Owned PostgreSQL ID:", created[db], "owner:", owner, flush=True)
+        print("Owned PostgreSQL volumes:", docker(
+            "inspect", "--format", "{{range .Mounts}}{{if eq .Type \"volume\"}}{{.Name}} {{end}}{{end}}",
+            created[db],
+        ), flush=True)
         port = docker("port", created[db], "5432/tcp").split(":")[-1]
         url = f"postgresql://postgres:{env['POSTGRES_PASSWORD']}@127.0.0.1:{port}/animetron"
         connection = wait_for(lambda: psycopg.connect(url, connect_timeout=3, autocommit=True))
@@ -124,6 +130,11 @@ def main():
                    "-e", "KC_BOOTSTRAP_ADMIN_USERNAME", "-e", "KC_BOOTSTRAP_ADMIN_PASSWORD",
                    "quay.io/keycloak/keycloak:26.8.2", "start-dev", env=env)
             verify_container(created[kc])
+            print("Owned Keycloak ID:", created[kc], "owner:", owner, flush=True)
+            print("Owned Keycloak volumes:", docker(
+                "inspect", "--format", "{{range .Mounts}}{{if eq .Type \"volume\"}}{{.Name}} {{end}}{{end}}",
+                created[kc],
+            ), flush=True)
             port = docker("port", created[kc], "8080/tcp").split(":")[-1]
             base = f"http://127.0.0.1:{port}"
             with httpx.Client(timeout=5, trust_env=False) as client:
@@ -141,7 +152,7 @@ def main():
                 headers = {"Authorization": "Bearer " + response.json()["access_token"]}
                 env["ANIMETRON_TEST_OIDC_CLIENT_SECRET"] = secrets.token_urlsafe(32)
                 env["ANIMETRON_TEST_OIDC_PASSWORD"] = secrets.token_urlsafe(32)
-                owner = "5b0b743e-739b-4dfe-8b58-b7678832ed28"
+                realm_owner = "5b0b743e-739b-4dfe-8b58-b7678832ed28"
                 response = client.post(base + "/admin/realms", headers=headers, json={
                     "realm": "animetron-test", "enabled": True, "sslRequired": "none",
                     "registrationAllowed": False, "bruteForceProtected": True,
@@ -154,7 +165,7 @@ def main():
                         "attributes": {"pkce.code.challenge.method": "S256"},
                     }],
                     "users": [{
-                        "id": owner, "username": "test-owner", "enabled": True,
+                        "id": realm_owner, "username": "test-owner", "enabled": True,
                         "emailVerified": True, "firstName": "Test", "lastName": "Owner",
                         "email": "owner@example.invalid",
                         "credentials": [{"type": "password", "temporary": False,
@@ -163,7 +174,7 @@ def main():
                 })
                 response.raise_for_status()
                 env["ANIMETRON_TEST_OIDC_ISSUER"] = base + "/realms/animetron-test"
-                env["ANIMETRON_TEST_OIDC_OWNER"] = owner
+                env["ANIMETRON_TEST_OIDC_OWNER"] = realm_owner
             print("Keycloak image:", docker("inspect", "--format", "{{.Image}}", created[kc]), flush=True)
         selection = (
             [args.pytest_file] if args.pytest_file
@@ -194,9 +205,19 @@ def main():
         return max(results)
     finally:
         for name, container_id in reversed(tuple(created.items())):
+            verify_container(container_id)
             docker("rm", "--force", "--volumes", container_id)
             print("Removed owned container (including anonymous volumes):", name, flush=True)
         if network_id:
+            network_labels = json.loads(docker(
+                "network", "inspect", "--format", "{{json .Labels}}", network_id,
+            ))
+            if (
+                docker("network", "inspect", "--format", "{{.Id}}", network_id) != network_id
+                or network_labels.get("animetron.session") != "478745d5"
+                or network_labels.get("animetron.oidc.owner") != owner
+            ):
+                raise RuntimeError("Owned test network identity verification failed")
             docker("network", "rm", network_id)
             print("Removed owned network:", network, flush=True)
 
