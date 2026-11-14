@@ -476,3 +476,30 @@ GitGuardian finding associated with historical auth API tests. Do not merge
 The live auth PR check also reports merge conflicts. It remains open and
 unmerged; [#39](https://github.com/yanxel18/animetron/pull/39) is the separate
 credential-exclusion and provenance task, not authentication clearance.
+
+## Review-record persistence checkpoint - 2026-11-14
+
+Internal P4-02 is merged in
+[#40](https://github.com/yanxel18/animetron/pull/40), merge commit
+`2ac321366c96bf062370d4d774a073dc03292431`. Independent reassessment passed at
+`d7c345d474b98470dfd76db1cb327bf8790b234e` after one correction cycle:
+
+- Raw approved/rejected inserts now fail the initial-state guard.
+- Reviewer-ID validation matches the database and rejects invalid labels before
+  writes without aborting the caller's transaction.
+- The direct-SQL expiry regression catches a disabled expiry guard in a private
+  mutation copy; the reviewed source was not modified.
+- The reviewer reproduced 36 focused and 258 full passing tests, with 20
+  unchanged Windows skips, the fresh PostgreSQL migration lifecycle, Ruff,
+  Linux-target mypy for 26 source files and dependency consistency.
+
+The parent verified exact-head GitGuardian success and clean mergeability,
+merged normally, pulled master with the unrelated local report edit preserved,
+and verified that the merged backend matches the independently reviewed head.
+Owned QA containers and scratch paths were verified removed.
+
+Decisions remain internal records, not identity/role authorization or publication
+proofs. P4-03 through P4-06 and P9 remain open. Auth #33 remains scanner-blocked;
+integrating its parallel migration will require an explicit Alembic head merge.
+The next internal schedule-record slice will follow the merged P4 migration,
+not introduce another independent migration head.

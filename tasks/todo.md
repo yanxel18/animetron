@@ -197,14 +197,18 @@ authorized human can decide on the exact output without occupying a worker.
 - [x] P4-01 Define an internal immutable scope for run, artifact revision and
   digest, caption digest and destination identities.
   [#12](https://github.com/yanxel18/animetron/pull/12)
-- [ ] P4-02 Persist review requests, delivery states, expiry and immutable
+- [x] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
-  - In review in [#40](https://github.com/yanxel18/animetron/pull/40); leave
-    unchecked until the PR is merged. See the
+  - [#40](https://github.com/yanxel18/animetron/pull/40) merged on 2026-11-14
+    after independent reassessment passed at `d7c345d`. Independently verified
+    36 focused and 258 full tests passed, with 20 unchanged Windows skips;
+    migration lifecycle, Ruff, Linux-target mypy26 and dependency checks passed.
+    The expiry-guard mutation now fails its regression. See the
     [review records design and verification report](review-records-report.md).
     Independent QA failed at `21ca53f` on insert-state enforcement, reviewer-ID
-    validation and DB expiry-guard coverage. Correction cycle 1/3 addresses
-    those three findings; same-reviewer reassessment remains required.
+    validation and DB expiry-guard coverage; correction cycle 1/3 resolved them.
+    This is internal persistence only, not role policy, authorization proofs,
+    authenticated APIs or publication/outbox effects.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
