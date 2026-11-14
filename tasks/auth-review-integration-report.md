@@ -1,8 +1,8 @@
 # Auth/review integration findings - 2026-11-14
 
-Status: locally repaired and verified; pushed to `origin`, but not opened as a
-PR, independently reviewed or merged. Branch:
-`fix/auth-review-migration-integration`.
+Status: verified and normally merged in
+[#41](https://github.com/yanxel18/animetron/pull/41) at
+`921ce335e4d9b62de19b6d47656b276372ddd505`.
 
 ## Remote reconciliation
 
@@ -53,12 +53,17 @@ and network. Exact-name container query confirmed no matching containers.
 
 ## Remaining blockers
 
-The GitGuardian finding needs finding-level triage, not another speculative
-fixture edit or scan exclusion. This repair has no independent review or
-remote checks. The branch was pushed with the owner's source-control
-authorization. PR creation and remote review verification are blocked in this
-session: GitHub MCP returned 404/422 and the integrated browser is signed out
-and returns 404.
+The historical #33 GitGuardian finding still needs finding-level triage, not
+another speculative fixture edit or scan exclusion. #41's own exact-head
+GitGuardian passed. Independent QA reproduced 330 passing tests/20 skips,
+migration lifecycle, Ruff, strict Linux-target mypy30 and dependency consistency
+at `14284fee41ca72f62d5145ce8dd9576720e324bd`. Direct source review found no
+defects. No formal self-approval or protection/check waiver was used.
+
+The branch was already pushed when this run began. An authenticated REST call
+created its PR without a source upload, resolving the previous browser/MCP
+publication blocker. GitHub now reports public repository visibility; do not
+transmit credentials or assume earlier private-visibility evidence still holds.
 
 Schedule persistence remains verified only on local `feature/schedule-records`
 at `52b2b491dba50849d7f246fa5c3906dbecac24f9`; its integration depends on this

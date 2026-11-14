@@ -477,6 +477,46 @@ The live auth PR check also reports merge conflicts. It remains open and
 unmerged; [#39](https://github.com/yanxel18/animetron/pull/39) is the separate
 credential-exclusion and provenance task, not authentication clearance.
 
+## Review-record persistence checkpoint - 2026-11-14
+
+Internal P4-02 is merged in
+[#40](https://github.com/yanxel18/animetron/pull/40), merge commit
+`2ac321366c96bf062370d4d774a073dc03292431`. Independent reassessment passed at
+`d7c345d474b98470dfd76db1cb327bf8790b234e` after one correction cycle:
+
+- Raw approved/rejected inserts now fail the initial-state guard.
+- Reviewer-ID validation matches the database and rejects invalid labels before
+  writes without aborting the caller's transaction.
+- The direct-SQL expiry regression catches a disabled expiry guard in a private
+  mutation copy; the reviewed source was not modified.
+- The reviewer reproduced 36 focused and 258 full passing tests, with 20
+  unchanged Windows skips, the fresh PostgreSQL migration lifecycle, Ruff,
+  Linux-target mypy for 26 source files and dependency consistency.
+
+The parent verified exact-head GitGuardian success and clean mergeability,
+merged normally, pulled master with the unrelated local report edit preserved,
+and verified that the merged backend matches the independently reviewed head.
+Owned QA containers and scratch paths were verified removed.
+
+Decisions remain internal records, not identity/role authorization or publication
+proofs. P4-03 through P4-06 and P9 remain open. Auth #33 remains scanner-blocked;
+integrating its parallel migration will require an explicit Alembic head merge.
+The next internal schedule-record slice will follow the merged P4 migration,
+not introduce another independent migration head.
+
+## Local schedule-record checkpoint - 2026-11-14
+
+P6-02b implementation `ee8318d` passed independent local review and 50 focused
+tests with a fresh PostgreSQL database, migration upgrade/check/downgrade/re-upgrade/check,
+Ruff, strict Linux-target mypy27 and dependency checks. A weakened AUTOCOMMIT
+guard was caught by its regression. The store does not grant authorization,
+dispatch runs, claim due slots, arbitrate GPU overlap or grant approval.
+
+The branch remains local and unmerged. No push or PR was attempted and no
+technical permission denial occurred; the source-control transmission step
+remains blocked in this session. No remote GitGuardian result is claimed.
+The checked local implementation and reports are preserved on
+`feature/schedule-records`; P6-02b and P9 remain unchecked.
 ## Auth/review integration reconciliation - 2026-11-14
 
 The preceding open-PR/conflict statements are historical. The owner manually
@@ -490,3 +530,33 @@ dependency consistency checks. No assistant push, PR or merge is claimed.
 See the [current integration findings](auth-review-integration-report.md).
 Full P9 remains incomplete; the unresolved scanner and source-control gates
 must not be bypassed.
+
+## Verified migration repair merge - 2026-11-14
+
+The preceding repair-publication blockers are historical. The repair branch was
+already on GitHub when this run began. #41 was created without uploading source,
+then normally merged at `921ce335e4d9b62de19b6d47656b276372ddd505` after direct
+source review, independent test execution (330 passed/20 skipped), migration
+lifecycle, Ruff, strict Linux-target mypy30, dependency consistency and successful
+exact-head GitGuardian. There were no configured master protection rules,
+requested reviewers or outstanding requested changes. No self-approval,
+force-push or check waiver occurred. Root master was pulled with unrelated
+local edits preserved.
+
+The repository metadata now reports public visibility. No new source uploads
+were made by this run; credential contents remain unread and the credential
+file remains ignored/untracked. Public visibility is not permission to publish
+credentials or unresolved scanner matches. The older #33 check still needs
+finding-level triage.
+
+The next schedule integration retains both auth/review metadata and re-parents
+its unpushed migration to `0008_auth_review_merge`, avoiding another pair of
+heads. Its graph regression failed before re-parenting. Full integrated
+verification is required; prior isolated schedule QA is not substituted.
+
+That integrated schedule verification passed: 341 tests/20 unchanged Windows
+skips, the fresh owned database migration lifecycle, Ruff, strict Linux-target
+mypy31 and dependency consistency. Harness containers/network were removed and
+exact-name absence confirmed. The schedule branch is still unpushed; no remote
+checks, PR or merge are claimed. Required owner-involved P9 acceptance remains
+open.

@@ -79,10 +79,10 @@ absent after cleanup.
 ## Pull request
 
 PR [#40](https://github.com/yanxel18/animetron/pull/40) was merged to `master`
-at `2ac321366c96bf062370d4d774a073dc03292431`. P4-02 remains unchecked:
-the report below records correction cycle 1/3 after an independent QA failure,
-but does not include an independent reassessment result. The merge does not
-replace that gate.
+at `2ac321366c96bf062370d4d774a073dc03292431`. The correction cycle below
+records the initial failure; the verified merge checkpoint at the end records
+the subsequent independent PASS. The earlier unchecked status is historical,
+not an unresolved reassessment gate.
 
 ## Independent QA correction cycle 1/3
 
@@ -142,3 +142,14 @@ binding and `P4-02` / `p4-02-qa1-20261114-1256` / owner labels. A captured
 inspect subsequently returned “no such object”. All QA1 helpers/caches are
 confined to `.agent-tmp/p4-02-qa1-20261114-1256`; they are removed after the
 final GitHub verification, with exact absence evidence returned to the reviewer.
+
+## Verified merge checkpoint - 2026-11-14
+
+Independent reassessment passed at `d7c345d` after the corrections recorded above.
+The reviewer reproduced 36 focused and 258 full passing tests, 20 unchanged
+Windows skips, the migration lifecycle, Ruff, Linux-target mypy26 and dependency
+consistency. The expiry mutation was caught. Parent-verified GitGuardian and
+clean mergeability passed before normal merge of
+[#40](https://github.com/yanxel18/animetron/pull/40) at `2ac3213`.
+The prior in-review and failure notes above are historical checkpoints.
+Authorization, publication, Auth #33 integration and P9 remain open.

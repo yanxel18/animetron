@@ -63,12 +63,14 @@ have the security and recovery guarantees below.
     `c39d4851dda89c9aa07f617a7e6d90a62a0eb371`, fetched on 2026-11-14.
     The final head `8b8a63277084d1ca962067af25bf5c2ac9e759a1` still has
     a completed/failed GitGuardian check; the merge did not clear that gate.
-    Integration also left parallel Alembic heads and omitted review metadata.
-    The `fix/auth-review-migration-integration` repair passed 330 tests,
-    migration lifecycle, Ruff and strict Linux-target mypy, and was pushed to
-    `origin`. A PR could not be created: GitHub MCP returned 404/422 and the
-    browser session is signed out/404. Keep unchecked until the PR, required
-    reviews/checks and integration pass.
+    Its migration integration defects were repaired and normally merged in
+    [#41](https://github.com/yanxel18/animetron/pull/41) at
+    `921ce335e4d9b62de19b6d47656b276372ddd505`. Independent test execution:
+    330 passed/20 Windows skips, migration lifecycle, Ruff, strict
+    Linux-target mypy30 and dependency consistency passed. Exact-head
+    GitGuardian passed on #41; that does not clear the historical #33 finding.
+    The repair received direct source review; no formal self-approval or
+    protection waiver was used. Keep P0-06b unchecked pending scanner triage.
     [Current integration findings](auth-review-integration-report.md).
     [Historical scanner provenance](development-report.md#github-secret-scan-provenance---2026-11-14).
   - [x] P0-06a Apply browser security headers to API responses, including
@@ -206,16 +208,18 @@ authorized human can decide on the exact output without occupying a worker.
 - [x] P4-01 Define an internal immutable scope for run, artifact revision and
   digest, caption digest and destination identities.
   [#12](https://github.com/yanxel18/animetron/pull/12)
-- [ ] P4-02 Persist review requests, delivery states, expiry and immutable
+- [x] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
-  - Merged in [#40](https://github.com/yanxel18/animetron/pull/40) at
-    `2ac321366c96bf062370d4d774a073dc03292431`. Author verification reports
-    258 passed/20 unchanged Windows skips, migration lifecycle, Ruff,
-    strict mypy and GitGuardian. The report records an earlier independent QA
-    failure and correction cycle 1/3, but no independent reassessment result;
-    keep unchecked until that required gate is evidenced. See the
+  - [#40](https://github.com/yanxel18/animetron/pull/40) merged on 2026-11-14
+    after independent reassessment passed at `d7c345d`. Independently verified
+    36 focused and 258 full tests passed, with 20 unchanged Windows skips;
+    migration lifecycle, Ruff, Linux-target mypy26 and dependency checks passed.
+    The expiry-guard mutation now fails its regression. See the
     [review records design and verification report](review-records-report.md).
-    The #33 migration integration regression is tracked separately above.
+    Independent QA failed at `21ca53f` on insert-state enforcement, reviewer-ID
+    validation and DB expiry-guard coverage; correction cycle 1/3 resolved them.
+    This is internal persistence only, not role policy, authorization proofs,
+    authenticated APIs or publication/outbox effects.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
@@ -261,6 +265,25 @@ schedule creates at most one run intent per due slot and never grants approval.
     Ruff/strict Linux mypy and GitGuardian passed. Tests do not
     establish persistence, authorized CRUD, overlap/restart or dispatch.
     [Preview verification and findings](scheduling-preview-report.md).
+  - [ ] P6-02b Persist internal schedule descriptors on
+    `feature/schedule-records` (**blocked after independent local QA**;
+    branch not pushed and PR not opened).
+    - Bind an existing immutable workflow revision and reuse the approved
+      cron/IANA preview calculation with an aware cursor.
+    - Require caller-owned transactions, bounded reads and optimistic edit
+      conflicts; resume computes a future occurrence without catch-up.
+    - Verify fresh PostgreSQL persistence, rollback, edit races, preview/DST
+      parity and the migration lifecycle, plus Ruff and strict mypy.
+    This slice adds no HTTP/role authorization, due slots, GPU arbitration,
+    scheduler process, run/outbox dispatch or publication approval.
+    Independent verification: 50 focused tests, migration lifecycle,
+    Ruff/mypy27 and dependency checks passed; an AUTOCOMMIT-guard mutation
+    failed its regression. No technical push denial occurred; transmission
+    was not attempted. This item remains unchecked until a verified merge.
+    Integration after #41: 341 passed/20 Windows skips, migration lifecycle,
+    Ruff, strict Linux-target mypy31 and dependency consistency passed locally.
+    The unpushed migration follows `0008_auth_review_merge`.
+    [Verification and cleanup](schedule-records-report.md).
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
   skipped slots; test pause, restart, overlap, DST and duplicate dispatch.
 
