@@ -1,5 +1,4 @@
 import asyncio
-import hmac
 import secrets
 from datetime import datetime
 from typing import Annotated, Literal
@@ -14,10 +13,10 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import RedirectResponse
 from starlette.websockets import WebSocketDisconnect
 
+from app.api.dependencies import SESSION_COOKIE, auth_dependencies
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal, request_id
 from app.core.oidc import Keycloak, OAuthError
 
-SESSION_COOKIE = "__Host-animetron_session"
 LOGIN_COOKIE = "__Host-animetron_login"
 
 
@@ -74,6 +73,7 @@ def auth_router(config: AuthConfig | None, store: AuthStore | None) -> APIRouter
         for status in (400, 401, 403, 422, 429, 503)
     })
     provider = Keycloak(config) if config else None
+    principal, owner = auth_dependencies(config, store)
 
     def available() -> tuple[AuthConfig, AuthStore, Keycloak]:
         if config is None or store is None or provider is None:
@@ -90,27 +90,6 @@ def auth_router(config: AuthConfig | None, store: AuthStore | None) -> APIRouter
             persistence.audit("access_denied", request.state.request_id)
             raise AuthDenied("ORIGIN_REJECTED", 403)
         return settings, persistence, oidc
-
-    def principal(request: Request) -> Principal:
-        settings, persistence, _ = boundary(request)
-        try:
-            user = persistence.authenticate(request.cookies.get(SESSION_COOKIE, ""))
-            if request.method not in ("GET", "HEAD", "OPTIONS") and (
-                request.headers.get("origin") != settings.origin
-                or len(request.headers.getlist("x-csrf-token")) != 1
-                or not hmac.compare_digest(request.headers.get("x-csrf-token", "").encode(), user.csrf.encode())
-            ):
-                raise AuthDenied("CSRF_REJECTED", 403)
-            return user
-        except AuthDenied:
-            persistence.audit("access_denied", request.state.request_id)
-            raise
-
-    def owner(request: Request, user: Annotated[Principal, Depends(principal)]) -> Principal:
-        if user.role != "owner":
-            available()[1].audit("access_denied", request.state.request_id, user.id)
-            raise AuthDenied("FORBIDDEN", 403)
-        return user
 
     @router.get("/auth/login", status_code=302, response_class=RedirectResponse)
     async def login(request: Request) -> RedirectResponse:

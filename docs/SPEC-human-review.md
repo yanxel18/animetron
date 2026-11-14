@@ -168,3 +168,67 @@ Focused tests: `tests/test_review_approval_lookup.py`, including a real separate
 PG connection holding the final intent lock and observed `pg_stat_activity`
 waiting until expiry. Preserve the missing-DB infrastructure skip convention;
 full gates run the existing owned PostgreSQL/Keycloak harness.
+
+## P4-04a authenticated review HTTP API
+
+Only the following HTTP operations are in scope:
+
+| Route | Contract |
+| --- | --- |
+| `GET /api/v1/reviews?cursor=<opaque>&limit=<1..100>` | Freshly authenticated owner only. Returns existing review request metadata in `data` and an opaque `nextCursor` or `null`. Default limit is 50. |
+| `POST /api/v1/reviews/{id}/decisions` | Freshly authenticated owner only, exact RFC-variant UUID4 path ID, exact current scope and `APPROVED` or `REJECTED` outcome. Returns the immutable decision metadata. Identical valid retries return the same decision; any changed outcome/identity/scope or invalid state conflicts. |
+
+The queue includes stored requests in all existing review states and exposes
+only the request's ID, run ID, revision and content hashes, normalized
+destination identities, state, expiry, creation/state-change times and bounded
+delivery error code. It does not expose artifact/caption bytes, paths, cookies,
+CSRF values, auth/configuration, decision-intent internals or publication
+capability. Reading metadata grants neither content-byte access nor publication
+authority.
+
+Queue order is ascending `(created_at, id)`. The opaque URL-safe cursor encodes
+the last returned row's UTC creation timestamp at database precision plus its
+UUID; the UUID is a mandatory tie-breaker when multiple rows share a timestamp.
+The next page selects strictly greater tuples and fetches at most `limit + 1`
+rows, with no offset, count or full-table materialization. A cursor is a
+position, not a snapshot: later inserts after that position may appear on a
+subsequent page, and concurrent state changes are reflected when each page is
+read. Unknown or repeated query parameters, malformed cursors, and limits
+outside 1..100 are rejected with 422. Responses contain no total count.
+
+The decision JSON is strict and camelCase:
+
+```json
+{
+  "expectedScope": {
+    "runId": "UUID",
+    "artifactRevision": "render-1",
+    "artifactSha256": "64 lowercase hex characters",
+    "captionSha256": "64 lowercase hex characters",
+    "destinations": [{"provider": "facebook", "accountId": "page-1"}]
+  },
+  "outcome": "APPROVED"
+}
+```
+
+Unknown body fields, a body over 4096 bytes, invalid media type, malformed
+scope/UUID or invalid outcome return 422. `ReviewScope` performs canonical
+destination normalization and the decision service enforces exact equality
+against the stored request. The server derives the principal and reviewer
+identity exclusively from the current `AuthStore` opaque session on every
+request, including an identical decision retry; clients cannot provide a
+principal, role or reviewer ID. Existing exact-Origin and synchronizer-CSRF
+checks apply to decisions. Queue access is conservatively owner-only; this
+slice does not add viewer/operator permission.
+
+All errors use the existing `{"error":{"code","message","requestId"}}` envelope
+and response security headers. Status mapping: 401 absent/expired/revoked
+session; 403 wrong role, origin or CSRF; 404 absent request; 409 service state,
+scope or decision conflict; 422 malformed/unknown input; 503 disabled auth or
+database/service unavailability. Internal DB details are not returned.
+Service expiry, rollback, replay, supersession, and intent guards remain solely
+in `record_decision`; the HTTP layer does not implement a second state machine.
+`create_api` without both explicit auth configuration and engine remains
+fail-closed. No approval lookup route, request creation/delivery, artifact
+bytes, UI, MCP, Telegram, model, outbound/live publication or deployment is
+included.
