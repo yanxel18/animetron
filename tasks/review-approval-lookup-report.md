@@ -1,6 +1,8 @@
 # P4-04b internal current-approval lookup — local handoff
 
-Date: November 14, 2026. Status: implemented and locally verified only.
+Date: November 14, 2026. Current status: verified and merged in
+[#44](https://github.com/yanxel18/animetron/pull/44). Earlier local handoff
+statuses below are historical; see the final merge checkpoint.
 
 ## Identity and owned scope
 
@@ -172,3 +174,16 @@ The remote branch is absent at the final check. No source upload, PR, remote
 check or merge is claimed; local verification does not complete P4-04 or P9.
 Owner authorization to push and merge is acknowledged. Remote publication
 remains a separate unresolved workflow step.
+
+## Verified merge checkpoint
+
+The assistant pushed `feature/review-approval-lookup` and merged #44 normally
+at `61b3cad16ee2d0ce264b271be3e59b4f92d8e724`. Exact-head GitGuardian
+passed on `5228271bc4e7085d268a14cb8f117823f3c4ae40`; mergeability was clean,
+with no outstanding requested reviews or branch rules. Direct source review
+and independent final execution above passed. No self-approval, force-push,
+protection bypass or check waiver was used. Root master was pulled and the
+backend/spec matched the reviewed core. Prior publication blockers are resolved.
+
+[todo.md](todo.md) is the sole current checklist. P4-04b is complete; the parent
+P4-04, authenticated review HTTP APIs and full P9 are not complete.
