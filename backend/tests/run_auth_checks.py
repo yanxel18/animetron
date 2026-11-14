@@ -43,6 +43,7 @@ def main():
     parser.add_argument("--storage", action="store_true")
     parser.add_argument("--pytest-file", choices=[
         "tests/test_reviews_api.py", "tests/test_schedules_api.py",
+        "tests/test_run_requests.py",
     ])
     args = parser.parse_args()
     env = dict(os.environ)
@@ -165,8 +166,8 @@ def main():
                 env["ANIMETRON_TEST_OIDC_OWNER"] = owner
             print("Keycloak image:", docker("inspect", "--format", "{{.Image}}", created[kc]), flush=True)
         selection = (
-            ["tests/test_auth_storage.py"] if args.storage
-            else [args.pytest_file] if args.pytest_file
+            [args.pytest_file] if args.pytest_file
+            else ["tests/test_auth_storage.py"] if args.storage
             else ["tests"]
         )
         traceback_mode = "--tb=short" if args.pytest_file else "--tb=no"

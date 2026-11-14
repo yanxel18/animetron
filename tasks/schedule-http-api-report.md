@@ -65,3 +65,14 @@ Only newly created project-local test/cache directories were removed.
 Direct source review found no required correction. No formal GitHub approval
 is implied; remote checks and merge are pending at this checkpoint. Dispatch,
 P6 completion, live scheduling and full P9 remain excluded.
+
+## Verified merge checkpoint
+
+Merged normally in [#47](https://github.com/yanxel18/animetron/pull/47) at
+`f315e9bbb877893d871174d6542355c767c2e80a` after direct source review,
+independent final QA above and exact-head GitGuardian success at
+`6e851f83091738a1c9f8725bc4a190fe727b8c64`. Mergeability was clean; no
+outstanding requested reviews or branch rules. No self-approval or check
+waiver was used. Root master was pulled and backend/spec matched reviewed core.
+Prior unmerged statuses are historical. [todo.md](todo.md) is the sole current
+checklist; P6-02c is complete, not dispatch, P6 or P9.

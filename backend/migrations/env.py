@@ -9,6 +9,7 @@ from app.core.outbox import metadata as outbox_metadata
 from app.services.reviews.store import metadata as review_metadata
 from app.services.scheduling.store import metadata as schedule_metadata
 from app.services.workflows.revisions import metadata as revision_metadata
+from app.services.workflows.run_requests import metadata as request_metadata
 from app.services.workflows.run_revisions import metadata as binding_metadata
 from app.services.workflows.runs import metadata as run_metadata
 
@@ -32,6 +33,7 @@ try:
                 auth_metadata,
                 review_metadata,
                 schedule_metadata,
+                request_metadata,
             ],
         )
         with context.begin_transaction():
