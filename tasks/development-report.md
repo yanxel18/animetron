@@ -560,3 +560,54 @@ mypy31 and dependency consistency. Harness containers/network were removed and
 exact-name absence confirmed. The schedule branch is still unpushed; no remote
 checks, PR or merge are claimed. Required owner-involved P9 acceptance remains
 open.
+
+## Verified scheduling merge and next review-service gate - 2026-11-14
+
+#42 was normally merged at `8bc096c95b3065f782dc0a624284224fd8e1b8c3`
+after independent integrated QA (341 passed/20 skipped), migration lifecycle,
+Ruff, strict Linux-target mypy31, dependency consistency and exact-head
+GitGuardian success. Direct source review verified the unchanged store core and
+integrated migration history. Root master was pulled with unrelated edits
+preserved; no formal self-approval or protection/check waiver occurred.
+
+The owner clarified the next internal P4-03 decision-service policy on
+2026-11-14: only the owner may approve/reject; operators and viewers cannot.
+Implementation will reuse the durable review store and transactional outbox,
+with exact-scope/expiry checks and no HTTP, Telegram or publication effects.
+The local task remains unchecked pending implementation and verified merge. Historical
+#33 scanner triage, live-model/provider gates and owner-involved P9 acceptance
+remain open.
+
+### Review decision-service source gate
+
+The first local implementation at `91fa0c0` reported 378 passing harness tests
+and 20 platform skips, but direct source review requested correction before
+acceptance:
+
+- Ordinary focused pytest without a database URL reproducibly raises a fixture
+  `KeyError`, rather than using the repository's missing-infrastructure skip.
+- The principal/request clock checks precede the final outbox row lock. A
+  blocked replay may outlive expiry before returning; a real PostgreSQL
+  lock-wait regression and a fresh post-lock clock check are required.
+
+Both findings were corrected locally at
+`0673bbcabaed652053a7e8153feb375f5a53947a`. The real PostgreSQL lock-wait
+regressions failed twice before the fix, then passed for both principal and
+request expiry. The service rechecks the advancing database clock after
+intent-lock/insert waits, rolling back effects if expiry elapsed. Focused
+no-database invocation now skips missing infrastructure without errors.
+Author verification: 39 focused and 380 full tests passed, with 20 unchanged
+Windows skips, migrations, Ruff, strict Linux-target mypy32 and dependency
+consistency. Direct correction review found no remaining defects.
+
+Independent final test execution passed at the corrected core `0673bbc`:
+380 tests/20 skipped, both real lock-wait expiry cases, migrations, Ruff,
+strict Linux-target mypy32, dependency consistency and whitespace checks.
+No-database focused invocation produced 39 missing-infrastructure skips and
+zero errors. Import provenance and unchanged source HEAD were verified.
+Owned harness resources were removed; pre-existing caches and task edits were
+preserved.
+
+The branch is not on the remote. No source upload, PR, remote check or merge is
+claimed, and P4-03 remains unchecked. This is an internal trusted-caller
+service, not authentication or a publication-approval proof.

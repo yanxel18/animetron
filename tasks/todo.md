@@ -222,6 +222,25 @@ authorized human can decide on the exact output without occupying a worker.
     authenticated APIs or publication/outbox effects.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
+  - Next slice: internal decision service on `feature/review-decision-service`.
+    Owner approved owner-only approve/reject permission on 2026-11-14;
+    operators/viewers cannot decide. Preserve that least-privilege boundary.
+    Reuse the durable review store and caller-owned transaction; no Telegram,
+    live publishing or approval bypass is authorized.
+    Acceptance: a fresh trusted authenticated owner principal and exact current
+    scope are required; expired/superseded/conflicting decisions fail explicitly.
+    Approve/reject races have one winner. Decision plus one internal approval
+    notification intent commit or roll back together; rejection never creates
+    an approval/publication intent. This is not a publication-approval proof
+    or an HTTP/MCP/Telegram endpoint.
+    Local implementation at `0673bbc` passed independent final QA:
+    380 full tests/20 platform skips, both real lock-wait expiry regressions,
+    migrations, Ruff, strict Linux-target mypy32 and dependency consistency.
+    Without a database URL, 39 infrastructure skips and zero errors preserve
+    the existing test convention. Direct source-review corrections cover
+    no-database behavior and expiry after blocking intent locks.
+    The branch is not pushed; no PR/remote checks/merge. Source upload is
+    unavailable in this session. Leave unchecked until verified merge.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
   approval lookup for publication; reject stale, unauthorized and replayed actions.
 - [ ] P4-05 Implement explicitly consented Telegram polling, durable update
@@ -265,9 +284,9 @@ schedule creates at most one run intent per due slot and never grants approval.
     Ruff/strict Linux mypy and GitGuardian passed. Tests do not
     establish persistence, authorized CRUD, overlap/restart or dispatch.
     [Preview verification and findings](scheduling-preview-report.md).
-  - [ ] P6-02b Persist internal schedule descriptors on
-    `feature/schedule-records` (**blocked after independent local QA**;
-    branch not pushed and PR not opened).
+  - [x] P6-02b Persist internal schedule descriptors, merged in
+    [#42](https://github.com/yanxel18/animetron/pull/42) at
+    `8bc096c95b3065f782dc0a624284224fd8e1b8c3`.
     - Bind an existing immutable workflow revision and reuse the approved
       cron/IANA preview calculation with an aware cursor.
     - Require caller-owned transactions, bounded reads and optimistic edit
@@ -278,11 +297,12 @@ schedule creates at most one run intent per due slot and never grants approval.
     scheduler process, run/outbox dispatch or publication approval.
     Independent verification: 50 focused tests, migration lifecycle,
     Ruff/mypy27 and dependency checks passed; an AUTOCOMMIT-guard mutation
-    failed its regression. No technical push denial occurred; transmission
-    was not attempted. This item remains unchecked until a verified merge.
-    Integration after #41: 341 passed/20 Windows skips, migration lifecycle,
-    Ruff, strict Linux-target mypy31 and dependency consistency passed locally.
-    The unpushed migration follows `0008_auth_review_merge`.
+    failed its regression. Independent integrated QA at `8af75bf` reproduced
+    341 passed/20 Windows skips, migration lifecycle, Ruff, strict Linux-target
+    mypy31 and dependency consistency. Exact-head GitGuardian passed, and
+    direct integration source review found no defects. Normal merge used no
+    self-approval or protection/check waiver. The migration follows
+    `0008_auth_review_merge`.
     [Verification and cleanup](schedule-records-report.md).
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
   skipped slots; test pause, restart, overlap, DST and duplicate dispatch.
