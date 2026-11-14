@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `b008e1c5c6d037c48a2fdacc346a820becf11028` on
-2026-11-14. Merged #41 through #46 were checked against exact-head checks,
+verified remote `master` at `f315e9bbb877893d871174d6542355c767c2e80a` on
+2026-11-14. Merged #41 through #47 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -125,6 +125,23 @@ immutable workflow and recover its state without duplicate effects.
   revisions so an old snapshot remains executable as approved.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
+  - [ ] P1-09a Verified locally on `feature/run-request-records`: internal
+    caller-transactional idempotent run-request persistence, exact immutable
+    revision/digest binding and one stable internal outbox intent. No HTTP,
+    role authority, handler/model readiness, node intents, worker execution
+    or scheduler dispatch. This does not bypass P1-08 implementation pinning.
+    Core `6e0e28632922bbf07dd87b9f97142abf8edf8940` passed author checks:
+    32 focused and 483 full tests/20 existing Windows skips, migrations,
+    Ruff, strict Linux-target mypy38 and dependency consistency. Author also
+    ran 21 unchanged Linux filesystem regressions. Real concurrent key
+    conflicts and savepoint/outer SQL rollback are exercised; an intent-guard
+    mutation produced 2 failures. Direct source review found no required
+    correction. Independent QA reproduced 483 passed/20 skips, all 32 focused
+    cases, migrations, Ruff/mypy38 and dependency consistency at that core.
+    No-DB checks: 1 passed/34 skipped. Captured test resources were removed;
+    baseline files/resources remained unchanged. Remote/merge gates remain
+    pending; this item remains unchecked until verified merge.
+    [Run-request verification](run-request-records-report.md).
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
@@ -326,8 +343,10 @@ schedule creates at most one run intent per due slot and never grants approval.
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
-  - [ ] P6-02c Implemented locally on `feature/schedule-http-api`, based on verified
-    #46: authenticated descriptor create/read/update/list and next-five preview,
+  - [x] P6-02c Merged in
+    [#47](https://github.com/yanxel18/animetron/pull/47) at
+    `f315e9bbb877893d871174d6542355c767c2e80a`: authenticated
+    descriptor create/read/update/list and next-five preview,
     preserving owner-only controls, optimistic versions and approved DST policy.
     No hard delete, due-slot dispatch, scheduler process, GPU admission,
     run/outbox creation or publication authority in this HTTP slice.
@@ -340,7 +359,9 @@ schedule creates at most one run intent per due slot and never grants approval.
     and 34 review API cases, actual lock-expiry regressions, migrations,
     Ruff/mypy37 and dependency consistency. No-DB checks: 5 passed/3 skipped.
     Captured containers, network and anonymous volume were verified removed,
-    with baseline files/resources unchanged. Remote/merge gates remain pending.
+    with baseline files/resources unchanged. Exact-head GitGuardian passed at
+    `6e851f8`; normal merge followed direct review and independent QA without
+    self-approval or check/protection waivers. Parent P6-02 stays unchecked.
     [Scheduling HTTP verification](schedule-http-api-report.md).
   - [x] P6-02a Internal next-five preview core merged in
     [#35](https://github.com/yanxel18/animetron/pull/35): approved

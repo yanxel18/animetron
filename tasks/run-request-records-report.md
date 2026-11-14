@@ -110,4 +110,30 @@ venv, OS/WSL/Docker/global settings and processes were untouched.
 No implementation blocker remains. This is not execution readiness or a
 production launch certification. Downgrading a populated request table destroys
 replay evidence and requires explicit authorization/recovery planning.
-No push, PR, merge or external publication was performed.
+No push, PR, merge or external publication was performed by the author.
+
+## Independent review and execution - 2026-11-14
+
+Direct source review found no required correction at
+`6e0e28632922bbf07dd87b9f97142abf8edf8940`. A separate QA agent verified
+that exact HEAD/base/import provenance and independently executed:
+
+- Full owned harness: **483 passed, 20 existing Windows skips** (39.06s).
+- Focused owned request suite: **32 passed** (1.31s), including real contention,
+  payload conflicts, late unique violation/savepoint and outer SQL rollback.
+- No-DB request/migration tests: **1 passed, 34 skipped** (0.23s).
+- Single migration head, upgrade/metadata parity, new downgrade/reupgrade
+  regression and lifecycle roundtrip to `0005_artifact_metadata`: passed.
+- Ruff, strict Linux-target mypy (**38 source files**) and pip consistency:
+  passed. The 21 Linux filesystem cases above remain author-only evidence.
+
+No product or test changes were needed. A preflight import path was corrected
+before harness execution. QA used sequential owned harnesses, cached images,
+disposable local caches and no downloads or dependency installation.
+Exact captured PostgreSQL/Keycloak containers, networks and anonymous volumes
+were verified absent afterward. Docker inventories returned to baseline;
+131 target and 128 parent baseline file hashes were unchanged. Existing dirty
+parent reconciliation/user files were preserved.
+
+The persistence slice is verified locally. Remote checks and normal merge
+remain pending; P1-09a remains unchecked in the sole tracker.

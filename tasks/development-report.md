@@ -780,3 +780,38 @@ Baseline Docker inventories and all 127 baseline files, including the three
 parent-owned task files, remained unchanged. Only newly created owned temp/cache
 directories were removed. No additional correction or weakened gate was needed.
 Remote checks and merge remain pending at this checkpoint.
+
+### Verified scheduling API merge and workflow intent start - 2026-11-14
+
+[#47](https://github.com/yanxel18/animetron/pull/47) merged normally at
+`f315e9bbb877893d871174d6542355c767c2e80a` after direct source review,
+independent 450-test QA and exact-head GitGuardian success at `6e851f8`.
+Root master was pulled; backend/spec matched the reviewed core. Prior unmerged
+statuses are historical. No self-approval or check/protection waiver occurred.
+P6-02c is complete, but due slots, dispatch, overlap/recovery and P6-03 remain.
+
+Next P1-09a on `feature/run-request-records` supplies internal idempotent
+run-request persistence with exact immutable revision/digest binding and
+transactional internal outbox association. This is a prerequisite building
+block, not a workflow HTTP API, node-intent implementation or dispatcher.
+It cannot establish handler/model readiness or bypass P1-08. No worker,
+scheduler, model, GPU, external transmission or publishing activity is added.
+
+### Internal run-request local verification - 2026-11-14
+
+Core `6e0e28632922bbf07dd87b9f97142abf8edf8940` implements the bounded
+internal run-request contract. Direct review checked claim-before-create
+uniqueness, exact snapshot binding/digest, canonical run creation, savepoint
+atomicity, immutable replay association, reserved intent evidence and
+single-head migration lifecycle. No required correction was found.
+
+Author checks passed 32 focused and 483 full tests/20 existing Windows skips,
+migrations, Ruff, strict Linux-target mypy38 and dependency consistency.
+Real PostgreSQL contention and actual SQL failures exercise concurrency and
+rollback; removing the intent comparison produced two regression failures.
+The author separately ran 21 unchanged Linux filesystem cases. Independent
+QA reproduced 483 passed/20 skips, 32 focused cases, migrations, Ruff/mypy38
+and dependency consistency. No-DB checks: 1 passed/34 skipped. Captured test
+resources were removed and baseline files/resources remained unchanged.
+No new PR or merge is claimed. This remains persistence only,
+not authorized execution or readiness. [Detailed report](run-request-records-report.md).
