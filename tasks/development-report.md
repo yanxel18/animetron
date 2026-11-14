@@ -729,3 +729,54 @@ Backend remained identical to HEAD. Parent documentation edits explain the
 pre-test task-file hash changes; QA did not edit them. No additional required
 source corrections were found. Remote gates and verified merge remain pending.
 Preview availability is not certified by these backend checks.
+
+### Verified review API merge and scheduling API start - 2026-11-14
+
+[#46](https://github.com/yanxel18/animetron/pull/46) merged normally at
+`b008e1c5c6d037c48a2fdacc346a820becf11028` after direct corrected-source
+review, independent 442-test QA and successful exact-head GitGuardian at
+`57ab7a8`. Prior local/unmerged statuses above are historical. Root master
+was pulled and backend/spec compared identical to the reviewed core.
+No self-approval, force-push or check/protection waiver occurred.
+
+P4-04 is complete for the authenticated review APIs and internal current
+approval lookup. It does not complete review previews/delivery, Telegram,
+publishing, the studio integration or full P9.
+
+Next P6-02c on `feature/schedule-http-api` exposes existing schedule descriptors
+and approved next-five preview through bounded authenticated HTTP operations,
+without scheduler/dispatch, GPU work, run intents or external transmission.
+Descriptor deletion is not added; pause uses the existing versioned update.
+The branch starts from verified #46 and preserves all external-action gates.
+
+### Scheduling HTTP local verification checkpoint - 2026-11-14
+
+Core `455296d41e17c7602c734b6d74ad9ffabc1795e0` adds owner-only descriptor
+create/read/list/versioned replacement and next-five preview. It reuses existing
+auth, descriptor persistence and DST calculation, with server database-clock
+write cursors. The shared bounded JSON extraction preserves review-specific
+errors and caps both scheduling POST/PUT bodies without integer conversion
+of attacker-sized lengths. No dispatch, run/outbox creation or approval is added.
+
+Direct source review checked public fields, strict input, optimistic versions,
+UUID keyset pagination, read-only preview semantics, shared guard preservation
+and explicit overflow/input errors. No required correction was found.
+Author checks passed 450 tests/20 existing Windows skips, migrations, Ruff,
+strict Linux-target mypy37 and dependency consistency. A real fragmented ASGI
+stream test detected a raised body cap. Independent QA is underway; no API
+PR/merge is claimed. [Detailed findings](schedule-http-api-report.md).
+
+### Independent scheduling HTTP API verification - 2026-11-14
+
+Independent QA reproduced 450 passed/20 existing Windows skips at `455296d`,
+including all 8 scheduling and 34 review API cases and the existing actual
+lock-expiry regressions. Migrations/roundtrip, Ruff, strict Linux-target mypy37
+and dependency consistency passed. Without DB infrastructure, scheduling API
+checks produced 5 passed/3 skipped. Import provenance matched this worktree.
+
+The owned harness used cached images with `--pull=never`; its exact captured
+containers, network and anonymous volume were verified absent afterward.
+Baseline Docker inventories and all 127 baseline files, including the three
+parent-owned task files, remained unchanged. Only newly created owned temp/cache
+directories were removed. No additional correction or weakened gate was needed.
+Remote checks and merge remain pending at this checkpoint.

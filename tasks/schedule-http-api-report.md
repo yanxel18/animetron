@@ -43,3 +43,25 @@ preview API. P6-02 is still incomplete: there is no dispatch or scheduler.
 No independent review, production performance/SLO verification, dispatch or
 Linux-only artifact coverage is claimed. No packages were installed, no shared
 settings changed, and no push, PR or merge was performed.
+
+## Independent final checkpoint
+
+Independent QA verified HEAD `455296d41e17c7602c734b6d74ad9ffabc1795e0`
+against base `b008e1c`. Full owned harness: **450 passed, 20 skipped**,
+including all 8 scheduling and 34 review API cases, real fragmented ASGI
+stream boundaries, PostgreSQL descriptor/security/DST parity, and existing
+actual lock-expiry regressions. Ruff, strict Linux-target mypy (37 files),
+migration upgrade/check/downgrade/re-upgrade and `pip check` passed.
+Without database infrastructure: **5 passed, 3 skipped**.
+
+An in-memory wrapper changed only pytest verbosity and captured resource
+identities; checked-in harness/source and ownership guards were unchanged.
+Imports resolved to this worktree and cached images used `--pull=never`.
+Captured PostgreSQL/Keycloak containers, network and anonymous volume were
+identity-checked and confirmed removed. Baseline Docker inventories and all
+127 baseline files were unchanged, including parent documentation edits.
+Only newly created project-local test/cache directories were removed.
+
+Direct source review found no required correction. No formal GitHub approval
+is implied; remote checks and merge are pending at this checkpoint. Dispatch,
+P6 completion, live scheduling and full P9 remain excluded.

@@ -1,8 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `9d14aca844b697a003034cbaddfb607677abddc4` on
-2026-11-14. Merged #41, #42, #43 and #44 were checked against exact-head checks,
+verified remote `master` at `b008e1c5c6d037c48a2fdacc346a820becf11028` on
+2026-11-14. Merged #41 through #46 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
@@ -247,7 +247,7 @@ authorized human can decide on the exact output without occupying a worker.
     No self-approval or protection/check waiver was used. HTTP/MCP/Telegram
     entrypoints, current publication approval lookup and live effects remain
     separate tasks.
-- [ ] P4-04 Add authorized paginated review and decision APIs and a valid
+- [x] P4-04 Add authorized paginated review and decision APIs and a valid
   approval lookup for publication; reject stale, unauthorized and replayed actions.
   - [x] P4-04b Internal exact-scope approval lookup merged in
     [#44](https://github.com/yanxel18/animetron/pull/44) at
@@ -269,12 +269,14 @@ authorized human can decide on the exact output without occupying a worker.
     GitGuardian passed at `5228271`; normal merge followed direct source review
     and independent QA, without self-approval or check/protection waivers.
     [Lookup verification and findings](review-approval-lookup-report.md).
-  - [ ] P4-04a Implemented locally on `feature/review-http-api`: authenticated
+  - [x] P4-04a Merged in
+    [#46](https://github.com/yanxel18/animetron/pull/46) at
+    `b008e1c5c6d037c48a2fdacc346a820becf11028`: authenticated
     paginated review queue and exact-scope
     decision HTTP APIs, reusing current session/origin/CSRF controls and
     owner-only decision authority. No Telegram, artifact bytes, live
-    transmission or publishing. Parent P4-04 stays unchecked until these
-    remaining capabilities pass verification and merge.
+    transmission or publishing. P4-04 is complete only for these APIs and the
+    internal lookup; P4-05/P4-06 and phase acceptance remain open.
     Canonical status reconciliation merged in
     [#45](https://github.com/yanxel18/animetron/pull/45); exact-head GitGuardian
     and documentation whitespace checks passed. Root master was pulled.
@@ -286,8 +288,9 @@ authorized human can decide on the exact output without occupying a worker.
     after). Independent QA at `4e2c761` reproduced 442 passed/20 skips,
     all 34 API cases, the existing lock-wait regressions, migrations,
     Ruff/mypy35 and dependency consistency. Without DB infrastructure,
-    8 passed/26 skipped. Owned test resources were removed. Remote/merge gates
-    remain pending; leave unchecked.
+    8 passed/26 skipped. Owned test resources were removed. Exact-head
+    GitGuardian passed at `57ab7a8`; normal merge followed direct corrected
+    source review and independent QA, without self-approval or check waivers.
     [HTTP API verification and findings](review-http-api-report.md).
 - [ ] P4-05 Implement explicitly consented Telegram polling, durable update
   deduplication, single-use callback tokens and reviewer/chat identity checks.
@@ -323,6 +326,22 @@ schedule creates at most one run intent per due slot and never grants approval.
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
+  - [ ] P6-02c Implemented locally on `feature/schedule-http-api`, based on verified
+    #46: authenticated descriptor create/read/update/list and next-five preview,
+    preserving owner-only controls, optimistic versions and approved DST policy.
+    No hard delete, due-slot dispatch, scheduler process, GPU admission,
+    run/outbox creation or publication authority in this HTTP slice.
+    Core `455296d41e17c7602c734b6d74ad9ffabc1795e0` passed author checks:
+    450 tests/20 existing Windows skips, migrations, Ruff, strict Linux-target
+    mypy37 and dependency consistency. Shared bounded JSON extraction retains
+    review error codes; actual fragmented-stream mutation regression failed
+    when the scheduling cap was raised. Direct source review found no required
+    correction. Independent QA reproduced 450 passed/20 skips, all 8 scheduling
+    and 34 review API cases, actual lock-expiry regressions, migrations,
+    Ruff/mypy37 and dependency consistency. No-DB checks: 5 passed/3 skipped.
+    Captured containers, network and anonymous volume were verified removed,
+    with baseline files/resources unchanged. Remote/merge gates remain pending.
+    [Scheduling HTTP verification](schedule-http-api-report.md).
   - [x] P6-02a Internal next-five preview core merged in
     [#35](https://github.com/yanxel18/animetron/pull/35): approved
     five-field/OR/IANA matching, gap skip, earlier fold only and deterministic
