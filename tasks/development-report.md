@@ -517,3 +517,46 @@ technical permission denial occurred; the source-control transmission step
 remains blocked in this session. No remote GitGuardian result is claimed.
 The checked local implementation and reports are preserved on
 `feature/schedule-records`; P6-02b and P9 remain unchecked.
+## Auth/review integration reconciliation - 2026-11-14
+
+The preceding open-PR/conflict statements are historical. The owner manually
+merged #33 at `c39d4851dda89c9aa07f617a7e6d90a62a0eb371`; it has been pulled.
+The exact final-head GitGuardian check still reports completed/failure.
+The merge left two Alembic heads and omitted review models from migration
+metadata. Both defects were reproduced and repaired on the local
+`fix/auth-review-migration-integration` branch, with 330 passing tests,
+20 unchanged Windows skips, migration lifecycle, Ruff, strict mypy and
+dependency consistency checks. No assistant push, PR or merge is claimed.
+See the [current integration findings](auth-review-integration-report.md).
+Full P9 remains incomplete; the unresolved scanner and source-control gates
+must not be bypassed.
+
+## Verified migration repair merge - 2026-11-14
+
+The preceding repair-publication blockers are historical. The repair branch was
+already on GitHub when this run began. #41 was created without uploading source,
+then normally merged at `921ce335e4d9b62de19b6d47656b276372ddd505` after direct
+source review, independent test execution (330 passed/20 skipped), migration
+lifecycle, Ruff, strict Linux-target mypy30, dependency consistency and successful
+exact-head GitGuardian. There were no configured master protection rules,
+requested reviewers or outstanding requested changes. No self-approval,
+force-push or check waiver occurred. Root master was pulled with unrelated
+local edits preserved.
+
+The repository metadata now reports public visibility. No new source uploads
+were made by this run; credential contents remain unread and the credential
+file remains ignored/untracked. Public visibility is not permission to publish
+credentials or unresolved scanner matches. The older #33 check still needs
+finding-level triage.
+
+The next schedule integration retains both auth/review metadata and re-parents
+its unpushed migration to `0008_auth_review_merge`, avoiding another pair of
+heads. Its graph regression failed before re-parenting. Full integrated
+verification is required; prior isolated schedule QA is not substituted.
+
+That integrated schedule verification passed: 341 tests/20 unchanged Windows
+skips, the fresh owned database migration lifecycle, Ruff, strict Linux-target
+mypy31 and dependency consistency. Harness containers/network were removed and
+exact-name absence confirmed. The schedule branch is still unpushed; no remote
+checks, PR or merge are claimed. Required owner-involved P9 acceptance remains
+open.

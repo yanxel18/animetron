@@ -78,8 +78,11 @@ absent after cleanup.
 
 ## Pull request
 
-Open PR [#40](https://github.com/yanxel18/animetron/pull/40), targeting
-`master` from `feature/review-records`. P4-02 remains unchecked pending merge.
+PR [#40](https://github.com/yanxel18/animetron/pull/40) was merged to `master`
+at `2ac321366c96bf062370d4d774a073dc03292431`. The correction cycle below
+records the initial failure; the verified merge checkpoint at the end records
+the subsequent independent PASS. The earlier unchecked status is historical,
+not an unresolved reassessment gate.
 
 ## Independent QA correction cycle 1/3
 

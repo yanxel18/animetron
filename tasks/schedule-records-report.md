@@ -1,13 +1,33 @@
 # P6-02b internal schedule descriptors
 
 Status: independent local QA passed; push/PR step remains blocked. This
-does not complete P6-02 or P9. Base: merged P4 #40 at
+does not complete P6-02 or P9. The original implementation base was P4 #40 at
 `2ac321366c96bf062370d4d774a073dc03292431`; parent commits `674bf5a` and
 `cfbd844` retain P4 reconciliation and the approved slice boundary.
 
 The repository remote was inspected. No push or PR creation was attempted, so
 there was no tool or technical permission denial. Source remains local; no
 branch push, remote checks or merge are claimed.
+
+## Integrated checkpoint after #41
+
+The verified repair #41 was merged at
+`921ce335e4d9b62de19b6d47656b276372ddd505` and incorporated locally.
+Both auth and review metadata are retained. The unpushed schedule migration
+now follows `0008_auth_review_merge`; the migration graph regression failed
+with two heads before this change.
+
+Full integrated owned PostgreSQL/Keycloak/browser harness: **341 passed,
+20 unchanged Windows skips**. Upgrade/check, downgrade to
+`0005_artifact_metadata`, re-upgrade, Ruff, strict Linux-target mypy31 and
+dependency consistency passed. This is parent integration verification, not
+new independent schedule reassessment. The earlier independent store QA below
+remains evidence for the unchanged store core.
+
+Owned harness containers and network were removed; an exact-name query
+confirmed absence. Worktree caches are retained rather than deleting paths
+whose pre-run ownership was not established. No deployment or source upload
+was performed. The historical #33 scanner finding remains unresolved.
 
 ## Independent local QA checkpoint
 
@@ -55,48 +75,28 @@ immutability. A deliberate inverted pause condition caused a focused test to
 fail and was restored. Ruff passed; strict Linux-target mypy passed 27 source
 files; `pip check` reported no broken requirements.
 
-Reproduce using a **new disposable, owned** PostgreSQL database, never a shared
-or inherited URL. The example uses a unique label and loopback-only random
-port; preserve the ID for verified cleanup:
+The earlier standalone database commands are superseded by the merged auth
+ownership guard. Reproduce the integrated suite using the existing harness,
+which creates its own database capability/marker and ignores inherited URLs:
 
 ```powershell
 Set-Location D:\animetron\.worktrees\schedule-records\backend
-$py = 'D:\animetron\backend\.venv\Scripts\python.exe'
+$py = 'D:\animetron\.worktrees\oidc-auth\backend\.venv\Scripts\python.exe'
 $env:PYTHONPATH = (Get-Location).Path
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:PYTHONTZPATH = ''
-$env:TEMP = (Get-Location).Path
-$env:TMP = $env:TEMP
-$owner = 'p602b-qa-' + [guid]::NewGuid().ToString('N')
-$image = 'postgres@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07'
-$id = docker run -d --name $owner --label project=animetron --label task=P6-02b --label "owner=$owner" -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=schedule_test -p 127.0.0.1::5432 $image
-# Wait for pg_isready in this exact container before continuing.
-docker exec $id pg_isready -U postgres -d schedule_test
-$port = (docker port $id 5432/tcp).Split(':')[-1]
-$env:ANIMETRON_DATABASE_URL = "postgresql+psycopg://postgres@127.0.0.1:$port/schedule_test"
-$env:ANIMETRON_TEST_DATABASE_URL = $env:ANIMETRON_DATABASE_URL
 & $py -c 'import app; print(app.__file__)'
-& $py -m alembic upgrade head
-& $py -m alembic check
-& $py -m alembic downgrade p4_02_review_records_20261114
-& $py -m alembic upgrade head
-& $py -m alembic check
-& $py -m pytest tests/test_schedule_store.py tests/test_scheduling.py tests/test_workflow_revisions.py tests/test_run_revisions.py -q -p no:cacheprovider
-& $py -m ruff check --no-cache app tests migrations
-& $py -m mypy --platform linux --cache-dir .p602b-mypy app
+if ($LASTEXITCODE -ne 0) { throw 'Import verification failed' }
+& $py tests\run_auth_checks.py
+if ($LASTEXITCODE -ne 0) { throw 'Owned integration harness failed' }
 & $py -m pip check
 ```
 
-Stop on any failed command. Before removing the QA container, inspect its JSON
-and verify its full ID, image digest and all three labels against the values
-created above; remove only that ID and query it afterward to confirm absence.
-Remove only the QA-owned cache created by the commands.
-
-The verification container used
+The original isolated verification container used
 `postgres@sha256:846a7ddaa67a4b354ae1d21087b683901aa6113a4ed626d3787cfbf6c85e3e07`,
 loopback-only dynamic port and task-specific labels. No dispatch or external
-integration was exercised. The full suite, Linux-only OS behavior and production
-deployment were not tested.
+integration was exercised in that earlier isolated run. The integrated suite
+above does not establish Linux-only OS behavior or production deployment.
 
 ## Cleanup
 
