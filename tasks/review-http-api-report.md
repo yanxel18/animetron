@@ -79,3 +79,29 @@ and security headers. Chunked cases assert that Content-Length was absent.
 - All captured owned containers/volumes/network were removed. No preview,
   shared settings, parent tracker/report, remote branch, PR or deployment was
   changed. Short failure output contained no credentials.
+
+## Independent final verification
+
+Independent QA executed HEAD
+`4e2c761ff68c85ebc390269ebd85b2478bb66458`, corrected core `ed163547`,
+on base `9d14aca`. `python -u tests/run_auth_checks.py` passed with
+**442 passed, 20 skipped**, including all 34 API cases, actual final-intent
+approval expiry-lock and both decision expiry-lock regressions. Migrations,
+Ruff and strict Linux-target mypy (35 files) passed. `pip check` passed.
+Without database URLs, `python -m pytest tests/test_reviews_api.py -q --tb=no
+-p no:cacheprovider` produced **8 passed, 26 skipped**.
+
+The first QA run passed tests but exited 2 because its process-local
+`MYPY_CACHE_DIR=NUL` was invalid for mypy on Windows. A disposable cache resolved
+that invocation error; the entire harness was rerun successfully. This was
+not a source defect or a waived check.
+
+Imports resolved to this worktree. Cached PostgreSQL/Keycloak images were used
+with `--pull=never`; both runs' captured containers, networks and anonymous
+volumes were confirmed removed. No shared resource cleanup occurred. Backend
+matched HEAD and nothing was staged by QA. Parent documentation edits explain
+hash changes during preparation; subsequent hashes remained stable.
+
+Direct source review found no remaining required correction after the bounded
+decimal fix. No formal GitHub self-approval is implied. PR/remote checks/merge
+remain pending at this checkpoint, and full P9 is not complete.
