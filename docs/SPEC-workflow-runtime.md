@@ -59,9 +59,12 @@ Node configs are validated with the backend model using strict types and
 non-JSON or non-finite defaults must not silently repair invalid input.
 Configuration keys serialize using model serialization aliases, consistently
 for defaults and explicit inputs (including nested models and validation alias
-choices/paths). Validation that transforms explicit values is rejected rather
-than silently changing them. Serialization reads actual model fields, including
-excluded fields; custom serializers cannot conceal an invalid default or
+choices/paths). Empty serialization aliases are valid keys, not absent aliases;
+colliding aliases fail. Validation that transforms explicit or materialized
+default values is rejected, comparing native JSON value types recursively
+(`true`, `1` and `1.0` are distinct) against an independent prevalidation copy,
+rather than relying on Python numeric equality. Serialization reads actual
+model fields, including excluded fields; custom serializers cannot conceal an invalid default or
 introduce executable content. Only JSON-native values are accepted; JSON
 encoding never invokes a fallback string conversion. Nodes without a config
 model still accept only empty config. Selected config models/validators/default

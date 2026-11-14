@@ -43,6 +43,9 @@ v1 graph bytes, graph/byte limits and a **trusted backend-selected** catalog of
 frozen bytes-backed value with a derived SHA-256. It materializes and strictly
 validates defaults, rejects extras/non-JSON/non-finite values, uses serialization
 aliases consistently, and bounds both input and expanded output bytes.
+Empty serialization aliases are preserved; collisions fail. Default and
+explicit-value comparisons distinguish native JSON types recursively, including
+boolean/integer/float differences, even when Python considers them equal.
 Every graph/revision/config/handler/model field participates in the digest.
 Clients cannot supply pins/default overrides; catalogs are not client input.
 See the [value contract](../docs/SPEC-workflow-runtime.md#bounded-internal-p1-08a-value-contract)

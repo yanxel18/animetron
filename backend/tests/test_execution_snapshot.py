@@ -10,6 +10,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_serializer,
+    field_validator,
 )
 
 from app.services.models.manifest import ModelFile, ModelManifest
@@ -186,6 +187,67 @@ def test_nested_invalid_default_is_validated():
 
     with pytest.raises(InvalidExecutionSnapshot):
         build(selected=catalog(Outer))
+
+
+@pytest.mark.parametrize("converted", [True, 1.0], ids=["int-to-bool", "int-to-float"])
+@pytest.mark.parametrize("shape", ["root", "nested-model", "nested-list"])
+@pytest.mark.parametrize("explicit", [False, True], ids=["default", "explicit"])
+def test_config_numeric_type_transformations_are_rejected(converted, shape, explicit):
+    class Count(BaseModel):
+        count: int = 1
+
+        @field_validator("count")
+        @classmethod
+        def transform_count(cls, value):
+            return converted
+
+    class Nested(BaseModel):
+        child: Count = Field(default_factory=Count)
+
+    class Sequence(BaseModel):
+        children: list[Count] = Field(default_factory=lambda: [Count()])
+
+    model, supplied = {
+        "root": (Count, {"count": 1}),
+        "nested-model": (Nested, {"child": {"count": 1}}),
+        "nested-list": (Sequence, {"children": [{"count": 1}]}),
+    }[shape]
+    with pytest.raises(InvalidExecutionSnapshot):
+        build(document(supplied if explicit else {}), catalog(model))
+
+
+def test_default_comparison_preserves_prevalidation_nested_json_values():
+    class Mutating(BaseModel):
+        payload: dict[str, list[object]] = {"values": [1]}
+
+        @field_validator("payload", mode="before")
+        @classmethod
+        def transform_payload(cls, value):
+            value["values"][0] = True
+            return value
+
+    with pytest.raises(InvalidExecutionSnapshot):
+        build(selected=catalog(Mutating))
+
+
+@pytest.mark.parametrize("alias", [None, "inputCount"])
+def test_empty_serialization_alias_is_preserved_for_defaults_and_explicit(alias):
+    class EmptyAlias(BaseModel):
+        count: int = Field(1, alias=alias, serialization_alias="")
+
+    omitted = build(selected=catalog(EmptyAlias))
+    explicit = build(document({alias if alias is not None else "count": 1}), catalog(EmptyAlias))
+    assert omitted == explicit
+    assert json.loads(omitted.canonical_json)["nodes"][0]["config"] == {"": 1}
+
+
+def test_colliding_empty_serialization_aliases_are_rejected():
+    class Collision(BaseModel):
+        first: int = Field(1, serialization_alias="")
+        second: int = Field(2, serialization_alias="")
+
+    with pytest.raises(InvalidExecutionSnapshot):
+        build(selected=catalog(Collision))
 
 
 def test_explicit_config_normalization_is_rejected_not_silently_changed():

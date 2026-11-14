@@ -70,7 +70,12 @@ def _json_value(value: object, *, aliases: bool) -> object:
     if isinstance(value, BaseModel):
         fields: dict[str, object] = {}
         for name, field in type(value).model_fields.items():
-            key = (field.serialization_alias or field.alias or name) if aliases else name
+            key = name
+            if aliases:
+                if field.serialization_alias is not None:
+                    key = field.serialization_alias
+                elif field.alias is not None:
+                    key = field.alias
             if key in fields:
                 raise InvalidExecutionSnapshot("Ambiguous configuration alias")
             fields[key] = _json_value(getattr(value, name), aliases=aliases)
@@ -128,10 +133,10 @@ def _resolve_config(config: Mapping[str, object], definition: NodeDefinition) ->
         # by field name avoids interpreting serialization aliases as input aliases.
         materialized = _json_value(resolved, aliases=False)
         checked = model.model_validate(
-            materialized, strict=True, extra="forbid", by_name=True, by_alias=False,
+            deepcopy(materialized), strict=True, extra="forbid",
+            by_name=True, by_alias=False,
         )
-        if _json_value(checked, aliases=False) != materialized:
-            raise InvalidExecutionSnapshot("Configuration validation changed defaults")
+        _check_explicit(materialized, _json_value(checked, aliases=False))
         return _json_value(checked, aliases=True)
     except (ValidationError, TypeError, ValueError, RecursionError):
         raise InvalidExecutionSnapshot("Invalid resolved node configuration") from None
