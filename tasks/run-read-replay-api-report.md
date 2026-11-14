@@ -101,3 +101,14 @@ root/target file hashes/status remained unchanged, including three dirty parent
 task files. Only newly generated target pytest/mypy caches were removed.
 Remote checks and normal merge remain pending. P1-11a does not complete runtime
 execution, cancellation, live updates or P9.
+
+## Verified merge checkpoint
+
+Merged normally in [#51](https://github.com/yanxel18/animetron/pull/51) at
+`4e31490deac801002cd7c73f49c87fb9c58d516a` after direct review and
+independent execution above. Exact-head GitGuardian passed at
+`5c65b2b7d559b3a6dd1efdd5a3e69148cae46139`; clean mergeability, no requested
+reviews or branch rules. No self-approval or check/protection waiver occurred.
+Root master was pulled; backend/spec matched the independently tested core.
+Prior pending statements are historical. [todo.md](todo.md) remains the sole
+current checklist; only P1-11a is complete, not execution or P9.
