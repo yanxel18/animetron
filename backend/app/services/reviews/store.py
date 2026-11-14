@@ -20,7 +20,9 @@ from sqlalchemy import (
     String,
     Table,
     Uuid,
+    and_,
     func,
+    or_,
     select,
     text,
     update,
@@ -103,6 +105,11 @@ Index(
         "state IN ('PENDING_DELIVERY', 'AWAITING_DECISION', 'APPROVED', "
         "'REJECTED', 'DELIVERY_UNKNOWN')"
     ),
+)
+Index(
+    "ix_review_queue_created_id",
+    review_requests.c.created_at,
+    review_requests.c.id,
 )
 review_decisions = Table(
     "review_decisions",
@@ -287,6 +294,41 @@ def get_review_request(connection: Connection, review_id: UUID) -> ReviewRequest
     if row is None:
         raise ReviewNotFound("Review request not found")
     return _request_from_row(row._mapping)
+
+
+def list_review_requests(
+    connection: Connection,
+    cursor: tuple[datetime, UUID] | None,
+    limit: int,
+) -> list[ReviewRequest]:
+    """Fetch one bounded ascending keyset page; cursor UUID breaks timestamp ties."""
+    if type(limit) is not int or not 1 <= limit <= 101:
+        raise ValueError("Review page size is outside the permitted bounds")
+    statement = select(review_requests)
+    if cursor is not None:
+        if type(cursor) is not tuple or len(cursor) != 2:
+            raise TypeError("Invalid review cursor")
+        created_at, review_id = cursor
+        if (
+            not isinstance(created_at, datetime)
+            or created_at.tzinfo is None
+            or created_at.utcoffset() is None
+            or not isinstance(review_id, UUID)
+            or review_id.version != 4
+            or review_id.variant != RFC_4122
+        ):
+            raise ValueError("Invalid review cursor")
+        statement = statement.where(or_(
+            review_requests.c.created_at > created_at,
+            and_(
+                review_requests.c.created_at == created_at,
+                review_requests.c.id > review_id,
+            ),
+        ))
+    rows = connection.execute(
+        statement.order_by(review_requests.c.created_at, review_requests.c.id).limit(limit)
+    ).mappings()
+    return [_request_from_row(row) for row in rows]
 
 
 def lock_review_request(connection: Connection, review_id: UUID) -> ReviewRequest:

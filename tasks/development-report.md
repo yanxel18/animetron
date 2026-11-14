@@ -678,3 +678,54 @@ The local studio preview was opened at `http://127.0.0.1:5173/` and returned
 HTTP 200. Its browser snapshot accurately reports no draft/run and disabled
 editing/generation actions. This is UI-foundation viewing evidence only,
 not an authenticated end-to-end workflow or P9 acceptance.
+
+### Review HTTP API task started - 2026-11-14
+
+Canonical progress reconciliation merged normally in
+[#45](https://github.com/yanxel18/animetron/pull/45) at
+`9d14aca844b697a003034cbaddfb607677abddc4`; documentation review,
+whitespace validation and exact-head GitGuardian passed. Root master was
+pulled with unrelated edits preserved. The next task branch,
+`feature/review-http-api`, starts from that verified master.
+
+P4-04a implementation is in progress: a bounded authenticated review metadata
+queue and exact-scope owner decision endpoints, reusing current session,
+origin and CSRF controls. It adds no UI, public approval capability, model,
+Telegram, artifact-byte access or publishing. No implementation/check/merge
+success for this new task is claimed yet.
+
+### Review HTTP API local correction checkpoint - 2026-11-14
+
+The initial implementation at `e47737e` passed 27 focused cases and 435 full
+tests/20 existing Windows skips. Direct source review checked the shared auth
+extraction, owner-only queue/decision access, exact-scope service delegation,
+bounded keyset traversal/index, typed response fields and body parsing.
+It reproduced oversized decimal Content-Length conversion returning the
+generic 503 rather than explicit 422, using a no-database TestClient request.
+
+Correction core `ed1635479b113b4cdf0c55452682bd3174ff9dd2` compares bounded
+decimal representations without integer conversion. Seven regressions cover
+extreme and leading-zero lengths, actual no-Content-Length streaming overflow,
+and exact-cap parse/auth paths: focused RED was 4 failed/3 passed, then GREEN
+7 passed. Full author verification passed 442 tests/20 existing skips,
+migrations, Ruff, strict Linux-target mypy35 and dependency consistency.
+Report checkpoint is `4e2c761ff68c85ebc390269ebd85b2478bb66458`.
+Independent final execution is underway; no API PR/merge is claimed yet.
+See [the API report](review-http-api-report.md). The studio preview remains
+running and unchanged; these backend APIs do not connect its UI or complete P9.
+
+### Independent review HTTP API verification - 2026-11-14
+
+Independent QA at `4e2c761ff68c85ebc390269ebd85b2478bb66458` reproduced
+442 passed/20 existing Windows skips, all 34 API cases and the existing actual
+lock-wait regressions, migration lifecycle, Ruff, strict Linux-target mypy35
+and dependency consistency. No-DB invocation produced 8 passed/26 skips.
+Its first run passed tests but failed mypy because QA supplied the Windows
+device path `MYPY_CACHE_DIR=NUL`; a disposable cache resolved that invocation
+error, and the complete rerun passed. No source fix or weakened check was used.
+
+Both runs' captured containers, networks and anonymous volumes were removed.
+Backend remained identical to HEAD. Parent documentation edits explain the
+pre-test task-file hash changes; QA did not edit them. No additional required
+source corrections were found. Remote gates and verified merge remain pending.
+Preview availability is not certified by these backend checks.

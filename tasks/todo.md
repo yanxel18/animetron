@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `61b3cad16ee2d0ce264b271be3e59b4f92d8e724` on
+verified remote `master` at `9d14aca844b697a003034cbaddfb607677abddc4` on
 2026-11-14. Merged #41, #42, #43 and #44 were checked against exact-head checks,
 normal merge responses and the fetched commits. The historical #33 scanner
 failure remains unresolved.
@@ -269,11 +269,26 @@ authorized human can decide on the exact output without occupying a worker.
     GitGuardian passed at `5228271`; normal merge followed direct source review
     and independent QA, without self-approval or check/protection waivers.
     [Lookup verification and findings](review-approval-lookup-report.md).
-  - [ ] P4-04a Next: authenticated paginated review queue and exact-scope
+  - [ ] P4-04a Implemented locally on `feature/review-http-api`: authenticated
+    paginated review queue and exact-scope
     decision HTTP APIs, reusing current session/origin/CSRF controls and
     owner-only decision authority. No Telegram, artifact bytes, live
     transmission or publishing. Parent P4-04 stays unchecked until these
     remaining capabilities pass verification and merge.
+    Canonical status reconciliation merged in
+    [#45](https://github.com/yanxel18/animetron/pull/45); exact-head GitGuardian
+    and documentation whitespace checks passed. Root master was pulled.
+    Corrected core `ed1635479b113b4cdf0c55452682bd3174ff9dd2` passed
+    442 tests/20 existing Windows skips, migrations, Ruff, strict Linux-target
+    mypy35 and dependency consistency. Direct review reproduced an oversized
+    decimal Content-Length returning 503 instead of 422; correction cycle 1
+    added seven header/streaming-limit regressions (4 failed before, 7 passed
+    after). Independent QA at `4e2c761` reproduced 442 passed/20 skips,
+    all 34 API cases, the existing lock-wait regressions, migrations,
+    Ruff/mypy35 and dependency consistency. Without DB infrastructure,
+    8 passed/26 skipped. Owned test resources were removed. Remote/merge gates
+    remain pending; leave unchecked.
+    [HTTP API verification and findings](review-http-api-report.md).
 - [ ] P4-05 Implement explicitly consented Telegram polling, durable update
   deduplication, single-use callback tokens and reviewer/chat identity checks.
 - [ ] P4-06 Show exact preview, caption, destinations and expiry; expose

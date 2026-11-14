@@ -5,7 +5,8 @@ Project-wide progress and remaining work: [task checklist](../tasks/todo.md).
 The API provides minimal public liveness and a bounded authenticated control
 plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
-CSRF, audit/readiness/WebSocket controls and security limitations. It does not
+CSRF, audit/readiness/WebSocket and review controls, and security limitations.
+Review HTTP access is owner-only and metadata/decision-only. It does not
 implement artifact HTTP, workflow CRUD, model/media or creator features.
 
 The internal workflow graph validator checks graph limits, node and edge IDs,
@@ -69,9 +70,10 @@ All writes require an active non-autocommit psycopg transaction; callers own
 commit, rollback, timeouts and transaction retries. Expiry is explicit input:
 the proposed 24-hour duration is **not** a default or accepted policy. Delivery
 functions only record trusted outcomes and never transmit content. This store
-does not implement authorization or role checks, a valid-approval proof, HTTP,
+does not implement authorization or role checks, a valid-approval proof,
 Telegram, an outbox effect, or publishing. Records are not approval or
 authorization proofs; do not use them to authorize publication.
+The narrowly scoped HTTP adapter is documented below and in [AUTH.md](AUTH.md).
 
 Reviewer identifiers are stored labels, not role or identity authorization:
 1-128 ASCII characters matching `[A-Za-z0-9][A-Za-z0-9_.:@-]{0,127}`.
@@ -86,6 +88,8 @@ Auth #33 also descends from `0005_artifact_metadata`.
 branch's tables. Alembic's target metadata includes both auth and review models;
 `alembic upgrade head` followed by `alembic check` must succeed. The owned
 disposable database harness runs the migration regression tests with the suite.
+`p4_04a_review_queue_20261114` adds the composite `(created_at, id)` index used
+by the bounded keyset queue.
 
 ## Internal artifact metadata (bounded Phase 0 slice)
 
@@ -335,14 +339,42 @@ not cryptographic proof or publication authority. Low-level APPROVED rows
 without matching evidence fail closed and are not repaired by enqueueing.
 Other trusted writers must not forge reserved intents; retention must preserve
 them for replay. See [the approved boundary](../docs/SPEC-human-review.md) for
-the exact namespace, error semantics and trust limits. There is no HTTP/MCP/
-Telegram adapter, outbound notification or automatic publication consumer.
+the exact namespace, error semantics and trust limits. The authenticated
+metadata/decision HTTP adapter is described below; there is no MCP or Telegram
+adapter, outbound notification or automatic publication consumer.
 
 The caller owns outer commit/rollback and sets transaction-local lock/statement
 budgets. Timeout/connection/enqueue errors propagate; retry only with fresh
 authentication and the same review identity and exact intent. Focused tests are
 `tests/test_review_decision_service.py`; run the full owned PostgreSQL/Keycloak/
 browser harness with `python tests/run_auth_checks.py` (never inherited DB URLs).
+
+## Authenticated review HTTP API (P4-04a)
+
+`GET /api/v1/reviews` is owner-only and returns existing request metadata across
+the defined review states. It uses an opaque ascending keyset cursor ordered by
+`(created_at, id)`, default limit 50 and maximum 100; it does not count or
+materialize the full table. Metadata includes scope identifiers/hashes,
+destinations, state, expiry, creation/state-change times and bounded delivery
+error code. It never includes artifact/caption bytes, paths, auth state,
+decision intent internals or publication capability.
+
+`POST /api/v1/reviews/{id}/decisions` accepts only a strict camelCase
+`expectedScope` and `APPROVED`/`REJECTED` outcome. Each request (including
+replay) obtains the principal from the current `AuthStore` opaque session and
+requires exact Origin and `X-CSRF-Token`; no client principal, role or reviewer
+ID is accepted. `ReviewScope` normalization and the existing
+`record_decision` service enforce exact scope and transaction/state/expiry
+guards. The adapter exposes no approval lookup, creation/delivery, content
+bytes, Telegram, MCP, outbound publication or deployment surface.
+
+Requests over 4096 bytes, unknown fields/query parameters, duplicate query
+parameters and malformed cursors are rejected. Responses use the shared
+request-ID error envelope/security headers: 401 unauthenticated, 403 forbidden
+or origin/CSRF failure, 404 absent request, 409 decision conflict, 422 invalid
+input, and 503 disabled auth or dependency failure. Focused real-PostgreSQL API
+tests are in `tests/test_reviews_api.py`; use the ownership-checked harness
+(`python tests/run_auth_checks.py`) rather than inherited DB URLs.
 
 ## Internal current-approval lookup (P4-04b)
 
@@ -370,6 +402,6 @@ cryptographic proof, reusable permission, or artifact-byte verification.
 A trusted publisher must call/recheck for every attempt and before effects.
 Callers own lock/statement budgets and retries using current trusted settings.
 Privileged arbitrary DB writers remain outside the integrity guarantee.
-No HTTP/MCP/Telegram endpoint, publisher, transmission, or full P4/P9 completion
-is supplied. Focused tests: `tests/test_review_approval_lookup.py`; full gates use
-the same owned `tests/run_auth_checks.py` harness.
+No approval-lookup HTTP endpoint, publisher, transmission, or full P4/P9
+completion is supplied. Focused tests: `tests/test_review_approval_lookup.py`;
+full gates use the same owned `tests/run_auth_checks.py` harness.

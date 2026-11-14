@@ -41,6 +41,7 @@ def wait_for(check):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--storage", action="store_true")
+    parser.add_argument("--pytest-file", choices=["tests/test_reviews_api.py"])
     args = parser.parse_args()
     env = dict(os.environ)
     # Never inherit a production/test URL, auth setting or proxy.
@@ -76,7 +77,7 @@ def main():
         # Docker 29 internal bridges omit host port mappings. A dedicated bridge
         # with exclusively loopback bindings permits host-side acceptance checks.
         network_id = docker("network", "create", *labels, network)
-        created[db] = docker("run", "--detach", "--name", db, *labels, "--network", network_id,
+        created[db] = docker("run", "--pull=never", "--detach", "--name", db, *labels, "--network", network_id,
                "--network-alias", "postgres", "--publish", "127.0.0.1::5432",
                "--memory", "512m", "--cpus", "2",
                "-e", "POSTGRES_PASSWORD", "-e", "POSTGRES_DB=animetron",
@@ -113,7 +114,7 @@ def main():
                        cwd=ROOT, env=migration_env, check=True)
         print("PostgreSQL image:", docker("inspect", "--format", "{{.Image}}", created[db]), flush=True)
         if not args.storage:
-            created[kc] = docker("run", "--detach", "--name", kc, *labels, "--network", network_id,
+            created[kc] = docker("run", "--pull=never", "--detach", "--name", kc, *labels, "--network", network_id,
                    "--publish", "127.0.0.1::8080", "--memory", "1g", "--cpus", "2",
                    "-e", "KC_DB=postgres", "-e", "KC_DB_URL=jdbc:postgresql://postgres/keycloak",
                    "-e", "KC_DB_USERNAME=postgres", "-e", "KC_DB_PASSWORD",
@@ -161,12 +162,17 @@ def main():
                 env["ANIMETRON_TEST_OIDC_ISSUER"] = base + "/realms/animetron-test"
                 env["ANIMETRON_TEST_OIDC_OWNER"] = owner
             print("Keycloak image:", docker("inspect", "--format", "{{.Image}}", created[kc]), flush=True)
-        selection = ["tests/test_auth_storage.py"] if args.storage else ["tests"]
+        selection = (
+            ["tests/test_auth_storage.py"] if args.storage
+            else [args.pytest_file] if args.pytest_file
+            else ["tests"]
+        )
+        traceback_mode = "--tb=short" if args.pytest_file else "--tb=no"
         results = []
         for command in (
             # Failure output must not serialize browser URLs or fixture secrets.
             # Assertions remain intact; only traceback presentation is redacted.
-            [sys.executable, "-m", "pytest", *selection, "-q", "--tb=no", "--basetemp", str(temporary / "pytest")],
+            [sys.executable, "-m", "pytest", *selection, "-q", traceback_mode, "--basetemp", str(temporary / "pytest")],
             [sys.executable, "-m", "ruff", "check", "--no-cache", "app", "tests", "migrations"],
             [sys.executable, "-m", "mypy", "--platform", "linux", "app"],
         ):
