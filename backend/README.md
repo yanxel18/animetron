@@ -81,9 +81,11 @@ the database also rejects an expired request's transition to
 `AWAITING_DECISION`, even when application guards are bypassed.
 
 The `p4_02_review_records_20261114` migration adds the internal review tables.
-The independent Auth #33 migration also descends from `0005_artifact_metadata`;
-when that branch is integrated, reconcile the parallel Alembic heads with an
-explicit merge revision rather than renaming either migration.
+Auth #33 also descends from `0005_artifact_metadata`.
+`0008_auth_review_merge` joins the two histories without changing either
+branch's tables. Alembic's target metadata includes both auth and review models;
+`alembic upgrade head` followed by `alembic check` must succeed. The owned
+disposable database harness runs the migration regression tests with the suite.
 
 ## Internal artifact metadata (bounded Phase 0 slice)
 

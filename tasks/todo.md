@@ -1,7 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-`master` and GitHub pull requests on 2026-11-14. The owner approved the
+fetched `origin/master` at `c39d4851dda89c9aa07f617a7e6d90a62a0eb371` on
+2026-11-14. GitHub PR metadata queries returned 404/422 in this session; merge
+commits and remaining review/check evidence were reconciled from local reports.
+The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
@@ -55,40 +58,26 @@ have the security and recovery guarantees below.
   [#6](https://github.com/yanxel18/animetron/pull/6)
 - [ ] P0-06 Implement authenticated sessions, authorization, CSRF protection,
   audit records, authorized readiness, and protected WebSocket handshakes.
-  - [ ] P0-06b OIDC/Keycloak session foundation is in review in
-    [#33](https://github.com/yanxel18/animetron/pull/33), **blocked** at
-    `ff5e67654b8aacde440671e5411414e114daf323` by a failed GitGuardian check.
-    Independent source reassessment resolved the prior disposable-DB reset
-    and denial-audit findings. Author verification: 314 passed/20 unchanged
-    Linux skips, including 70 auth tests and 3 real Keycloak/Edge flows.
-    Three correction iterations are exhausted. Check output now associates the
-    reported test-file finding with historical PR commit `61a80f9`; the finding
-    line remains unavailable. No merge, waiver or completion claim.
-    [Final auth gate evidence](development-report.md#authentication-gate-checkpoint---2026-11-14).
-    [Scanner provenance clarification](development-report.md#github-secret-scan-provenance---2026-11-14).
+  - [ ] P0-06b OIDC/Keycloak session foundation was manually merged in
+    [#33](https://github.com/yanxel18/animetron/pull/33) at
+    `c39d4851dda89c9aa07f617a7e6d90a62a0eb371`, fetched on 2026-11-14.
+    The final head `8b8a63277084d1ca962067af25bf5c2ac9e759a1` still has
+    a completed/failed GitGuardian check; the merge did not clear that gate.
+    Integration also left parallel Alembic heads and omitted review metadata.
+    The `fix/auth-review-migration-integration` repair passed 330 tests,
+    migration lifecycle, Ruff and strict Linux-target mypy, and was pushed to
+    `origin`. A PR could not be created: GitHub MCP returned 404/422 and the
+    browser session is signed out/404. Keep unchecked until the PR, required
+    reviews/checks and integration pass.
+    [Current integration findings](auth-review-integration-report.md).
+    [Historical scanner provenance](development-report.md#github-secret-scan-provenance---2026-11-14).
   - [x] P0-06a Apply browser security headers to API responses, including
     unhandled errors ([#19](https://github.com/yanxel18/animetron/pull/19);
     not authentication or CSRF protection).
-  - [ ] P0-06b Bounded Keycloak/Authlib OIDC browser sessions, principal roles,
-    CSRF logout, audit history, authorized readiness and origin-checked
-    WebSocket handshake. **In review**
-    ([#33](https://github.com/yanxel18/animetron/pull/33)) on
-    `feature/oidc-browser-sessions`;
-    dependency [#27](https://github.com/yanxel18/animetron/pull/27) is merged.
-    See [auth contract and acceptance evidence](../backend/AUTH.md).
-    Original independent-review blockers were unguarded disposable-test DB
-    resets and unbounded denial auditing; both now have verified fixes awaiting
-    same-reviewer reassessment. GitGuardian's test-material finding still
-    requires a passing final-head check. Do not merge or check complete before
-    all gates pass.
-    Review repair: 314 passed / 20 existing Linux-only skips, 70 auth tests,
-    Ruff and Linux mypy (29 files) passed, including owned-database rejection
-    and bounded shared denial-count regressions. Migration upgrade/check/
-    downgrade/re-upgrade and dependency audit passed. Same-PR
-    [repair findings](../backend/AUTH-FINDINGS.md) retain the required
-    GitGuardian and independent reassessment gates; not ready to merge.
-    No deployment, artifact/workflow HTTP, provider publishing, back-channel
-    logout or phase-completion certification is included.
+    The [auth contract](../backend/AUTH.md) and
+    [prior repair findings](../backend/AUTH-FINDINGS.md) describe the bounded
+    session implementation. Deployment, artifact/workflow HTTP, publishing,
+    back-channel logout and phase-completion certification are not included.
 - [ ] P0-07 Implement bounded artifact upload, metadata and authorized
   download with opaque IDs, content checks and safe storage.
   - [x] P0-07a Persist immutable artifact metadata in caller-owned transactions
@@ -219,12 +208,14 @@ authorized human can decide on the exact output without occupying a worker.
   [#12](https://github.com/yanxel18/animetron/pull/12)
 - [ ] P4-02 Persist review requests, delivery states, expiry and immutable
   decisions; supersede prior approval when its scope changes.
-  - In review in [#40](https://github.com/yanxel18/animetron/pull/40); leave
-    unchecked until the PR is merged. See the
+  - Merged in [#40](https://github.com/yanxel18/animetron/pull/40) at
+    `2ac321366c96bf062370d4d774a073dc03292431`. Author verification reports
+    258 passed/20 unchanged Windows skips, migration lifecycle, Ruff,
+    strict mypy and GitGuardian. The report records an earlier independent QA
+    failure and correction cycle 1/3, but no independent reassessment result;
+    keep unchecked until that required gate is evidenced. See the
     [review records design and verification report](review-records-report.md).
-    Independent QA failed at `21ca53f` on insert-state enforcement, reviewer-ID
-    validation and DB expiry-guard coverage. Correction cycle 1/3 addresses
-    those three findings; same-reviewer reassessment remains required.
+    The #33 migration integration regression is tracked separately above.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
