@@ -1,9 +1,28 @@
 # P6-02b internal schedule descriptors
 
-Status: local implementation awaiting independent QA; PR not opened. This
+Status: independent local QA passed; push/PR step remains blocked. This
 does not complete P6-02 or P9. Base: merged P4 #40 at
 `2ac321366c96bf062370d4d774a073dc03292431`; parent commits `674bf5a` and
 `cfbd844` retain P4 reconciliation and the approved slice boundary.
+
+The repository remote was inspected. No push or PR creation was attempted, so
+there was no tool or technical permission denial. Source remains local; no
+branch push, remote checks or merge are claimed.
+
+## Independent local QA checkpoint
+
+The independent reviewer passed the assigned implementation snapshot
+`ee8318dfbaa0929940617c7e0443fdea59a7f77d`, with no high-confidence defects.
+They reproduced 50 focused tests, the fresh PostgreSQL migration lifecycle,
+Ruff, strict Linux-target mypy for 27 source files, dependency consistency and
+whitespace checks. Weakening the AUTOCOMMIT guard in a private copy made its
+regression fail. Their exact owned containers and scratch paths were verified
+removed. The full suite and Linux-only OS cases were not independently run.
+
+The reviewer excluded the uncommitted four-line report clarification from their
+snapshot. The parent reviewed that clarification and records the final
+documentation-only checkpoint separately. P6-02b stays unchecked: there is no
+PR, GitGuardian result or merge for this branch. Auth #33 and P9 remain blocked.
 
 ## Decisions and limits
 

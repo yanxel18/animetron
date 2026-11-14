@@ -255,7 +255,8 @@ schedule creates at most one run intent per due slot and never grants approval.
     establish persistence, authorized CRUD, overlap/restart or dispatch.
     [Preview verification and findings](scheduling-preview-report.md).
   - [ ] P6-02b Persist internal schedule descriptors on
-    `feature/schedule-records` (local implementation verified; PR not opened).
+    `feature/schedule-records` (**blocked after independent local QA**;
+    branch not pushed and PR not opened).
     - Bind an existing immutable workflow revision and reuse the approved
       cron/IANA preview calculation with an aware cursor.
     - Require caller-owned transactions, bounded reads and optimistic edit
@@ -264,6 +265,10 @@ schedule creates at most one run intent per due slot and never grants approval.
       parity and the migration lifecycle, plus Ruff and strict mypy.
     This slice adds no HTTP/role authorization, due slots, GPU arbitration,
     scheduler process, run/outbox dispatch or publication approval.
+    Independent verification: 50 focused tests, migration lifecycle,
+    Ruff/mypy27 and dependency checks passed; an AUTOCOMMIT-guard mutation
+    failed its regression. No technical push denial occurred; transmission
+    was not attempted. This item remains unchecked until a verified merge.
     [Verification and cleanup](schedule-records-report.md).
 - [ ] P6-03 Implement a single scheduler process with observable recovery and
   skipped slots; test pause, restart, overlap, DST and duplicate dispatch.

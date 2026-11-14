@@ -503,3 +503,17 @@ proofs. P4-03 through P4-06 and P9 remain open. Auth #33 remains scanner-blocked
 integrating its parallel migration will require an explicit Alembic head merge.
 The next internal schedule-record slice will follow the merged P4 migration,
 not introduce another independent migration head.
+
+## Local schedule-record checkpoint - 2026-11-14
+
+P6-02b implementation `ee8318d` passed independent local review and 50 focused
+tests with a fresh PostgreSQL database, migration upgrade/check/downgrade/re-upgrade/check,
+Ruff, strict Linux-target mypy27 and dependency checks. A weakened AUTOCOMMIT
+guard was caught by its regression. The store does not grant authorization,
+dispatch runs, claim due slots, arbitrate GPU overlap or grant approval.
+
+The branch remains local and unmerged. No push or PR was attempted and no
+technical permission denial occurred; the source-control transmission step
+remains blocked in this session. No remote GitGuardian result is claimed.
+The checked local implementation and reports are preserved on
+`feature/schedule-records`; P6-02b and P9 remain unchecked.
