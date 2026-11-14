@@ -343,3 +343,33 @@ budgets. Timeout/connection/enqueue errors propagate; retry only with fresh
 authentication and the same review identity and exact intent. Focused tests are
 `tests/test_review_decision_service.py`; run the full owned PostgreSQL/Keycloak/
 browser harness with `python tests/run_auth_checks.py` (never inherited DB URLs).
+
+## Internal current-approval lookup (P4-04b)
+
+`app.services.reviews.approvals.require_valid_approval(connection, review_id,
+expected_scope, *, auth_config: AuthConfig) -> CheckedApproval` inspects an
+existing approval without writes or transaction ownership changes. Supply only
+**current trusted-server settings**, never client-deserialized configuration.
+The human owner need not have an active session; fresh caller authorization
+belongs to the future transport/publisher boundary.
+
+It requires the existing explicit non-AUTOCOMMIT psycopg transaction and UUID4/
+scope contracts. The shared `lock_review_request` locks the stored run then the
+request, followed by the reserved outbox intent. It requires current APPROVED
+state, an immutable APPROVED decision for that review and the exact current
+owner identity (`auth.digest(issuer + "\0" + owner_subject)`), exact scope,
+matching reserved intent ID/topic/resource, and request expiry strictly after a
+fresh advancing DB clock **after the final intent lock**. Missing rows propagate
+`ReviewNotFound`; invalid state/scope/owner/expiry or absent evidence raises
+`ReviewConflict`, intent collisions raise `OutboxConflict`, and existing input/
+DB errors propagate. It never repairs missing evidence or enqueues.
+
+The frozen result contains scope, review/decision identity and expiry, valid only
+for the checked state/settings in this caller transaction. It is **not** a
+cryptographic proof, reusable permission, or artifact-byte verification.
+A trusted publisher must call/recheck for every attempt and before effects.
+Callers own lock/statement budgets and retries using current trusted settings.
+Privileged arbitrary DB writers remain outside the integrity guarantee.
+No HTTP/MCP/Telegram endpoint, publisher, transmission, or full P4/P9 completion
+is supplied. Focused tests: `tests/test_review_approval_lookup.py`; full gates use
+the same owned `tests/run_auth_checks.py` harness.

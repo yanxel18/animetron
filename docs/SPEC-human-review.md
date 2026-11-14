@@ -24,7 +24,9 @@ SUPERSEDED, DELIVERY_FAILED, DELIVERY_UNKNOWN.
 - `GET /api/v1/reviews`: paginated queue.
 - `POST /api/v1/reviews/{id}/decisions`: authenticated decision bound to revision.
 - Internal `getValidApproval(reviewId, publicationScope)`: valid immutable
-  approval proof or explicit rejection; consumed by publishing.
+  checked approval metadata or explicit rejection; consumed by future publishing.
+  The bounded internal implementation below is not a cryptographic proof or a
+  reusable publication capability.
 
 Default Telegram transport is one outbound long-polling consumer. Persist update
 ids and use single-use server-resolved callback tokens within current Telegram
@@ -116,3 +118,53 @@ implemented. The broader commands/provider contracts above remain future work.
 Focused database tests: `tests/test_review_decision_service.py`, executed only
 through the ownership-checked disposable auth harness; full verification uses
 `python tests/run_auth_checks.py`.
+
+## P4-04b bounded current-approval lookup
+
+`app.services.reviews.approvals.require_valid_approval(connection, review_id,
+expected_scope, *, auth_config: AuthConfig) -> CheckedApproval` implements only
+the internal current-approval inspection part of the future `getValidApproval`
+requirement. The keyword-only configuration must be **current trusted-server
+settings**, never client supplied. It derives the current owner principal ID
+using existing `auth.digest(issuer + "\0" + owner_subject)`, exactly as
+`AuthStore.create_session` does; another/former configured owner's decision
+fails closed. No active human-owner session is required to inspect a past
+decision. Fresh caller authorization remains a future transport/publisher duty.
+
+The lookup accepts only the existing explicit non-AUTOCOMMIT SQLAlchemy psycopg
+caller transaction, typed `ReviewScope` and RFC-variant UUID4 review ID.
+One small canonical `lock_review_request` helper is shared with the decision
+service: read the stored run identity, lock `workflow_runs`, lock
+`review_requests`, then reread. The lookup next locks the reserved outbox intent.
+The decision service's transitions, savepoint and post-intent expiry checks are
+unchanged.
+
+Successful inspection requires current APPROVED state, an existing immutable
+APPROVED decision with matching review ID and current configured owner, exact
+expected scope, and the decision-service reserved intent ID/topic/resource.
+Expiry must be strictly after a fresh advancing PostgreSQL `clock_timestamp()`
+**after all potentially blocking locks, including the final intent lock**.
+Missing, unverified low-level, stale, superseded, expired, rejected, pending or
+colliding approvals fail explicitly, never repaired or promoted.
+
+`CheckedApproval` is frozen metadata: exact scope, review ID, immutable decision
+identity/owner/time, and request expiry. It is valid only for the checked state
+and current settings in this caller transaction—not a cryptographic proof,
+reusable authorization capability, cached publication permission, or verification
+of artifact bytes. A trusted publisher must call/recheck on **every publication
+attempt and before effects**; inspection cannot prevent time/settings changes
+after return. Privileged arbitrary database writers remain outside the
+trusted-storage integrity guarantee.
+
+There are no enqueues, state changes, content transmissions, commit/rollback
+ownership changes, caller-supplied role/digest defaults, HTTP/MCP/Telegram
+endpoints or publisher. This does not complete P4 or P9. Existing store lookup/
+validation errors propagate; invalid current approval raises `ReviewConflict`,
+reserved topic/resource collisions raise `OutboxConflict`, invalid config/scope
+types raise `TypeError`. Callers own transaction-local lock/statement budgets;
+timeouts and database errors propagate rather than yielding partial approval.
+Any bounded retry must use current trusted settings and exact review/scope.
+Focused tests: `tests/test_review_approval_lookup.py`, including a real separate
+PG connection holding the final intent lock and observed `pg_stat_activity`
+waiting until expiry. Preserve the missing-DB infrastructure skip convention;
+full gates run the existing owned PostgreSQL/Keycloak harness.

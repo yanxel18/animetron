@@ -125,6 +125,11 @@ from the local feature commit.
 
 ## Independent final verification checkpoint
 
+Merged in [#43](https://github.com/yanxel18/animetron/pull/43) at
+`70035139e69a601d68ac0bc8d55b66102d9d7046` after the checks below and
+successful exact-head GitGuardian at `aadc059`. Earlier local/publication
+blockers are historical. No self-approval or protection/check waiver occurred.
+
 Independent test execution passed corrected core
 `0673bbcabaed652053a7e8153feb375f5a53947a`: 380 tests/20 skipped, including
 both real lock-wait expiry cases; migration lifecycle, Ruff, strict
