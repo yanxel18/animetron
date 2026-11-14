@@ -223,11 +223,24 @@ authorized human can decide on the exact output without occupying a worker.
 - [ ] P4-03 Enforce role, scope, expiry and transactional single-winner checks;
   persist decisions and outbox effects atomically.
   - Next slice: internal decision service on `feature/review-decision-service`.
-    Reviewer-role policy requires owner clarification: current authenticated
-    roles are owner/operator/viewer; the approved review spec does not assign
-    decision permission to those roles. Do not invent approval authority.
+    Owner approved owner-only approve/reject permission on 2026-11-14;
+    operators/viewers cannot decide. Preserve that least-privilege boundary.
     Reuse the durable review store and caller-owned transaction; no Telegram,
     live publishing or approval bypass is authorized.
+    Acceptance: a fresh trusted authenticated owner principal and exact current
+    scope are required; expired/superseded/conflicting decisions fail explicitly.
+    Approve/reject races have one winner. Decision plus one internal approval
+    notification intent commit or roll back together; rejection never creates
+    an approval/publication intent. This is not a publication-approval proof
+    or an HTTP/MCP/Telegram endpoint.
+    Local implementation at `0673bbc` passed independent final QA:
+    380 full tests/20 platform skips, both real lock-wait expiry regressions,
+    migrations, Ruff, strict Linux-target mypy32 and dependency consistency.
+    Without a database URL, 39 infrastructure skips and zero errors preserve
+    the existing test convention. Direct source-review corrections cover
+    no-database behavior and expiry after blocking intent locks.
+    The branch is not pushed; no PR/remote checks/merge. Source upload is
+    unavailable in this session. Leave unchecked until verified merge.
 - [ ] P4-04 Add authorized paginated review and decision APIs and a valid
   approval lookup for publication; reject stale, unauthorized and replayed actions.
 - [ ] P4-05 Implement explicitly consented Telegram polling, durable update

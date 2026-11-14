@@ -122,3 +122,20 @@ No unresolved implementation blockers. Windows verification does not certify
 the existing Linux filesystem tests, load performance, or any live deployment.
 `tasks/todo.md` and `tasks/development-report.md` remain parent-owned and excluded
 from the local feature commit.
+
+## Independent final verification checkpoint
+
+Independent test execution passed corrected core
+`0673bbcabaed652053a7e8153feb375f5a53947a`: 380 tests/20 skipped, including
+both real lock-wait expiry cases; migration lifecycle, Ruff, strict
+Linux-target mypy32, dependency consistency and whitespace checks passed.
+No-URL focused invocation produced 39 infrastructure skips and zero errors.
+Task import provenance and unchanged core HEAD were verified. Owned harness
+containers/network were removed; pre-existing empty scratch/caches and parent
+edits were preserved.
+
+The parent reviewed the correction delta with no remaining defects. This is
+not a formal PR approval or production-readiness certification. The branch is
+still unpushed with no PR/remote checks/merge; no source upload was attempted.
+The parent records this documentation-only checkpoint after the tested core,
+without changing service/tests/spec behavior.
