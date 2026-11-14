@@ -71,8 +71,10 @@ After verification, removed only the exact P4-02-owned PostgreSQL container
 `f33409614c309a5e93e9baca48bae0fcd841a42d3c561a1ec0a4f3763d487b91` using its
 immutable ID after confirming the pinned image and `P4-02` task/session/owner
 labels. A subsequent inspect confirmed the container was absent. Worktree-local
-temporary directories used for this task are task-labeled and will be removed
-after the final PR check; absence will be verified.
+temporary directories used for this task were removed by their
+`p4-02-20261114-1215` session prefix after the final PR check. All direct
+entries under `.agent-tmp` belonged to that task session; the directory was
+absent after cleanup.
 
 ## Pull request
 
