@@ -560,3 +560,19 @@ mypy31 and dependency consistency. Harness containers/network were removed and
 exact-name absence confirmed. The schedule branch is still unpushed; no remote
 checks, PR or merge are claimed. Required owner-involved P9 acceptance remains
 open.
+
+## Verified scheduling merge and next review-service gate - 2026-11-14
+
+#42 was normally merged at `8bc096c95b3065f782dc0a624284224fd8e1b8c3`
+after independent integrated QA (341 passed/20 skipped), migration lifecycle,
+Ruff, strict Linux-target mypy31, dependency consistency and exact-head
+GitGuardian success. Direct source review verified the unchanged store core and
+integrated migration history. Root master was pulled with unrelated edits
+preserved; no formal self-approval or protection/check waiver occurred.
+
+The next internal P4-03 decision-service slice needs the owner's reviewer-role
+policy. Existing authentication supplies owner/operator/viewer, while the
+approved human-review spec requires an authorized reviewer without naming a
+permitted role. Approval authority will not be silently assigned. Historical
+#33 scanner triage, live-model/provider gates and owner-involved P9 acceptance
+remain open.

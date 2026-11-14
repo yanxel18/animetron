@@ -1,13 +1,23 @@
 # P6-02b internal schedule descriptors
 
-Status: independent local QA passed; push/PR step remains blocked. This
-does not complete P6-02 or P9. The original implementation base was P4 #40 at
+Status: verified and normally merged in
+[#42](https://github.com/yanxel18/animetron/pull/42) at
+`8bc096c95b3065f782dc0a624284224fd8e1b8c3`. This does not complete P6-02 or P9.
+The original implementation base was P4 #40 at
 `2ac321366c96bf062370d4d774a073dc03292431`; parent commits `674bf5a` and
 `cfbd844` retain P4 reconciliation and the approved slice boundary.
 
-The repository remote was inspected. No push or PR creation was attempted, so
-there was no tool or technical permission denial. Source remains local; no
-branch push, remote checks or merge are claimed.
+The earlier local/publication blockers below are historical. The owner pushed
+the exact integrated head; the assistant created #42 without uploading source,
+performed direct integration review, verified independent test execution and
+exact-head GitGuardian success, then merged normally. Root master was pulled
+with pre-existing unrelated edits preserved.
+
+Independent integrated QA reproduced 341 passed/20 skipped, migration lifecycle,
+Ruff, strict Linux-target mypy31, dependency consistency and cleanup absence at
+`8af75bf629dd7a7316f3197263bd4d8ac4fe5c5f`. The unchanged store/spec/test core
+matches the previously independently reviewed `ee8318d`. No formal self-approval,
+force-push or protection/check waiver occurred.
 
 ## Integrated checkpoint after #41
 
