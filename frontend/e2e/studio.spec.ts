@@ -248,15 +248,25 @@ test("opens and closes the mobile navigation without enabling unavailable screen
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Runs" })).toBeDisabled();
 
-  const closeButton = page.getByRole("button", { name: "Close navigation" });
-  await expect(closeButton).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Studio" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(openButton).toBeFocused();
+  await expect(
+    page.getByRole("navigation", { name: "Studio sections" }),
+  ).toBeHidden();
+
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("navigation", { name: "Studio sections" }),
+  ).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(
     page.getByRole("button", { name: "Open navigation" }),
   ).toHaveAttribute("aria-expanded", "false");
-  await expect(
-    page.getByRole("navigation", { name: "Studio sections" }),
-  ).toBeHidden();
 });
 
 test("honors reduced motion and remains usable at a 200 percent effective viewport", async ({
