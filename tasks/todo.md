@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `f0e610b` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `d50a8b3` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -99,8 +99,10 @@ verification. This checklist remains the only current progress source.
   a read-only workflow and revision browser, without editing or execution.
 - P7-02b merged in [#66](https://github.com/yanxel18/animetron/pull/66): inspect an
   immutable revision as read-only data, without editing or execution.
-- P7-04e is in review in [#67](https://github.com/yanxel18/animetron/pull/67): create schedule
+- P7-04e merged in [#67](https://github.com/yanxel18/animetron/pull/67): create schedule
   descriptors without dispatch, preserving uncertain-outcome handling.
+- P6-02d is in review in [#68](https://github.com/yanxel18/animetron/pull/68): internal durable
+  schedule-slot observations, without scheduler dispatch or outcome decisions.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -516,6 +518,16 @@ schedule creates at most one run intent per due slot and never grants approval.
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
+  - [ ] P6-02d Persist immutable schedule-slot observations without dispatching
+    runs, recording skip decisions or conferring publication approval.
+    Local checks passed: 21 PostgreSQL cases; 712 backend cases with 20 Windows
+    filesystem skips, excluding live OIDC collection because Python Playwright
+    is missing; migrations, Ruff and Linux-target mypy passed. Independent
+    source review found no significant issues. Independent PostgreSQL QA passed
+    21 focused cases and migration lifecycle and Ruff; strict mypy passed with
+    a temporary owned cache after the harness's `NUL` cache setting failed on
+    Windows. Removing the canonical-key check failed its focused regression.
+    The ledger does not decide whether a slot is due, skipped or dispatched.
   - [x] P6-02c Merged in
     [#47](https://github.com/yanxel18/animetron/pull/47) at
     `f315e9bbb877893d871174d6542355c767c2e80a`: authenticated
@@ -638,7 +650,7 @@ accessibility checks pass, not merely when mock screens exist.
     remain unverified.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
-  - [ ] P7-04e Create schedule descriptors from persisted workflows and
+  - [x] P7-04e Create schedule descriptors from persisted workflows and
     revisions. Preserve explicit non-idempotent uncertainty and do not imply
     dispatch or execution.
     Local checks passed: 113 frontend tests, production build and API drift;
@@ -653,6 +665,8 @@ accessibility checks pass, not merely when mock screens exist.
     coordinate across devices. A matching descriptor cannot prove an uncertain
     attempt succeeded. Live authenticated backend and screen-reader testing
     remain unverified.
+    Exact-head GitGuardian passed; [#67](https://github.com/yanxel18/animetron/pull/67)
+    merged at `d50a8b3`.
   - [x] P7-04a Add the owner-only review metadata queue with truthful loading,
     empty, error and pagination states. Keep decisions unavailable until the
     exact artifact and caption can be previewed; depends on P7-01b API types.
