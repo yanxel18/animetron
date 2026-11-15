@@ -43,7 +43,7 @@ def test_run_request_downgrade_reupgrade_preserves_existing_tables(migration_con
         command.downgrade(migration_config, "p4_04a_review_queue_20261114")
         with engine.connect() as conn:
             assert set(inspect(conn).get_table_names()) == before - {
-                "workflow_run_requests", "workflow_execution_bindings",
+                "workflow_run_requests", "workflow_execution_bindings", "schedule_due_slots",
             }
             assert conn.scalar(text("SELECT to_regprocedure('guard_workflow_run_request()')")) is None
             assert any(
@@ -71,9 +71,36 @@ def test_execution_binding_downgrade_removes_only_own_table_and_guard(migration_
             assert "workflow_execution_bindings" in before
         command.downgrade(migration_config, "p1_09a_run_requests")
         with engine.connect() as conn:
-            assert set(inspect(conn).get_table_names()) == before - {"workflow_execution_bindings"}
+            assert set(inspect(conn).get_table_names()) == before - {
+                "workflow_execution_bindings", "schedule_due_slots",
+            }
             assert conn.scalar(text("SELECT to_regprocedure('guard_workflow_execution_binding()')")) is None
         command.upgrade(migration_config, "head")
         command.check(migration_config)
+    finally:
+        engine.dispose()
+
+
+def test_due_slot_downgrade_removes_only_own_table_and_guard(migration_config, monkeypatch):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Use the owned disposable database harness")
+    monkeypatch.setenv("ANIMETRON_DATABASE_URL", url)
+    command.upgrade(migration_config, "head")
+    engine = create_engine(url)
+    try:
+        with engine.connect() as conn:
+            before = set(inspect(conn).get_table_names())
+            assert "schedule_due_slots" in before
+            assert conn.scalar(text("SELECT to_regprocedure('guard_schedule_due_slot()')")) is not None
+        command.downgrade(migration_config, "p1_09c_workflow_revision_list")
+        with engine.connect() as conn:
+            assert set(inspect(conn).get_table_names()) == before - {"schedule_due_slots"}
+            assert conn.scalar(text("SELECT to_regprocedure('guard_schedule_due_slot()')")) is None
+        command.upgrade(migration_config, "head")
+        command.check(migration_config)
+        with engine.connect() as conn:
+            assert set(inspect(conn).get_table_names()) == before
+            assert conn.scalar(text("SELECT to_regprocedure('guard_schedule_due_slot()')")) is not None
     finally:
         engine.dispose()
