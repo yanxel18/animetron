@@ -117,6 +117,28 @@ describe("creator studio foundation", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("opens saved schedules with an accessible skip target", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    render(<App />);
+
+    await user.click(screen.getByRole("link", { name: "Schedules" }));
+    expect(await screen.findByText(/no saved schedules/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Schedules" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Skip to workspace" }))
+      .toHaveAttribute("href", "#schedule-list-title");
+    expect(screen.queryByRole("heading", { name: "Studio", level: 1 }))
+      .not.toBeInTheDocument();
+  });
+
   it("closes the mobile menu on Escape and returns focus to its toggle", async () => {
     const user = userEvent.setup();
     render(<App />);

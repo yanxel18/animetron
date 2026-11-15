@@ -3,13 +3,29 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "./components/Icon";
 import { ReviewQueue } from "./components/ReviewQueue";
 import { RunMonitor } from "./components/RunMonitor";
+import { ScheduleList } from "./components/ScheduleList";
 import { StudioNavigation } from "./components/StudioNavigation";
 
-type StudioSection = "studio" | "review" | "runs";
+type StudioSection = "studio" | "review" | "runs" | "schedules";
+
+const skipTargets: Record<StudioSection, string> = {
+  studio: "#workspace",
+  review: "#review-queue-title",
+  runs: "#run-monitor-title",
+  schedules: "#schedule-list-title",
+};
+
+const workspaceLabels: Record<StudioSection, string> = {
+  studio: "Creator workspace",
+  review: "Review workspace",
+  runs: "Run monitoring workspace",
+  schedules: "Schedules workspace",
+};
 
 function studioSectionFromHash(hash: string): StudioSection {
   if (hash === "#review" || hash === "#review-queue-title") return "review";
   if (hash === "#runs" || hash === "#run-monitor-title") return "runs";
+  if (hash === "#schedules" || hash === "#schedule-list-title") return "schedules";
   return "studio";
 }
 
@@ -45,13 +61,7 @@ export function App() {
     <>
       <a
         className="skip-link"
-        href={
-          activeSection === "review"
-            ? "#review-queue-title"
-            : activeSection === "runs"
-              ? "#run-monitor-title"
-              : "#workspace"
-        }
+        href={skipTargets[activeSection]}
       >
         Skip to workspace
       </a>
@@ -88,22 +98,18 @@ export function App() {
           onStudioNavigate={() => navigateTo("studio")}
           onReviewNavigate={() => navigateTo("review")}
           onRunsNavigate={() => navigateTo("runs")}
+          onSchedulesNavigate={() => navigateTo("schedules")}
         />
 
         <main
           id="workspace"
           className="workspace"
-          aria-label={
-            activeSection === "review"
-              ? "Review workspace"
-              : activeSection === "runs"
-                ? "Run monitoring workspace"
-                : "Creator workspace"
-          }
+          aria-label={workspaceLabels[activeSection]}
           tabIndex={-1}
         >
           {activeSection === "review" && <ReviewQueue />}
           {activeSection === "runs" && <RunMonitor />}
+          {activeSection === "schedules" && <ScheduleList />}
           <div
             className="page-heading"
             hidden={activeSection !== "studio"}

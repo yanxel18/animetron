@@ -1,10 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `2f003f6` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `e5c9456` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
-#56 reconciled progress documentation. The historical #33 scanner failure
-remains unresolved.
+#56 reconciled progress documentation and #57 merged read-only run monitoring.
+The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -34,8 +34,7 @@ merged status changes.
 
 Main remaining gates include the historical #33 scanner failure, missing
 workflow execution and editing services, model feasibility and capacity,
-real media generation, and owner-involved P9 acceptance. P7-03a is local
-work in review in [#57](https://github.com/yanxel18/animetron/pull/57).
+real media generation, and owner-involved P9 acceptance.
 
 ## How to use
 
@@ -73,9 +72,12 @@ verification. This checklist remains the only current progress source.
   unit tests, production build, seven Chromium tests, API drift check and
   GitGuardian passed; an independent source review found stale report
   instructions, which were corrected before the owner merged #54.
-- P7-03a is in review in [#57](https://github.com/yanxel18/animetron/pull/57).
+- P7-03a merged in [#57](https://github.com/yanxel18/animetron/pull/57).
   This read-only, run-ID-based monitor uses persisted status and event-replay
   endpoints; it does not create or cancel runs or invent progress.
+- P7-04b is in progress on `task/p7-04b-schedule-list`: a read-only owner-only
+  schedule list using the existing authenticated descriptor API. Create, edit,
+  preview and dispatch are outside this slice.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -533,10 +535,10 @@ accessibility checks pass, not merely when mock screens exist.
     frontend-only workflow schema or enable editing before those APIs exist.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
-  - [ ] P7-03a Add an owner-only run-ID monitor backed by persisted run status
+  - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
     and bounded event replay. Poll durable state after reconnect; distinguish
     loading, live, stale/error and terminal states. No create/cancel controls or
-    inferred progress. In review in [#57](https://github.com/yanxel18/animetron/pull/57).
+    inferred progress. Merged in [#57](https://github.com/yanxel18/animetron/pull/57).
     Library and artifact preview remain outside this slice. A failed later
     replay page previously advanced the cursor without preserving earlier
     events; the refresh now commits cursor and events together. Authorization
@@ -556,6 +558,15 @@ accessibility checks pass, not merely when mock screens exist.
     branch and reached master in #54. Unit, production-build, API-drift and
     seven Chromium checks passed.
     See [P7-04a report](p7-04a-review-queue-report.md).
+  - [ ] P7-04b Show owner-only saved schedule descriptors with truthful
+    loading, empty, error and pagination states. Use the existing P6-02c API,
+    explain that dispatch is not implemented, and expose no mutation controls.
+    Verify authorized and error states, pagination, responsive layout, keyboard
+    access and preservation of existing navigation.
+    Local checks passed: 32 frontend unit tests, production build, API contract
+    drift check and nine fixture-backed Chromium cases, including four viewport
+    widths and skip-link focus. Live authenticated backend and assistive
+    technology remain unverified. Independent review and PR are pending.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in

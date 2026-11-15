@@ -1,17 +1,17 @@
 import { Icon, type IconName } from "./Icon";
 
 interface StudioNavigationProps {
-  activeSection: "studio" | "review" | "runs";
+  activeSection: "studio" | "review" | "runs" | "schedules";
   mobileOpen: boolean;
   onStudioNavigate: () => void;
   onReviewNavigate: () => void;
   onRunsNavigate: () => void;
+  onSchedulesNavigate: () => void;
 }
 
 const unavailableAreas: { label: string; icon: IconName }[] = [
   { label: "Library", icon: "library" },
   { label: "Models", icon: "models" },
-  { label: "Schedules", icon: "schedules" },
   { label: "Connections", icon: "connections" },
   { label: "Settings", icon: "settings" },
 ];
@@ -22,6 +22,7 @@ export function StudioNavigation({
   onStudioNavigate,
   onReviewNavigate,
   onRunsNavigate,
+  onSchedulesNavigate,
 }: StudioNavigationProps) {
   return (
     <aside
@@ -58,8 +59,17 @@ export function StudioNavigation({
           <Icon name="runs" />
           <span>Runs</span>
         </a>
+        <a
+          className={`navigation-link${activeSection === "schedules" ? " navigation-link--current" : ""}`}
+          href="#schedules"
+          aria-current={activeSection === "schedules" ? "page" : undefined}
+          onClick={onSchedulesNavigate}
+        >
+          <Icon name="schedules" />
+          <span>Schedules</span>
+        </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Runs shows persisted status and event history. Review is metadata-only;
+          Runs shows persisted history. Review and Schedules are read-only;
           other sections are not implemented.
         </p>
         <ul className="navigation-list">

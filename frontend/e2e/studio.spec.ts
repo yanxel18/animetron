@@ -261,6 +261,65 @@ test("renders persisted run history across target widths", async ({ page }, test
   expect(browserErrors).toEqual([]);
 });
 
+test("renders read-only schedules across target widths", async ({ page }, testInfo) => {
+  const browserErrors: string[] = [];
+  const methods: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  await page.route("**/api/v1/schedules?*", (route) => {
+    methods.push(route.request().method());
+    return route.fulfill({
+      status: 200,
+      json: {
+        data: [{
+          id: "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53",
+          workflowId: "3986b877-6311-4193-9a9e-30788e8c8787",
+          revision: "revision-1",
+          expression: "0 9 * * *",
+          timeZone: "Asia/Tokyo",
+          enabled: true,
+          nextDueAt: "2026-11-16T00:00:00Z",
+          overlapPolicy: "skip",
+          missedRunPolicy: "skip",
+          version: 1,
+          createdAt: "2026-11-15T00:00:00Z",
+          updatedAt: "2026-11-15T00:00:00Z",
+        }],
+        nextCursor: null,
+      },
+    });
+  });
+
+  await page.goto("/#schedules");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Skip to workspace" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#schedule-list-title$/);
+  await expect(page.getByRole("heading", { name: "Schedules" })).toBeFocused();
+  await expect(page.getByText("0 9 * * *")).toBeVisible();
+  await expect(page.getByText(/dispatch is not implemented/i)).toBeVisible();
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByRole("main", { name: "Schedules workspace" })).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+    await page.screenshot({
+      path: testInfo.outputPath(`schedules-${viewport.width}.png`),
+      fullPage: true,
+    });
+  }
+  await expect(page.getByRole("button", { name: /create|edit|pause|resume/i })).toHaveCount(0);
+  expect(methods.length).toBeGreaterThan(0);
+  expect(methods.every((method) => method === "GET")).toBe(true);
+  expect(browserErrors).toEqual([]);
+});
+
 test("starts keyboard navigation at the skip link and moves focus to the workspace", async ({
   page,
 }) => {
