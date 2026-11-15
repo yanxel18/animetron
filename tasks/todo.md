@@ -1,10 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `d7fb6dc` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `9b94b80` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
-and #58 and #59 merged the schedule list and preview.
+and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -81,8 +81,10 @@ verification. This checklist remains the only current progress source.
   descriptor API. Create, edit, preview and dispatch were outside that slice.
 - P7-04c merged in [#59](https://github.com/yanxel18/animetron/pull/59):
   preview five occurrences of an existing schedule without saving or dispatching.
-- P7-04d is in review in [#60](https://github.com/yanxel18/animetron/pull/60):
+- P7-04d merged in [#60](https://github.com/yanxel18/animetron/pull/60):
   version-checked owner-only pause/resume, without scheduler dispatch.
+- P7-05b is in review in [#61](https://github.com/yanxel18/animetron/pull/61):
+  verify schedule conflict-recovery focus in Chromium with delayed responses.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -588,7 +590,7 @@ accessibility checks pass, not merely when mock screens exist.
     establish live authenticated backend or assistive-technology behavior.
     Exact-head GitGuardian passed and [#59](https://github.com/yanxel18/animetron/pull/59)
     merged normally at `d7fb6dc428d88c820919b1e4cfbaeeb0d161cd25`.
-  - [ ] P7-04d Allow owner-only pause/resume using the saved descriptor's
+  - [x] P7-04d Allow owner-only pause/resume using the saved descriptor's
     expected version and existing CSRF-protected replacement API. Preserve all
     other fields, handle conflicts and uncertain outcomes by requiring a fresh
     list, and never retry a mutation automatically. Verify authorization,
@@ -599,8 +601,8 @@ accessibility checks pass, not merely when mock screens exist.
     re-reviewed, including preservation of unrelated focus. No live authenticated
     backend or assistive-technology test was performed. An expected-version
     mutation failed its focused regression and was restored.
-    [#60](https://github.com/yanxel18/animetron/pull/60) remains unchecked
-    pending exact-head checks and merge.
+    Exact-head GitGuardian passed and [#60](https://github.com/yanxel18/animetron/pull/60)
+    merged normally at `9b94b8082b576db89b94d68f22fdde1e6f821ca2`.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in
@@ -609,6 +611,14 @@ accessibility checks pass, not merely when mock screens exist.
     Regression test, typecheck/build and all six Chromium acceptance cases pass;
     this is a narrow keyboard interaction slice, not full P7-05 evidence. See
     the [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
+  - [ ] P7-05b Verify in Chromium that a delayed schedule conflict returns focus
+    to recovery when the focused schedule control is removed, while preserving
+    focus moved to another section. Confirm no mutation retry and a fresh list
+    on recovery; fixture-based evidence does not establish screen-reader behavior.
+    In review in [#61](https://github.com/yanxel18/animetron/pull/61): all 13
+    fixture-backed Chromium cases passed. Disabling focus recovery made the schedule-focus regression
+    fail; the source was restored. Independent review found no significant
+    issues. Live authenticated backend and screen-reader behavior are unverified.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the

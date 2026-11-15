@@ -376,6 +376,62 @@ test("pauses a saved schedule using its version", async ({ page }, testInfo) => 
   expect(errors).toEqual([]);
 });
 
+for (const focusTarget of ["schedule", "navigation"] as const) {
+  test(`recovers from a delayed schedule conflict with focus on ${focusTarget}`, async ({ page }) => {
+    const id = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
+    const schedule = {
+      id, workflowId: "3986b877-6311-4193-9a9e-30788e8c8787",
+      revision: "revision-1", expression: "0 9 * * *", timeZone: "Asia/Tokyo",
+      enabled: true, nextDueAt: "2026-11-16T00:00:00Z", overlapPolicy: "skip",
+      missedRunPolicy: "skip", version: 1, createdAt: "2026-11-15T00:00:00Z",
+      updatedAt: "2026-11-15T00:00:00Z",
+    };
+    let updates = 0;
+    let reads = 0;
+    let releaseResponse!: () => void;
+    let notifyRequest!: () => void;
+    const requestArrived = new Promise<void>((resolve) => { notifyRequest = resolve; });
+    const responseReleased = new Promise<void>((resolve) => { releaseResponse = resolve; });
+    await page.route("**/api/v1/**", async (route) => {
+      const request = route.request();
+      const pathname = new URL(request.url()).pathname;
+      if (pathname === "/api/v1/schedules" && request.method() === "GET") {
+        reads += 1;
+        await route.fulfill({ json: { data: [schedule], nextCursor: null } });
+      } else if (pathname === "/api/v1/auth/session" && request.method() === "GET") {
+        await route.fulfill({ json: { role: "owner", csrfToken: "test-csrf" } });
+      } else if (pathname === `/api/v1/schedules/${id}` && request.method() === "PUT") {
+        updates += 1;
+        notifyRequest();
+        await responseReleased;
+        await route.fulfill({ status: 409, json: {} });
+      } else {
+        throw new Error(`Unexpected API request: ${request.method()} ${pathname}`);
+      }
+    });
+
+    await page.goto("/#schedules");
+    const pause = page.getByRole("button", { name: `Pause schedule ${id}` });
+    await pause.click();
+    await requestArrived;
+    const focus = focusTarget === "schedule"
+      ? page.getByRole("button", { name: `Preview next five for schedule ${id}` })
+      : page.getByRole("link", { name: "Studio" });
+    await focus.focus();
+    await expect(focus).toBeFocused();
+    releaseResponse();
+    const refresh = page.getByRole("button", { name: "Refresh schedules" });
+    await expect(page.getByRole("alert")).toContainText(/refresh schedules/i);
+    await expect(focusTarget === "schedule" ? refresh : focus).toBeFocused();
+    expect(updates).toBe(1);
+    const previousReads = reads;
+    await refresh.click();
+    await expect(page.getByRole("button", { name: `Pause schedule ${id}` })).toBeVisible();
+    expect(reads).toBeGreaterThan(previousReads);
+    expect(updates).toBe(1);
+  });
+}
+
 test("previews saved schedule times without starting a run", async ({ page }, testInfo) => {
   const id = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
   const requests: string[] = [];
