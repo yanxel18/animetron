@@ -1,12 +1,13 @@
 import { Icon, type IconName } from "./Icon";
 
 interface StudioNavigationProps {
-  activeSection: "studio" | "review" | "runs" | "schedules";
+  activeSection: "studio" | "review" | "runs" | "schedules" | "workflows";
   mobileOpen: boolean;
   onStudioNavigate: () => void;
   onReviewNavigate: () => void;
   onRunsNavigate: () => void;
   onSchedulesNavigate: () => void;
+  onWorkflowsNavigate: () => void;
 }
 
 const unavailableAreas: { label: string; icon: IconName }[] = [
@@ -23,6 +24,7 @@ export function StudioNavigation({
   onReviewNavigate,
   onRunsNavigate,
   onSchedulesNavigate,
+  onWorkflowsNavigate,
 }: StudioNavigationProps) {
   return (
     <aside
@@ -40,6 +42,15 @@ export function StudioNavigation({
         >
           <Icon name="studio" />
           <span>Studio</span>
+        </a>
+        <a
+          className={`navigation-link${activeSection === "workflows" ? " navigation-link--current" : ""}`}
+          href="#workflows"
+          aria-current={activeSection === "workflows" ? "page" : undefined}
+          onClick={onWorkflowsNavigate}
+        >
+          <Icon name="workflow" />
+          <span>Workflows</span>
         </a>
         <a
           className={`navigation-link${activeSection === "review" ? " navigation-link--current" : ""}`}
@@ -69,7 +80,7 @@ export function StudioNavigation({
           <span>Schedules</span>
         </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Runs shows persisted history. Review is read-only; Schedules supports
+          Workflows and Review are read-only; Runs shows persisted history. Schedules supports
           previews and pause or resume. Other sections are not implemented.
         </p>
         <ul className="navigation-list">

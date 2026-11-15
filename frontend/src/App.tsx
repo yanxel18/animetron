@@ -5,14 +5,16 @@ import { ReviewQueue } from "./components/ReviewQueue";
 import { RunMonitor } from "./components/RunMonitor";
 import { ScheduleList } from "./components/ScheduleList";
 import { StudioNavigation } from "./components/StudioNavigation";
+import { WorkflowDiscovery } from "./components/WorkflowDiscovery";
 
-type StudioSection = "studio" | "review" | "runs" | "schedules";
+type StudioSection = "studio" | "review" | "runs" | "schedules" | "workflows";
 
 const skipTargets: Record<StudioSection, string> = {
   studio: "#workspace",
   review: "#review-queue-title",
   runs: "#run-monitor-title",
   schedules: "#schedule-list-title",
+  workflows: "#workflow-discovery-title",
 };
 
 const workspaceLabels: Record<StudioSection, string> = {
@@ -20,12 +22,14 @@ const workspaceLabels: Record<StudioSection, string> = {
   review: "Review workspace",
   runs: "Run monitoring workspace",
   schedules: "Schedules workspace",
+  workflows: "Workflow discovery workspace",
 };
 
 function studioSectionFromHash(hash: string): StudioSection {
   if (hash === "#review" || hash === "#review-queue-title") return "review";
   if (hash === "#runs" || hash === "#run-monitor-title") return "runs";
   if (hash === "#schedules" || hash === "#schedule-list-title") return "schedules";
+  if (hash === "#workflows" || hash === "#workflow-discovery-title") return "workflows";
   return "studio";
 }
 
@@ -99,6 +103,7 @@ export function App() {
           onReviewNavigate={() => navigateTo("review")}
           onRunsNavigate={() => navigateTo("runs")}
           onSchedulesNavigate={() => navigateTo("schedules")}
+          onWorkflowsNavigate={() => navigateTo("workflows")}
         />
 
         <main
@@ -110,6 +115,7 @@ export function App() {
           {activeSection === "review" && <ReviewQueue />}
           {activeSection === "runs" && <RunMonitor />}
           {activeSection === "schedules" && <ScheduleList />}
+          {activeSection === "workflows" && <WorkflowDiscovery />}
           <div
             className="page-heading"
             hidden={activeSection !== "studio"}

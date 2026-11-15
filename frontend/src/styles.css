@@ -891,6 +891,33 @@ h1 {
   clip-path: inset(50%);
 }
 
+.workflow-id-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+}
+
+.workflow-id-button {
+  max-width: 100%;
+  text-align: left;
+}
+
+.workflow-id-button code,
+.workflow-revisions code {
+  overflow-wrap: anywhere;
+}
+
+.workflow-id-button[aria-pressed="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.workflow-revisions {
+  margin-top: var(--space-6);
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .studio-panels {
     grid-template-columns: minmax(0, 1fr);

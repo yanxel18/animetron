@@ -1,13 +1,14 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `7faf5d6` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `cff6851` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #61 merged Chromium coverage for schedule-conflict focus recovery.
 #62 merged owner-only reads of known immutable workflow revisions.
 #63 merged bounded revision discovery for a known workflow ID.
+#64 merged owner-only discovery of workflow IDs with persisted revisions.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -92,8 +93,10 @@ verification. This checklist remains the only current progress source.
   owner-only reading of an already-known immutable workflow revision.
 - P1-09c merged in [#63](https://github.com/yanxel18/animetron/pull/63): bounded
   discovery of revisions for a known workflow ID.
-- P1-09d is in review in [#64](https://github.com/yanxel18/animetron/pull/64): discover workflow
+- P1-09d merged in [#64](https://github.com/yanxel18/animetron/pull/64): discover workflow
   IDs with persisted revisions without inventing draft or readiness data.
+- P7-02a is in review on `task/p7-02a-workflow-discovery`: a read-only
+  workflow and revision browser, without editing or execution.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -258,9 +261,9 @@ immutable workflow and recover its state without duplicate effects.
     Independent review found no remaining required issues after correction;
     independent offline QA passed 28 cases with 17 database cases skipped.
     Exact-head GitGuardian passed; merged at `7faf5d6`.
-  - [ ] P1-09d List workflow IDs with persisted revisions using bounded,
+  - [x] P1-09d List workflow IDs with persisted revisions using bounded,
     owner-only pagination. No workflow drafts, names, execution readiness or
-    dispatch are implied. In review in
+    dispatch are implied. Merged in
     [#64](https://github.com/yanxel18/animetron/pull/64): 690 backend tests passed using an
     isolated PostgreSQL instance, with 20 Windows skips; the live OIDC module
     was excluded because Python Playwright is missing. Migrations, Ruff,
@@ -269,6 +272,7 @@ immutable workflow and recover its state without duplicate effects.
     was restored. Independent source review found no significant issues;
     independent offline API QA passed 23 tests without database verification.
     Pagination is not a snapshot and physical index work is not strictly bounded.
+    Exact-head GitGuardian passed; merged at `cff6851`.
   - [x] P1-09a Merged in
     [#48](https://github.com/yanxel18/animetron/pull/48) at
     `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69`: internal
@@ -583,9 +587,19 @@ accessibility checks pass, not merely when mock screens exist.
     backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
-  - Blocked: no workflow CRUD or validation routes exist in the generated
-    backend contract; prerequisite P1-09 remains unchecked. Do not invent a
+  - Editing remains blocked: workflow create/update and validation routes are
+    unavailable; prerequisite P1-09 remains unchecked. Do not invent a
     frontend-only workflow schema or enable editing before those APIs exist.
+  - [ ] P7-02a Browse persisted workflow IDs and immutable revision metadata
+    read-only, with bounded pagination and truthful loading, errors and access
+    states. This does not provide editing, validation or execution.
+    Local checks passed: 59 frontend tests, production build, API drift check and
+    16 fixture-backed Chromium cases. Independent QA passed 57 tests, build,
+    drift and three focused Chromium cases before a Unicode boundary fix.
+    A valid 128-codepoint supplementary-Unicode revision was rejected by the
+    client; a regression failed before correcting the codepoint count.
+    Review and independent verification of that correction are pending.
+    Live authenticated backend and screen-reader testing remain unverified.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
