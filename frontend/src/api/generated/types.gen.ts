@@ -591,6 +591,30 @@ export type UpdateInput = {
     workflowId: string;
 };
 
+/**
+ * WorkflowIdListOutput
+ */
+export type WorkflowIdListOutput = {
+    /**
+     * Data
+     */
+    data: Array<WorkflowIdOutput>;
+    /**
+     * Nextcursor
+     */
+    nextCursor: string | null;
+};
+
+/**
+ * WorkflowIdOutput
+ */
+export type WorkflowIdOutput = {
+    /**
+     * Workflowid
+     */
+    workflowId: string;
+};
+
 export type AuditHistoryApiV1AuditEventsGetData = {
     body?: never;
     path?: never;
@@ -1303,6 +1327,56 @@ export type PreviewApiV1SchedulesIdPreviewsPostResponses = {
 };
 
 export type PreviewApiV1SchedulesIdPreviewsPostResponse = PreviewApiV1SchedulesIdPreviewsPostResponses[keyof PreviewApiV1SchedulesIdPreviewsPostResponses];
+
+export type DiscoverWorkflowsApiV1WorkflowsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Cursor
+         *
+         * Opaque exclusive continuation cursor from a prior page.
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         *
+         * ASCII decimal page size, default 50 and bounded to 1..100.
+         */
+        limit?: string | null;
+    };
+    url: '/api/v1/workflows';
+};
+
+export type DiscoverWorkflowsApiV1WorkflowsGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type DiscoverWorkflowsApiV1WorkflowsGetError = DiscoverWorkflowsApiV1WorkflowsGetErrors[keyof DiscoverWorkflowsApiV1WorkflowsGetErrors];
+
+export type DiscoverWorkflowsApiV1WorkflowsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkflowIdListOutput;
+};
+
+export type DiscoverWorkflowsApiV1WorkflowsGetResponse = DiscoverWorkflowsApiV1WorkflowsGetResponses[keyof DiscoverWorkflowsApiV1WorkflowsGetResponses];
 
 export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetData = {
     body?: never;

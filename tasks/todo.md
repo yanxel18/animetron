@@ -1,12 +1,13 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `c7bc998` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `7faf5d6` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #61 merged Chromium coverage for schedule-conflict focus recovery.
 #62 merged owner-only reads of known immutable workflow revisions.
+#63 merged bounded revision discovery for a known workflow ID.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -89,8 +90,10 @@ verification. This checklist remains the only current progress source.
   verify schedule conflict-recovery focus in Chromium with delayed responses.
 - P1-09b merged in [#62](https://github.com/yanxel18/animetron/pull/62):
   owner-only reading of an already-known immutable workflow revision.
-- P1-09c is in review in [#63](https://github.com/yanxel18/animetron/pull/63): bounded
+- P1-09c merged in [#63](https://github.com/yanxel18/animetron/pull/63): bounded
   discovery of revisions for a known workflow ID.
+- P1-09d is in progress on `task/p1-09d-workflow-discovery`: discover workflow
+  IDs with persisted revisions without inventing draft or readiness data.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -241,11 +244,11 @@ immutable workflow and recover its state without duplicate effects.
     significant issues. An owner-guard mutation failed its focused regression
     and was restored. Exact-head GitGuardian passed; merged at `c7bc998`.
     The live OIDC module and full workflow UI remain unverified.
-  - [ ] P1-09c List immutable revisions for a known workflow ID with bounded
+  - [x] P1-09c List immutable revisions for a known workflow ID with bounded
     owner-only pagination. This does not discover workflow IDs, edit workflows,
     validate execution readiness or dispatch work. The separate query lookup
     reads identifiers containing path separators or dot segments without changing
-    the existing path lookup. In review in
+    the existing path lookup. Merged in
     [#63](https://github.com/yanxel18/animetron/pull/63): 664 backend tests passed using an
     isolated PostgreSQL instance, with 20 Windows skips; the live OIDC module was
     excluded because Python Playwright is missing. Ruff, Linux-target mypy,
@@ -254,6 +257,16 @@ immutable workflow and recover its state without duplicate effects.
     exposed the path-lookup limitation and the query lookup now covers it.
     Independent review found no remaining required issues after correction;
     independent offline QA passed 28 cases with 17 database cases skipped.
+    Exact-head GitGuardian passed; merged at `7faf5d6`.
+  - [ ] P1-09d List workflow IDs with persisted revisions using bounded,
+    owner-only pagination. No workflow drafts, names, execution readiness or
+    dispatch are implied. In progress: 690 backend tests passed using an
+    isolated PostgreSQL instance, with 20 Windows skips; the live OIDC module
+    was excluded because Python Playwright is missing. Migrations, Ruff,
+    Linux-target mypy, 48 frontend tests, frontend build and API type drift
+    check passed. A duplicate-seek mutation failed its focused regression and
+    was restored. Independent source review found no significant issues.
+    Pagination is not a snapshot and physical index work is not strictly bounded.
   - [x] P1-09a Merged in
     [#48](https://github.com/yanxel18/animetron/pull/48) at
     `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69`: internal
