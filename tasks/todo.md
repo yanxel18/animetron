@@ -83,8 +83,8 @@ verification. This checklist remains the only current progress source.
   preview five occurrences of an existing schedule without saving or dispatching.
 - P7-04d merged in [#60](https://github.com/yanxel18/animetron/pull/60):
   version-checked owner-only pause/resume, without scheduler dispatch.
-- P7-05b is in progress on `task/p7-05b-conflict-focus`: verify schedule
-  conflict-recovery focus in Chromium with delayed responses.
+- P7-05b is in review in [#61](https://github.com/yanxel18/animetron/pull/61):
+  verify schedule conflict-recovery focus in Chromium with delayed responses.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -615,8 +615,8 @@ accessibility checks pass, not merely when mock screens exist.
     to recovery when the focused schedule control is removed, while preserving
     focus moved to another section. Confirm no mutation retry and a fresh list
     on recovery; fixture-based evidence does not establish screen-reader behavior.
-    In review on `task/p7-05b-conflict-focus`: all 13 fixture-backed Chromium
-    cases passed. Disabling focus recovery made the schedule-focus regression
+    In review in [#61](https://github.com/yanxel18/animetron/pull/61): all 13
+    fixture-backed Chromium cases passed. Disabling focus recovery made the schedule-focus regression
     fail; the source was restored. Independent review found no significant
     issues. Live authenticated backend and screen-reader behavior are unverified.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
