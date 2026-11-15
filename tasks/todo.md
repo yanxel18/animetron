@@ -89,7 +89,7 @@ verification. This checklist remains the only current progress source.
   verify schedule conflict-recovery focus in Chromium with delayed responses.
 - P1-09b merged in [#62](https://github.com/yanxel18/animetron/pull/62):
   owner-only reading of an already-known immutable workflow revision.
-- P1-09c is in progress on `task/p1-09c-workflow-revision-list`: bounded
+- P1-09c is in review in [#63](https://github.com/yanxel18/animetron/pull/63): bounded
   discovery of revisions for a known workflow ID.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
@@ -245,7 +245,8 @@ immutable workflow and recover its state without duplicate effects.
     owner-only pagination. This does not discover workflow IDs, edit workflows,
     validate execution readiness or dispatch work. The separate query lookup
     reads identifiers containing path separators or dot segments without changing
-    the existing path lookup. In progress: 664 backend tests passed using an
+    the existing path lookup. In review in
+    [#63](https://github.com/yanxel18/animetron/pull/63): 664 backend tests passed using an
     isolated PostgreSQL instance, with 20 Windows skips; the live OIDC module was
     excluded because Python Playwright is missing. Ruff, Linux-target mypy,
     migration checks, API type drift and frontend build passed. A maximal
