@@ -69,8 +69,8 @@ export function StudioNavigation({
           <span>Schedules</span>
         </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Runs shows persisted history. Review and Schedules are read-only;
-          other sections are not implemented.
+          Runs shows persisted history. Review is read-only; Schedules supports
+          previews and pause or resume. Other sections are not implemented.
         </p>
         <ul className="navigation-list">
           {unavailableAreas.map(({ label, icon }) => (

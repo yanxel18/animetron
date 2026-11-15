@@ -261,7 +261,7 @@ test("renders persisted run history across target widths", async ({ page }, test
   expect(browserErrors).toEqual([]);
 });
 
-test("renders read-only schedules across target widths", async ({ page }, testInfo) => {
+test("renders saved schedules across target widths without automatic updates", async ({ page }, testInfo) => {
   const browserErrors: string[] = [];
   const methods: string[] = [];
   page.on("console", (message) => {
@@ -314,10 +314,66 @@ test("renders read-only schedules across target widths", async ({ page }, testIn
       fullPage: true,
     });
   }
-  await expect(page.getByRole("button", { name: /create|edit|pause|resume/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /create|edit/i })).toHaveCount(0);
   expect(methods.length).toBeGreaterThan(0);
   expect(methods.every((method) => method === "GET")).toBe(true);
   expect(browserErrors).toEqual([]);
+});
+
+test("pauses a saved schedule using its version", async ({ page }, testInfo) => {
+  const id = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
+  const schedule = {
+    id, workflowId: "3986b877-6311-4193-9a9e-30788e8c8787",
+    revision: "revision-1", expression: "0 9 * * *", timeZone: "Asia/Tokyo",
+    enabled: true, nextDueAt: "2026-11-16T00:00:00Z", overlapPolicy: "skip",
+    missedRunPolicy: "skip", version: 1, createdAt: "2026-11-15T00:00:00Z",
+    updatedAt: "2026-11-15T00:00:00Z",
+  };
+  let updates = 0;
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.route("**/api/v1/**", (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === "/api/v1/schedules" && request.method() === "GET") {
+      return route.fulfill({ json: { data: [schedule], nextCursor: null } });
+    }
+    if (pathname === "/api/v1/auth/session" && request.method() === "GET") {
+      return route.fulfill({ json: { role: "owner", csrfToken: "test-csrf" } });
+    }
+    if (pathname === `/api/v1/schedules/${id}` && request.method() === "PUT") {
+      updates += 1;
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      expect(request.postDataJSON()).toEqual({
+        workflowId: schedule.workflowId, revision: schedule.revision,
+        expression: schedule.expression, timeZone: schedule.timeZone, enabled: false,
+        overlapPolicy: "skip", missedRunPolicy: "skip", expectedVersion: 1,
+      });
+      return route.fulfill({ json: { ...schedule, enabled: false, nextDueAt: null, version: 2 } });
+    }
+    throw new Error(`Unexpected API request: ${request.method()} ${pathname}`);
+  });
+  await page.goto("/#schedules");
+  const button = page.getByRole("button", { name: `Pause schedule ${id}` });
+  await button.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Paused", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Resume schedule ${id}` })).toBeVisible();
+  await expect(page.getByText(/scheduler dispatch is not implemented/i)).toBeVisible();
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+    await page.screenshot({ path: testInfo.outputPath(`pause-${viewport.width}.png`), fullPage: true });
+  }
+  expect(updates).toBe(1);
+  expect(errors).toEqual([]);
 });
 
 test("previews saved schedule times without starting a run", async ({ page }, testInfo) => {

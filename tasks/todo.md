@@ -1,10 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `ac10dd0` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `d7fb6dc` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
-and #58 merged the read-only schedule list.
+and #58 and #59 merged the schedule list and preview.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -79,9 +79,10 @@ verification. This checklist remains the only current progress source.
 - P7-04b merged in [#58](https://github.com/yanxel18/animetron/pull/58):
   a read-only owner-only schedule list using the existing authenticated
   descriptor API. Create, edit, preview and dispatch were outside that slice.
-- P7-04c is in review in [#59](https://github.com/yanxel18/animetron/pull/59):
-  preview the next five occurrences of an existing schedule without saving or
-  dispatching.
+- P7-04c merged in [#59](https://github.com/yanxel18/animetron/pull/59):
+  preview five occurrences of an existing schedule without saving or dispatching.
+- P7-04d is in progress on `task/p7-04d-schedule-toggle`: version-checked
+  owner-only pause/resume of saved descriptors, without scheduler dispatch.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -574,7 +575,7 @@ accessibility checks pass, not merely when mock screens exist.
     issues; it did not independently run tests. Exact-head GitGuardian passed
     and [#58](https://github.com/yanxel18/animetron/pull/58) merged normally
     at `ac10dd023eb492aa35ac37299ec287d60bb8dbdd`.
-  - [ ] P7-04c Preview the next five server-calculated occurrences for a saved
+  - [x] P7-04c Preview the next five server-calculated occurrences for a saved
     schedule via the existing owner-only, CSRF-protected P6-02c API. Display
     offset-bearing local times and UTC due times with truthful loading and
     errors; do not save, edit, dispatch or imply execution. Verify authorization,
@@ -585,8 +586,19 @@ accessibility checks pass, not merely when mock screens exist.
     both were reproduced and fixed, then independently re-reviewed. Removing
     the UTC guard caused the regression test to fail. Browser checks do not
     establish live authenticated backend or assistive-technology behavior.
-    [#59](https://github.com/yanxel18/animetron/pull/59) remains unchecked
-    pending exact-head checks and merge.
+    Exact-head GitGuardian passed and [#59](https://github.com/yanxel18/animetron/pull/59)
+    merged normally at `d7fb6dc428d88c820919b1e4cfbaeeb0d161cd25`.
+  - [ ] P7-04d Allow owner-only pause/resume using the saved descriptor's
+    expected version and existing CSRF-protected replacement API. Preserve all
+    other fields, handle conflicts and uncertain outcomes by requiring a fresh
+    list, and never retry a mutation automatically. Verify authorization,
+    concurrent edits, error recovery, keyboard and responsive behavior.
+    Local checks passed: 48 frontend tests, production build, API drift check and
+    11 fixture-backed Chromium cases. Independent review identified lost focus
+    after failed updates; two reproduced cases were corrected and independently
+    re-reviewed, including preservation of unrelated focus. No live authenticated
+    backend or assistive-technology test was performed. An expected-version
+    mutation failed its focused regression and was restored.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in

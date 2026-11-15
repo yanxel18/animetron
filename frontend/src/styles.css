@@ -667,6 +667,18 @@ h1 {
   margin-top: var(--space-5);
 }
 
+.schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.schedule-preview {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
 .schedule-preview h3 {
   margin: var(--space-4) 0 var(--space-2);
   font-size: 1rem;
