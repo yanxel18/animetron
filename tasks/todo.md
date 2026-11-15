@@ -1,10 +1,11 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `9b94b80` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `7c189e8` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
+#61 merged Chromium coverage for schedule-conflict focus recovery.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -83,8 +84,10 @@ verification. This checklist remains the only current progress source.
   preview five occurrences of an existing schedule without saving or dispatching.
 - P7-04d merged in [#60](https://github.com/yanxel18/animetron/pull/60):
   version-checked owner-only pause/resume, without scheduler dispatch.
-- P7-05b is in review in [#61](https://github.com/yanxel18/animetron/pull/61):
+- P7-05b merged in [#61](https://github.com/yanxel18/animetron/pull/61):
   verify schedule conflict-recovery focus in Chromium with delayed responses.
+- P1-09b is in review in [#62](https://github.com/yanxel18/animetron/pull/62):
+  owner-only reading of an already-known immutable workflow revision.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -223,6 +226,17 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
+  - [ ] P1-09b Add owner-only read of a known persisted immutable workflow
+    revision, returning exact canonical JSON and digest; fail closed on missing
+    authorization, invalid input, database errors and integrity failures.
+    No write, list, editing or execution authority is added. In review in
+    [#62](https://github.com/yanxel18/animetron/pull/62): 17 focused cases passed against an
+    isolated PostgreSQL instance; 637 backend cases passed with 20 Windows
+    skips, excluding the live OIDC test module because the Python Playwright
+    package is missing. Migrations, Ruff, Linux-target mypy, frontend build and
+    API type drift checks passed. Independent review and offline QA found no
+    significant issues. An owner-guard mutation failed its focused regression
+    and was restored. The live OIDC module and full workflow UI remain unverified.
   - [x] P1-09a Merged in
     [#48](https://github.com/yanxel18/animetron/pull/48) at
     `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69`: internal
@@ -611,14 +625,15 @@ accessibility checks pass, not merely when mock screens exist.
     Regression test, typecheck/build and all six Chromium acceptance cases pass;
     this is a narrow keyboard interaction slice, not full P7-05 evidence. See
     the [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
-  - [ ] P7-05b Verify in Chromium that a delayed schedule conflict returns focus
+  - [x] P7-05b Verify in Chromium that a delayed schedule conflict returns focus
     to recovery when the focused schedule control is removed, while preserving
     focus moved to another section. Confirm no mutation retry and a fresh list
     on recovery; fixture-based evidence does not establish screen-reader behavior.
-    In review in [#61](https://github.com/yanxel18/animetron/pull/61): all 13
+    Merged in [#61](https://github.com/yanxel18/animetron/pull/61): all 13
     fixture-backed Chromium cases passed. Disabling focus recovery made the schedule-focus regression
     fail; the source was restored. Independent review found no significant
-    issues. Live authenticated backend and screen-reader behavior are unverified.
+    issues. Exact-head GitGuardian passed; merged at `7c189e8`.
+    Live authenticated backend and screen-reader behavior are unverified.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the

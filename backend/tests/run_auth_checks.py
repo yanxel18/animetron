@@ -44,7 +44,7 @@ def main():
     parser.add_argument("--pytest-file", choices=[
         "tests/test_reviews_api.py", "tests/test_schedules_api.py",
         "tests/test_run_requests.py", "tests/test_execution_bindings.py",
-        "tests/test_runs_api.py",
+        "tests/test_runs_api.py", "tests/test_workflow_revisions_api.py", "tests",
     ])
     args = parser.parse_args()
     env = dict(os.environ)
