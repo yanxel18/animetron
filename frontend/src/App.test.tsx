@@ -50,4 +50,21 @@ describe("creator studio foundation", () => {
       screen.getByRole("button", { name: "Close navigation" }),
     ).toHaveAttribute("aria-expanded", "true");
   });
+
+  it("closes the mobile menu on Escape and returns focus to its toggle", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.tab();
+    await user.tab();
+    await user.keyboard("{Enter}");
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Studio" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+
+    const openButton = screen.getByRole("button", { name: "Open navigation" });
+    expect(openButton).toHaveAttribute("aria-expanded", "false");
+    expect(openButton).toHaveFocus();
+  });
 });

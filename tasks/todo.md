@@ -1,9 +1,9 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `45a8f897b568b46a0f55d985e84bc2b3e48e8226` on
-2026-11-15. Merged #52 reconciled documentation without completing an
-implementation item. The historical #33 scanner failure remains unresolved.
+verified remote `master` at `6d36915` on 2026-11-15. Merged #52 reconciled
+documentation without completing an implementation item; #53 merged the mobile
+navigation slice. The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -33,8 +33,8 @@ merged status changes.
 
 Main remaining gates include the historical #33 scanner failure, missing
 workflow execution and editing services, model feasibility and capacity,
-real media generation, and owner-involved P9 acceptance. PRs #53, #54 and #55
-are open and await independent review. P7-03a is local in-progress work, not
+real media generation, and owner-involved P9 acceptance. PR #54 is open;
+#55 merged into its branch, not master. P7-03a is local in-progress work, not
 yet browser-verified, pushed or submitted as a PR.
 
 ## How to use
@@ -65,18 +65,19 @@ verification. This checklist remains the only current progress source.
 
 ### Current work - 2026-11-15
 
-- P7-05a mobile navigation focus is in review in
+- P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
 - P7-01b generated API contracts are in review in
   [#54](https://github.com/yanxel18/animetron/pull/54).
-- P7-04a review metadata queue is in review in
-  [#55](https://github.com/yanxel18/animetron/pull/55), stacked on #54.
+- P7-04a review metadata queue merged in
+  [#55](https://github.com/yanxel18/animetron/pull/55) to #54's branch;
+  it is not yet merged to master.
 - P7-03a read-only run monitoring is in progress locally on
   `task/p7-03a-run-monitor`, stacked on #55 and #54. Focused API and UI tests
   and a production build passed; browser verification and PR submission remain.
 
-These slices remain unchecked until reviewed, required checks pass and they
-are merged. No external publishing or owner-involved P9 acceptance was done.
+Slices not yet merged to master remain unchecked. No external publishing or
+owner-involved P9 acceptance was done.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -529,13 +530,17 @@ accessibility checks pass, not merely when mock screens exist.
     #55. Library, preview, create and cancel are outside this slice.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
-  - [ ] P7-04a Owner-only metadata queue is in review in
-    [#55](https://github.com/yanxel18/animetron/pull/55); exact preview and
-    decision controls remain unavailable.
+  - [ ] P7-04a Owner-only metadata queue merged in
+    [#55](https://github.com/yanxel18/animetron/pull/55) to #54's branch,
+    not master; exact preview and decision controls remain unavailable.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
-  - [ ] P7-05a Mobile navigation Escape/focus fix is in review in
-    [#53](https://github.com/yanxel18/animetron/pull/53); full P7-05 remains open.
+  - [x] P7-05a Merged in
+    [#53](https://github.com/yanxel18/animetron/pull/53): close the mobile
+    Studio navigation on Escape and restore focus to its disclosure button.
+    Regression test, typecheck/build and all six Chromium acceptance cases pass;
+    this is a narrow keyboard interaction slice, not full P7-05 evidence. See
+    the [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
