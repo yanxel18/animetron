@@ -115,6 +115,9 @@ verification. This checklist remains the only current progress source.
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
   complete their parent tasks.
+- Progress-reporting instruction updates are in review in
+  [#71](https://github.com/yanxel18/animetron/pull/71); they do not complete
+  a phase task.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
