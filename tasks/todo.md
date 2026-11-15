@@ -266,7 +266,8 @@ immutable workflow and recover its state without duplicate effects.
     was excluded because Python Playwright is missing. Migrations, Ruff,
     Linux-target mypy, 48 frontend tests, frontend build and API type drift
     check passed. A duplicate-seek mutation failed its focused regression and
-    was restored. Independent source review found no significant issues.
+    was restored. Independent source review found no significant issues;
+    independent offline API QA passed 23 tests without database verification.
     Pagination is not a snapshot and physical index work is not strictly bounded.
   - [x] P1-09a Merged in
     [#48](https://github.com/yanxel18/animetron/pull/48) at
