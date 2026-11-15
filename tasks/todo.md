@@ -109,8 +109,17 @@ verification. This checklist remains the only current progress source.
   schedule-slot observations, without scheduler dispatch or outcome decisions.
 - P1-10b merged in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
-- P1-09e draft persistence was investigated but not implemented before the
-  2026-11-15 stop request; it remains pending.
+- P1-09e draft persistence had been investigated only before the 2026-11-15 stop.
+  The internal mutable-draft slice is now in review in
+  [#73](https://github.com/yanxel18/animetron/pull/73). It stores bounded exact
+  UTF-8 bytes separately from immutable revisions and uses caller-owned
+  transactions with version-checked updates; it adds no API, UI, validation,
+  execution or external effects. The owned PostgreSQL harness passed 7 focused
+  tests, Alembic upgrade/check, Ruff and Linux-target mypy. The backend suite
+  outside owner-gated auth suites passed 348 tests with 335 skips. Independent
+  code review found no actionable issues. #73 remains open: GitGuardian passed,
+  but no GitHub review record exists and the combined status is pending. Keep
+  this slice unchecked until required gates pass and it is merged.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
@@ -123,8 +132,8 @@ verification. This checklist remains the only current progress source.
   present. The merge did not satisfy the independent-review gate.
 - Reconciled with `edb4858` on 2026-11-15: the top-level recount remains 18 of
   57 (31.6%), with the phase counts above unchanged. #71 is documentation-only
-  and completes no P0-P9 task. P1-09e draft persistence remains pending; no
-  implementation or checks have been performed.
+  and completes no P0-P9 task. P1-09e in #73 is open and remains unchecked;
+  no top-level task or phase is complete from this work.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
