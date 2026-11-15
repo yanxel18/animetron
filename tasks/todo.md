@@ -99,7 +99,7 @@ verification. This checklist remains the only current progress source.
   a read-only workflow and revision browser, without editing or execution.
 - P7-02b merged in [#66](https://github.com/yanxel18/animetron/pull/66): inspect an
   immutable revision as read-only data, without editing or execution.
-- P7-04e is in review on `task/p7-04e-schedule-create`: create schedule
+- P7-04e is in review in [#67](https://github.com/yanxel18/animetron/pull/67): create schedule
   descriptors without dispatch, preserving uncertain-outcome handling.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
