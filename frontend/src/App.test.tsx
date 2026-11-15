@@ -1,8 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  window.history.replaceState(null, "", "/");
+});
 
 describe("creator studio foundation", () => {
   it("keeps unavailable screens and workflow actions disabled with visible reasons", () => {
@@ -13,7 +18,7 @@ describe("creator studio foundation", () => {
       "page",
     );
     expect(screen.getByRole("button", { name: "Runs" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Review" })).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "Run workflow" }),
     ).toBeDisabled();
@@ -49,5 +54,44 @@ describe("creator studio foundation", () => {
     expect(
       screen.getByRole("button", { name: "Close navigation" }),
     ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("opens the owner review queue from workspace navigation", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    render(<App />);
+
+    await user.click(screen.getByRole("link", { name: "Review" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Review queue",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByText(/no review requests are available/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Studio", level: 1 }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("link", { name: "Skip to workspace" }));
+    expect(window.location.hash).toBe("#review-queue-title");
+    expect(
+      screen.getByRole("heading", { name: "Review queue", level: 1 }),
+    ).toBeInTheDocument();
   });
 });

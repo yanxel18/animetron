@@ -42,7 +42,13 @@ P7-01b has resumed on `task/p7-01b-api-contracts`, based on the verified
 `master` above. The local OpenAPI exporter, generated TypeScript contracts and
 drift check are implemented and verified; keep P7-01b unchecked until its PR is
 reviewed, all required checks pass and it is merged. [PR #54](https://github.com/yanxel18/animetron/pull/54)
-is open and awaiting independent review. See the [P7-01b report](p7-01b-contracts-report.md).
+is open with no independent review or required checks yet. PR #53 is also open;
+its GitGuardian check passed, but independent review is pending. Remote `master`
+is still `45a8f897b568b46a0f55d985e84bc2b3e48e8226`; neither PR is merged.
+See the [P7-01b report](p7-01b-contracts-report.md).
+P7-04a is implemented and verified on `task/p7-04a-review-queue`, stacked on
+PR #54; its PR and final report link are pending. It is metadata-only and does
+not send review decisions because exact media and caption preview is unavailable.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 
 ## Phase 0 - Plan and shared foundations
@@ -495,12 +501,25 @@ accessibility checks pass, not merely when mock screens exist.
     backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
+  - Blocked: no workflow CRUD or validation routes exist in the generated
+    backend contract; prerequisite P1-09 remains unchecked. Do not invent a
+    frontend-only workflow schema or enable editing before those APIs exist.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
+  - [ ] P7-04a Add the owner-only review metadata queue with truthful loading,
+    empty, error and pagination states. Keep decisions unavailable until the
+    exact artifact and caption can be previewed; depends on P7-01b API types.
+    Implemented on `task/p7-04a-review-queue`, stacked on #54; awaiting PR
+    creation. Unit, production-build, API-drift and seven Chromium checks pass.
+    See [P7-04a report](p7-04a-review-queue-report.md).
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
+  - [ ] P7-05a Close mobile navigation on Escape and restore focus to its
+    disclosure button. In review in [#53](https://github.com/yanxel18/animetron/pull/53);
+    GitGuardian passed, but independent review is pending. This is not full
+    P7-05 evidence. See [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
