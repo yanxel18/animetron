@@ -1,8 +1,9 @@
 # P7-01b TypeScript API Contracts Report
 
 Status: implemented on `task/p7-01b-api-contracts`; awaiting pull request
-creation, independent review, required checks and merge. P7-01b remains
-unchecked until those gates pass.
+[#54](https://github.com/yanxel18/animetron/pull/54) is open and awaiting
+independent review, required checks and merge. P7-01b remains unchecked until
+those gates pass.
 
 ## Scope and implementation
 

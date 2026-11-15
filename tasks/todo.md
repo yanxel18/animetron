@@ -41,9 +41,9 @@ verification. This checklist remains the only current progress source.
 P7-01b has resumed on `task/p7-01b-api-contracts`, based on the verified
 `master` above. The local OpenAPI exporter, generated TypeScript contracts and
 drift check are implemented and verified; keep P7-01b unchecked until its PR is
-reviewed, all required checks pass and it is merged. See the
-[P7-01b report](p7-01b-contracts-report.md). P0-P9 and owner-involved P9
-acceptance remain incomplete.
+reviewed, all required checks pass and it is merged. [PR #54](https://github.com/yanxel18/animetron/pull/54)
+is open and awaiting independent review. See the [P7-01b report](p7-01b-contracts-report.md).
+P0-P9 and owner-involved P9 acceptance remain incomplete.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -485,7 +485,8 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-01b Generate
     TypeScript contracts directly from local backend OpenAPI and detect drift.
     No live schema fetch, credential reading, runtime client or new screen.
-    Implemented on `task/p7-01b-api-contracts`; awaiting PR review and merge.
+    Implemented on `task/p7-01b-api-contracts`; [PR #54](https://github.com/yanxel18/animetron/pull/54)
+    is open, awaiting independent review, required checks and merge.
     `@hey-api/openapi-ts@0.99.0` uses the TypeScript-only plugin; the frontend
     compiler is pinned to 5.9.3 because 7.0.2 lacks runtime APIs the generator
     uses despite its declared peer range. A scoped `js-yaml@4.3.2` override
