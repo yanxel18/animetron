@@ -75,9 +75,9 @@ verification. This checklist remains the only current progress source.
 - P7-03a merged in [#57](https://github.com/yanxel18/animetron/pull/57).
   This read-only, run-ID-based monitor uses persisted status and event-replay
   endpoints; it does not create or cancel runs or invent progress.
-- P7-04b is in progress on `task/p7-04b-schedule-list`: a read-only owner-only
-  schedule list using the existing authenticated descriptor API. Create, edit,
-  preview and dispatch are outside this slice.
+- P7-04b is in review in [#58](https://github.com/yanxel18/animetron/pull/58):
+  a read-only owner-only schedule list using the existing authenticated
+  descriptor API. Create, edit, preview and dispatch are outside this slice.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -566,7 +566,8 @@ accessibility checks pass, not merely when mock screens exist.
     Local checks passed: 32 frontend unit tests, production build, API contract
     drift check and nine fixture-backed Chromium cases, including four viewport
     widths and skip-link focus. Live authenticated backend and assistive
-    technology remain unverified. Independent review and PR are pending.
+    technology remain unverified. [#58](https://github.com/yanxel18/animetron/pull/58)
+    is in review; independent review is pending.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in
