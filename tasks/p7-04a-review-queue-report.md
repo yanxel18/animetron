@@ -1,9 +1,10 @@
 # P7-04a Review Queue Report
 
-**Status:** Implemented on `task/p7-04a-review-queue`, stacked on open PR
-[#54](https://github.com/yanxel18/animetron/pull/54). The P7-04a PR is
-pending creation; keep this item unchecked until review, required checks and
-merge are complete.
+**Status:** In review in [PR #55](https://github.com/yanxel18/animetron/pull/55),
+stacked on the API-contract prerequisite [PR #54](https://github.com/yanxel18/animetron/pull/54).
+PR #55 currently targets `task/p7-01b-api-contracts`; merge it only after #54 is
+reviewed and merged, then retarget #55 to `master`. Keep this item unchecked
+until independent review, required checks and merge are complete.
 
 ## Finding and change
 
@@ -39,6 +40,7 @@ destinations rather than imposing a narrower local limit.
 | `npm run check:api-types` | Passed; generated contracts match local OpenAPI |
 | Browser review-page check | Passed with a local API fixture; accessible metadata and decision-unavailable note rendered at 375px |
 | Responsive checks | Passed at 375, 768, 1024 and 1440px with no horizontal overflow |
+| Pagination retry mutation check | Failed on the deliberately broken retry cursor, then passed all 7 focused tests after restoring the implementation |
 | `git diff --check` | Passed |
 
 The browser fixture verified the rendered UI without a running backend; this

@@ -42,13 +42,15 @@ P7-01b has resumed on `task/p7-01b-api-contracts`, based on the verified
 `master` above. The local OpenAPI exporter, generated TypeScript contracts and
 drift check are implemented and verified; keep P7-01b unchecked until its PR is
 reviewed, all required checks pass and it is merged. [PR #54](https://github.com/yanxel18/animetron/pull/54)
-is open with no independent review or required checks yet. PR #53 is also open;
-its GitGuardian check passed, but independent review is pending. Remote `master`
+is open with no independent review; its GitGuardian check passed. PR #53 is also
+open; its GitGuardian check passed, but independent review is pending. Remote `master`
 is still `45a8f897b568b46a0f55d985e84bc2b3e48e8226`; neither PR is merged.
 See the [P7-01b report](p7-01b-contracts-report.md).
 P7-04a is implemented and verified on `task/p7-04a-review-queue`, stacked on
-PR #54; its PR and final report link are pending. It is metadata-only and does
-not send review decisions because exact media and caption preview is unavailable.
+PR #54. [PR #55](https://github.com/yanxel18/animetron/pull/55) is open in
+review against the prerequisite branch; merge only after #54 is reviewed and
+merged, then retarget #55 to `master`. It is metadata-only and sends no review
+decisions because exact media and caption preview is unavailable.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 
 ## Phase 0 - Plan and shared foundations
@@ -511,8 +513,8 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-04a Add the owner-only review metadata queue with truthful loading,
     empty, error and pagination states. Keep decisions unavailable until the
     exact artifact and caption can be previewed; depends on P7-01b API types.
-    Implemented on `task/p7-04a-review-queue`, stacked on #54; awaiting PR
-    creation. Unit, production-build, API-drift and seven Chromium checks pass.
+    In review in [#55](https://github.com/yanxel18/animetron/pull/55), stacked
+    on #54. Unit, production-build, API-drift and seven Chromium checks pass.
     See [P7-04a report](p7-04a-review-queue-report.md).
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
