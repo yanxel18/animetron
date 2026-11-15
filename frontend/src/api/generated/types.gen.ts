@@ -417,6 +417,20 @@ export type ReviewScopeInput = {
 export type ReviewState = 'PENDING_DELIVERY' | 'AWAITING_DECISION' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'SUPERSEDED' | 'DELIVERY_FAILED' | 'DELIVERY_UNKNOWN';
 
 /**
+ * RevisionListOutput
+ */
+export type RevisionListOutput = {
+    /**
+     * Data
+     */
+    data: Array<RevisionSummaryOutput>;
+    /**
+     * Nextcursor
+     */
+    nextCursor: string | null;
+};
+
+/**
  * RevisionOutput
  */
 export type RevisionOutput = {
@@ -432,6 +446,24 @@ export type RevisionOutput = {
      * Sha256
      */
     sha256: string;
+    /**
+     * Workflowid
+     */
+    workflowId: string;
+};
+
+/**
+ * RevisionSummaryOutput
+ */
+export type RevisionSummaryOutput = {
+    /**
+     * Createdat
+     */
+    createdAt: string;
+    /**
+     * Revision
+     */
+    revision: string;
     /**
      * Workflowid
      */
@@ -1271,6 +1303,112 @@ export type PreviewApiV1SchedulesIdPreviewsPostResponses = {
 };
 
 export type PreviewApiV1SchedulesIdPreviewsPostResponse = PreviewApiV1SchedulesIdPreviewsPostResponses[keyof PreviewApiV1SchedulesIdPreviewsPostResponses];
+
+export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query: {
+        /**
+         * Revision
+         */
+        revision: string;
+    };
+    url: '/api/v1/workflows/{id}/revision';
+};
+
+export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetError = ReadRevisionByQueryApiV1WorkflowsIdRevisionGetErrors[keyof ReadRevisionByQueryApiV1WorkflowsIdRevisionGetErrors];
+
+export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RevisionOutput;
+};
+
+export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetResponse = ReadRevisionByQueryApiV1WorkflowsIdRevisionGetResponses[keyof ReadRevisionByQueryApiV1WorkflowsIdRevisionGetResponses];
+
+export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: {
+        /**
+         * Cursor
+         *
+         * Opaque continuation cursor from a prior page for this workflow.
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         *
+         * ASCII decimal page size, default 50 and bounded to 1..100.
+         */
+        limit?: string | null;
+    };
+    url: '/api/v1/workflows/{id}/revisions';
+};
+
+export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetError = ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetErrors[keyof ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetErrors];
+
+export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RevisionListOutput;
+};
+
+export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponse = ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponses[keyof ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponses];
 
 export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetData = {
     body?: never;

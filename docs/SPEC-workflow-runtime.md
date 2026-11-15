@@ -60,6 +60,54 @@ This is a read of one addressed revision only. It adds no workflow create,
 list, update, delete, validation, execution, scheduling, model, or publishing
 behavior, and does not claim workflow editing is available.
 
+## Owner-only bounded workflow revision discovery (P1-09c)
+
+`GET /api/v1/workflows/{id}/revisions?cursor=<opaque>&limit=50` discovers
+metadata for already-persisted immutable revisions. It returns exactly
+`{ "data": [{ "workflowId": "<UUID>", "revision": "<revision>",
+"createdAt": "<timezone-aware UTC timestamp>" }], "nextCursor": "<opaque>" }`.
+`nextCursor` is `null` when the response has no additional row. The list never
+returns canonical workflow JSON or other revision content; callers that need
+to verify or inspect a selected revision use the query lookup described below.
+An unknown workflow ID returns an empty page rather than distinguishing an
+absent workflow from one with no stored revisions.
+
+The stable exact order is `created_at DESC`, then `revision DESC` using the
+PostgreSQL collation configured for the `revision` column. The unique
+`(workflow_id, revision)` key makes every position distinct. The
+opaque, versioned URL-safe cursor is bound to the path workflow UUID and
+contains the final returned row's timestamp and revision. It is exclusive:
+the next query returns positions strictly after that pair in the stated
+descending order. Pages use an indexed keyset query and fetch no more than
+`limit + 1` rows; there is no count query or offset scan. Inserting a newer
+revision does not shift positions already returned and cannot duplicate an
+already-returned row. This is not a cross-request database snapshot: a new row
+that sorts before the current cursor is not included in the remainder of that
+traversal; clients refresh from the first page to discover newer revisions.
+
+`limit` defaults to `50`, accepts ASCII decimal digits only (up to 3 encoded
+characters), and is bounded to `1..100`; leading zeroes are accepted only
+within that encoded-length bound. `cursor` is optional and, when present,
+must be one canonical cursor of at most 2304 URL-safe characters for the same
+workflow. Unknown or repeated query parameters, malformed UUIDs, malformed or
+foreign cursors, and invalid limits return the standard generic `422`.
+Unauthenticated or stale sessions return `401`; non-owner roles return `403`
+before revision lookup. Database failures or invalid stored revision metadata
+fail closed with the generic `503` envelope; successful and error responses
+retain the shared security headers and `Cache-Control: no-store`.
+
+This endpoint discovers persisted immutable revision metadata only. It adds no
+workflow draft editing, create/update/delete, validation, execution,
+scheduling, publishing, or model-readiness behavior. Listing a revision does
+not assert that it is runnable or model-ready.
+
+`GET /api/v1/workflows/{id}/revision?revision=<identifier>` retrieves the same
+integrity-checked response as P1-09b, with identical authorization and error
+semantics. The exact identifier is supplied as a single URL-encoded query value
+so valid identifiers containing slashes or dot segments remain addressable;
+missing, repeated, unknown or invalid parameters return `422`. The earlier
+path-based read remains available for identifiers representable in a path.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run
