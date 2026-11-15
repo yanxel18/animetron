@@ -1,14 +1,15 @@
 import { Icon, type IconName } from "./Icon";
 
 interface StudioNavigationProps {
+  activeSection: "studio" | "review";
   mobileOpen: boolean;
   onStudioNavigate: () => void;
+  onReviewNavigate: () => void;
 }
 
 const unavailableAreas: { label: string; icon: IconName }[] = [
   { label: "Runs", icon: "runs" },
   { label: "Library", icon: "library" },
-  { label: "Review", icon: "review" },
   { label: "Models", icon: "models" },
   { label: "Schedules", icon: "schedules" },
   { label: "Connections", icon: "connections" },
@@ -16,8 +17,10 @@ const unavailableAreas: { label: string; icon: IconName }[] = [
 ];
 
 export function StudioNavigation({
+  activeSection,
   mobileOpen,
   onStudioNavigate,
+  onReviewNavigate,
 }: StudioNavigationProps) {
   return (
     <aside
@@ -28,17 +31,26 @@ export function StudioNavigation({
     >
       <nav aria-label="Studio sections">
         <a
-          className="navigation-link navigation-link--current"
+          className={`navigation-link${activeSection === "studio" ? " navigation-link--current" : ""}`}
           href="#workspace"
-          aria-current="page"
+          aria-current={activeSection === "studio" ? "page" : undefined}
           onClick={onStudioNavigate}
         >
           <Icon name="studio" />
           <span>Studio</span>
         </a>
+        <a
+          className={`navigation-link${activeSection === "review" ? " navigation-link--current" : ""}`}
+          href="#review"
+          aria-current={activeSection === "review" ? "page" : undefined}
+          onClick={onReviewNavigate}
+        >
+          <Icon name="review" />
+          <span>Review</span>
+        </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Only the Studio shell is available in this foundation. Other sections
-          are not implemented.
+          Review shows owner-only metadata. Decisions require an exact media
+          preview; other sections are not implemented.
         </p>
         <ul className="navigation-list">
           {unavailableAreas.map(({ label, icon }) => (
