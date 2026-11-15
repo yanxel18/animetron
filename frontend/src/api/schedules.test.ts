@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchSchedulePage, scheduleErrorMessage } from "./schedules";
+import { fetchSchedulePage, fetchSchedulePreview, scheduleErrorMessage } from "./schedules";
 
 const id = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
 const schedule = {
@@ -24,6 +24,67 @@ function response(data: unknown, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+describe("schedule preview API", () => {
+    const occurrences = Array.from({ length: 5 }, (_, index) => ({
+      localTime: `2026-11-${16 + index}T09:00:00+09:00`,
+      dueAt: `2026-11-${16 + index}T00:00:00Z`,
+      slotKey: `Asia/Tokyo:2026-11-${16 + index}T09:00`,
+    }));
+
+    it("uses a fresh owner session token for a read-only preview", async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+        .mockResolvedValueOnce(response({ occurrences }));
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(fetchSchedulePreview(id)).resolves.toEqual({ occurrences });
+      expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/auth/session");
+      expect(fetchMock.mock.calls[1]).toEqual([
+        `/api/v1/schedules/${id}/previews`,
+        expect.objectContaining({
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: expect.objectContaining({ "X-CSRF-Token": "test-csrf" }),
+          body: "{}",
+        }),
+      ]);
+    });
+
+    it("does not submit a preview when the session is not an owner", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(response({ role: "viewer", csrfToken: "test-csrf" }));
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(fetchSchedulePreview(id)).rejects.toMatchObject({ status: 403 });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not submit a preview for a malformed session", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(response({ role: "owner", csrfToken: "bad\nheader" }));
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(fetchSchedulePreview(id)).rejects.toThrow(/invalid response/i);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects malformed or incomplete preview responses", async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+        .mockResolvedValueOnce(response({ occurrences: occurrences.slice(0, 4) }))
+        .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+        .mockResolvedValueOnce(response({ occurrences: [{ ...occurrences[0], dueAt: "bad" }, ...occurrences.slice(1)] }));
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(fetchSchedulePreview(id)).rejects.toThrow(/invalid response/i);
+      await expect(fetchSchedulePreview(id)).rejects.toThrow(/invalid response/i);
+    });
+
+    it("rejects non-UTC due times rather than labeling them UTC", async () => {
+      vi.stubGlobal("fetch", vi.fn()
+        .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+        .mockResolvedValueOnce(response({
+          occurrences: occurrences.map((occurrence) => ({ ...occurrence, dueAt: occurrence.localTime })),
+        })));
+      await expect(fetchSchedulePreview(id)).rejects.toThrow(/invalid response/i);
+    });
+});
 
 afterEach(() => vi.unstubAllGlobals());
 

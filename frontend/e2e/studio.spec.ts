@@ -320,6 +320,67 @@ test("renders read-only schedules across target widths", async ({ page }, testIn
   expect(browserErrors).toEqual([]);
 });
 
+test("previews saved schedule times without starting a run", async ({ page }, testInfo) => {
+  const id = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
+  const requests: string[] = [];
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.route("**/api/v1/**", (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    requests.push(`${request.method()} ${pathname}`);
+    if (pathname === "/api/v1/schedules") {
+      return route.fulfill({ json: { data: [{
+        id, workflowId: "3986b877-6311-4193-9a9e-30788e8c8787",
+        revision: "revision-1", expression: "0 9 * * *", timeZone: "Asia/Tokyo",
+        enabled: false, nextDueAt: null, overlapPolicy: "skip", missedRunPolicy: "skip",
+        version: 1, createdAt: "2026-11-15T00:00:00Z", updatedAt: "2026-11-15T00:00:00Z",
+      }], nextCursor: null } });
+    }
+    if (pathname === "/api/v1/auth/session") {
+      return route.fulfill({ json: { role: "owner", csrfToken: "test-csrf" } });
+    }
+    if (pathname === `/api/v1/schedules/${id}/previews`) {
+      expect(request.method()).toBe("POST");
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      expect(request.postData()).toBe("{}");
+      return route.fulfill({ json: {
+        occurrences: Array.from({ length: 5 }, (_, index) => ({
+          localTime: `2026-11-${16 + index}T09:00:00+09:00`,
+          dueAt: `2026-11-${16 + index}T00:00:00Z`,
+          slotKey: `Asia/Tokyo:2026-11-${16 + index}T09:00`,
+        })),
+      } });
+    }
+    throw new Error(`Unexpected API request: ${pathname}`);
+  });
+
+  await page.goto("/#schedules");
+  const button = page.getByRole("button", { name: `Preview next five for schedule ${id}` });
+  await button.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("2026-11-16T09:00:00+09:00")).toBeVisible();
+  await expect(page.getByText(/even for paused schedules/i)).toBeVisible();
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+    await page.screenshot({ path: testInfo.outputPath(`preview-${viewport.width}.png`), fullPage: true });
+  }
+  expect(requests.filter((request) => request === "GET /api/v1/schedules").length).toBeGreaterThan(0);
+  expect(requests.filter((request) => request !== "GET /api/v1/schedules")).toEqual([
+    "GET /api/v1/auth/session",
+    `POST /api/v1/schedules/${id}/previews`,
+  ]);
+  expect(errors).toEqual([]);
+});
+
 test("starts keyboard navigation at the skip link and moves focus to the workspace", async ({
   page,
 }) => {
