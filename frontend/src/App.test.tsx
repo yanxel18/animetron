@@ -10,14 +10,15 @@ afterEach(() => {
 });
 
 describe("creator studio foundation", () => {
-  it("keeps unavailable screens and workflow actions disabled with visible reasons", () => {
+  it("keeps unavailable sections and workflow actions disabled with visible reasons", () => {
     render(<App />);
 
     expect(screen.getByRole("link", { name: "Studio" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("button", { name: "Runs" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Runs" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Library" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "Review" })).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "Run workflow" }),
@@ -27,16 +28,14 @@ describe("creator studio foundation", () => {
     ).toHaveAccessibleDescription(/not implemented in P7-01/i);
   });
 
-  it("shows truthful empty states instead of a fabricated workflow or run", () => {
+  it("shows a truthful workflow empty state and links to persisted run history", () => {
     render(<App />);
 
     expect(
       screen.getByRole("heading", { name: "No workflow is loaded" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Inspector" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "No run is loaded" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Runs" })).toBeInTheDocument();
   });
 
   it("lets keyboard users skip navigation and toggle the mobile menu", async () => {
@@ -93,6 +92,29 @@ describe("creator studio foundation", () => {
     expect(
       screen.getByRole("heading", { name: "Review queue", level: 1 }),
     ).toBeInTheDocument();
+  });
+
+  it("opens the persisted run monitor from workspace navigation", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("link", { name: "Runs" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Run monitor", level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Run ID")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Runs" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Skip to workspace" })).toHaveAttribute(
+      "href",
+      "#run-monitor-title",
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Studio", level: 1 }),
+    ).not.toBeInTheDocument();
   });
 
   it("closes the mobile menu on Escape and returns focus to its toggle", async () => {

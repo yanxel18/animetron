@@ -2,14 +2,15 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "./components/Icon";
 import { ReviewQueue } from "./components/ReviewQueue";
+import { RunMonitor } from "./components/RunMonitor";
 import { StudioNavigation } from "./components/StudioNavigation";
 
-type StudioSection = "studio" | "review";
+type StudioSection = "studio" | "review" | "runs";
 
 function studioSectionFromHash(hash: string): StudioSection {
-  return hash === "#review" || hash === "#review-queue-title"
-    ? "review"
-    : "studio";
+  if (hash === "#review" || hash === "#review-queue-title") return "review";
+  if (hash === "#runs" || hash === "#run-monitor-title") return "runs";
+  return "studio";
 }
 
 export function App() {
@@ -45,7 +46,11 @@ export function App() {
       <a
         className="skip-link"
         href={
-          activeSection === "review" ? "#review-queue-title" : "#workspace"
+          activeSection === "review"
+            ? "#review-queue-title"
+            : activeSection === "runs"
+              ? "#run-monitor-title"
+              : "#workspace"
         }
       >
         Skip to workspace
@@ -82,20 +87,26 @@ export function App() {
           mobileOpen={mobileNavigationOpen}
           onStudioNavigate={() => navigateTo("studio")}
           onReviewNavigate={() => navigateTo("review")}
+          onRunsNavigate={() => navigateTo("runs")}
         />
 
         <main
           id="workspace"
           className="workspace"
           aria-label={
-            activeSection === "review" ? "Review workspace" : "Creator workspace"
+            activeSection === "review"
+              ? "Review workspace"
+              : activeSection === "runs"
+                ? "Run monitoring workspace"
+                : "Creator workspace"
           }
           tabIndex={-1}
         >
           {activeSection === "review" && <ReviewQueue />}
+          {activeSection === "runs" && <RunMonitor />}
           <div
             className="page-heading"
-            hidden={activeSection === "review"}
+            hidden={activeSection !== "studio"}
           >
             <div className="page-title">
               <p className="eyebrow">CREATOR WORKSPACE</p>
@@ -129,7 +140,7 @@ export function App() {
             id="workflow-actions-availability"
             className="availability-note"
             role="note"
-            hidden={activeSection === "review"}
+            hidden={activeSection !== "studio"}
           >
             <Icon name="info" size={17} />
             Workflow editing, validation and authorized run actions are not
@@ -138,7 +149,7 @@ export function App() {
 
           <div
             className="studio-panels"
-            hidden={activeSection === "review"}
+            hidden={activeSection !== "studio"}
           >
             <section className="panel canvas-panel" aria-labelledby="canvas-title">
               <div className="panel-heading">
@@ -182,33 +193,9 @@ export function App() {
             </section>
           </div>
 
-          <section
-            className="panel run-panel"
-            aria-labelledby="run-title"
-            hidden={activeSection === "review"}
-          >
-            <div className="panel-heading">
-              <div>
-                <p className="panel-kicker">EXECUTION</p>
-                <h2 id="run-title">Run activity</h2>
-              </div>
-              <span className="panel-state">No run</span>
-            </div>
-            <div className="run-empty">
-              <Icon name="activity" size={18} />
-              <div>
-                <h3>No run is loaded</h3>
-                <p>
-                  This workspace does not create, monitor or imply a successful
-                  run.
-                </p>
-              </div>
-            </div>
-          </section>
-
           <p
             className="workspace-footnote"
-            hidden={activeSection === "review"}
+            hidden={activeSection !== "studio"}
           >
             Liveness, GPU readiness and generated-output status are not queried
             or inferred by this screen.

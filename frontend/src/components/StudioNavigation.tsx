@@ -1,14 +1,14 @@
 import { Icon, type IconName } from "./Icon";
 
 interface StudioNavigationProps {
-  activeSection: "studio" | "review";
+  activeSection: "studio" | "review" | "runs";
   mobileOpen: boolean;
   onStudioNavigate: () => void;
   onReviewNavigate: () => void;
+  onRunsNavigate: () => void;
 }
 
 const unavailableAreas: { label: string; icon: IconName }[] = [
-  { label: "Runs", icon: "runs" },
   { label: "Library", icon: "library" },
   { label: "Models", icon: "models" },
   { label: "Schedules", icon: "schedules" },
@@ -21,6 +21,7 @@ export function StudioNavigation({
   mobileOpen,
   onStudioNavigate,
   onReviewNavigate,
+  onRunsNavigate,
 }: StudioNavigationProps) {
   return (
     <aside
@@ -48,9 +49,18 @@ export function StudioNavigation({
           <Icon name="review" />
           <span>Review</span>
         </a>
+        <a
+          className={`navigation-link${activeSection === "runs" ? " navigation-link--current" : ""}`}
+          href="#runs"
+          aria-current={activeSection === "runs" ? "page" : undefined}
+          onClick={onRunsNavigate}
+        >
+          <Icon name="runs" />
+          <span>Runs</span>
+        </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Review shows owner-only metadata. Decisions require an exact media
-          preview; other sections are not implemented.
+          Runs shows persisted status and event history. Review is metadata-only;
+          other sections are not implemented.
         </p>
         <ul className="navigation-list">
           {unavailableAreas.map(({ label, icon }) => (

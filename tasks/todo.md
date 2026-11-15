@@ -1,9 +1,9 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `afe39f5` on 2026-11-15. Merged #52 and #56
-reconciled documentation without completing a top-level implementation item;
-#53 merged the mobile navigation slice. The historical #33 scanner failure
+verified remote `master` at `2f003f6` on 2026-11-15. #53 and #54 merged
+the mobile navigation and API contract slices; #55 reached master through #54.
+#56 reconciled progress documentation. The historical #33 scanner failure
 remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -34,9 +34,8 @@ merged status changes.
 
 Main remaining gates include the historical #33 scanner failure, missing
 workflow execution and editing services, model feasibility and capacity,
-real media generation, and owner-involved P9 acceptance. PR #54 is open;
-#55 merged into its branch, not master. P7-03a is local in-progress work, not
-yet browser-verified, pushed or submitted as a PR.
+real media generation, and owner-involved P9 acceptance. P7-03a is local
+work in review in [#57](https://github.com/yanxel18/animetron/pull/57).
 
 ## How to use
 
@@ -68,23 +67,17 @@ verification. This checklist remains the only current progress source.
 
 - P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
-- P7-01b generated API contracts are in review in
-  [#54](https://github.com/yanxel18/animetron/pull/54). Its master conflict
-  resolution preserves both the review queue and mobile Escape behavior:
-  13 frontend unit tests, the production build, seven Chromium tests and the
-  local API contract drift check passed. The isolated worktree reused matching
-  local dependencies after an offline install lacked a cached package. An
-  independent source review found stale #55 merge instructions in its report;
-  those instructions were corrected. GitHub review and merge gates remain open.
-- P7-04a review metadata queue merged in
-  [#55](https://github.com/yanxel18/animetron/pull/55) to #54's branch;
-  it is not yet merged to master.
-- P7-03a read-only run monitoring is in progress locally on
-  `task/p7-03a-run-monitor`, stacked on #55 and #54. Focused API and UI tests
-  and a production build passed; browser verification and PR submission remain.
-
-Slices not yet merged to master remain unchecked. No external publishing or
-owner-involved P9 acceptance was done.
+- P7-01b generated API contracts and P7-04a review metadata queue reached
+  master via [#54](https://github.com/yanxel18/animetron/pull/54) and
+  [#55](https://github.com/yanxel18/animetron/pull/55). The combined frontend
+  unit tests, production build, seven Chromium tests, API drift check and
+  GitGuardian passed; an independent source review found stale report
+  instructions, which were corrected before the owner merged #54.
+- P7-03a is in review in [#57](https://github.com/yanxel18/animetron/pull/57).
+  This read-only, run-ID-based monitor uses persisted status and event-replay
+  endpoints; it does not create or cancel runs or invent progress.
+P0-P9 and owner-involved P9 acceptance remain incomplete.
+Slices not yet merged to master remain unchecked. No external publishing was done.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -523,11 +516,10 @@ accessibility checks pass, not merely when mock screens exist.
   frozen install, audit and GitGuardian passed. Native 200% browser zoom and
   assistive technology remain unverified; P7-05/P7-06/P9 are not complete.
   [Measured foundation evidence](studio-foundation-report.md).
-  - [ ] P7-01b Generate
+  - [x] P7-01b Generate
     TypeScript contracts directly from local backend OpenAPI and detect drift.
     No live schema fetch, credential reading, runtime client or new screen.
-    Implemented on `task/p7-01b-api-contracts`; [PR #54](https://github.com/yanxel18/animetron/pull/54)
-    is open, awaiting independent review, required checks and merge.
+    Merged to master in [#54](https://github.com/yanxel18/animetron/pull/54).
     `@hey-api/openapi-ts@0.99.0` uses the TypeScript-only plugin; the frontend
     compiler is pinned to 5.9.3 because 7.0.2 lacks runtime APIs the generator
     uses despite its declared peer range. A scoped `js-yaml@4.3.2` override
@@ -541,16 +533,28 @@ accessibility checks pass, not merely when mock screens exist.
     frontend-only workflow schema or enable editing before those APIs exist.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
-  - [ ] P7-03a Read-only run-ID monitoring is in progress locally, stacked on
-    #55. Library, preview, create and cancel are outside this slice.
+  - [ ] P7-03a Add an owner-only run-ID monitor backed by persisted run status
+    and bounded event replay. Poll durable state after reconnect; distinguish
+    loading, live, stale/error and terminal states. No create/cancel controls or
+    inferred progress. In review in [#57](https://github.com/yanxel18/animetron/pull/57).
+    Library and artifact preview remain outside this slice. A failed later
+    replay page previously advanced the cursor without preserving earlier
+    events; the refresh now commits cursor and events together. Authorization
+    loss clears previously displayed run details. Regression tests reproduced
+    both issues before the fixes; Chromium also caught and verified a skip-link
+    focus fix. Validation: 24 frontend unit tests, production build, API drift
+    check and eight Chromium cases passed using local fixtures. Independent
+    source review found no significant issues and reproduced the unit suite
+    and build. Live authenticated backend and assistive-technology testing
+    remain unverified.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
-  - [ ] P7-04a Add the owner-only review metadata queue with truthful loading,
+  - [x] P7-04a Add the owner-only review metadata queue with truthful loading,
     empty, error and pagination states. Keep decisions unavailable until the
     exact artifact and caption can be previewed; depends on P7-01b API types.
-    [#55](https://github.com/yanxel18/animetron/pull/55) merged into #54's
-    branch, not master. Unit, production-build, API-drift and seven Chromium
-    checks passed before this integration.
+    [#55](https://github.com/yanxel18/animetron/pull/55) merged to #54's
+    branch and reached master in #54. Unit, production-build, API-drift and
+    seven Chromium checks passed.
     See [P7-04a report](p7-04a-review-queue-report.md).
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
