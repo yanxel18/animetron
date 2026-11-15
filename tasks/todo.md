@@ -1,9 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `6d36915` on 2026-11-15. Merged #52 reconciled
-documentation without completing an implementation item; #53 merged the mobile
-navigation slice. The historical #33 scanner failure remains unresolved.
+verified remote `master` at `afe39f5` on 2026-11-15. Merged #52 and #56
+reconciled documentation without completing a top-level implementation item;
+#53 merged the mobile navigation slice. The historical #33 scanner failure
+remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -68,7 +69,13 @@ verification. This checklist remains the only current progress source.
 - P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
 - P7-01b generated API contracts are in review in
-  [#54](https://github.com/yanxel18/animetron/pull/54).
+  [#54](https://github.com/yanxel18/animetron/pull/54). Its master conflict
+  resolution preserves both the review queue and mobile Escape behavior:
+  13 frontend unit tests, the production build, seven Chromium tests and the
+  local API contract drift check passed. The isolated worktree reused matching
+  local dependencies after an offline install lacked a cached package. An
+  independent source review found stale #55 merge instructions in its report;
+  those instructions were corrected. GitHub review and merge gates remain open.
 - P7-04a review metadata queue merged in
   [#55](https://github.com/yanxel18/animetron/pull/55) to #54's branch;
   it is not yet merged to master.
@@ -519,20 +526,32 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-01b Generate
     TypeScript contracts directly from local backend OpenAPI and detect drift.
     No live schema fetch, credential reading, runtime client or new screen.
-    In review in [#54](https://github.com/yanxel18/animetron/pull/54);
-    this is a prerequisite to backend-owned frontend contracts, not P7 completion.
+    Implemented on `task/p7-01b-api-contracts`; [PR #54](https://github.com/yanxel18/animetron/pull/54)
+    is open, awaiting independent review, required checks and merge.
+    `@hey-api/openapi-ts@0.99.0` uses the TypeScript-only plugin; the frontend
+    compiler is pinned to 5.9.3 because 7.0.2 lacks runtime APIs the generator
+    uses despite its declared peer range. A scoped `js-yaml@4.3.2` override
+    clears the transitive advisory; the full npm audit reports zero findings.
+    [P7-01b report](p7-01b-contracts-report.md). This is a prerequisite to
+    backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
-  - Blocked: workflow CRUD and validation routes are absent; P1-09 remains open.
+  - Blocked: no workflow CRUD or validation routes exist in the generated
+    backend contract; prerequisite P1-09 remains unchecked. Do not invent a
+    frontend-only workflow schema or enable editing before those APIs exist.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [ ] P7-03a Read-only run-ID monitoring is in progress locally, stacked on
     #55. Library, preview, create and cancel are outside this slice.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
-  - [ ] P7-04a Owner-only metadata queue merged in
-    [#55](https://github.com/yanxel18/animetron/pull/55) to #54's branch,
-    not master; exact preview and decision controls remain unavailable.
+  - [ ] P7-04a Add the owner-only review metadata queue with truthful loading,
+    empty, error and pagination states. Keep decisions unavailable until the
+    exact artifact and caption can be previewed; depends on P7-01b API types.
+    [#55](https://github.com/yanxel18/animetron/pull/55) merged into #54's
+    branch, not master. Unit, production-build, API-drift and seven Chromium
+    checks passed before this integration.
+    See [P7-04a report](p7-04a-review-queue-report.md).
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in

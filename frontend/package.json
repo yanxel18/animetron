@@ -12,6 +12,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "generate:api-types": "node scripts/api-types.mjs",
+    "check:api-types": "node scripts/api-types.mjs --check",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
@@ -22,6 +24,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@playwright/test": "1.65.0",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
@@ -32,8 +35,13 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
     "jsdom": "31.0.1",
-    "typescript": "7.0.2",
+    "typescript": "5.9.3",
     "vite": "8.3.8",
     "vitest": "5.1.0"
+  },
+  "overrides": {
+    "@hey-api/json-schema-ref-parser": {
+      "js-yaml": "4.3.2"
+    }
   }
 }

@@ -9,7 +9,6 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import RFC_4122, UUID
 
-from psycopg import Connection as PsycopgConnection
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -205,6 +204,8 @@ class _ReviewIdCollision(Exception):
 
 
 def _require_transaction(connection: Connection) -> None:
+    from psycopg import Connection as PsycopgConnection
+
     driver = connection.connection.driver_connection
     if (
         not connection.in_transaction()

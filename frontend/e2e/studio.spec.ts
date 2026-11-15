@@ -134,6 +134,81 @@ test("exposes real disabled states and navigable landmarks", async ({ page }) =>
   await expect(page.getByText("Backend not checked")).toBeVisible();
 });
 
+test("renders the metadata-only review queue without overflow at every target width", async ({
+  page,
+}) => {
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  await page.route("**/api/v1/reviews?*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: [
+          {
+            id: "3e3f44c7-f1ae-4c62-9afd-8146ddb19179",
+            runId: "3986b877-6311-4193-9a9e-30788e8c8787",
+            artifactRevision: "revision-7",
+            artifactSha256: "a".repeat(64),
+            captionSha256: "b".repeat(64),
+            destinations: [{ provider: "facebook", accountId: "page-42" }],
+            expiresAt: "2026-11-16T12:00:00Z",
+            createdAt: "2026-11-15T12:00:00Z",
+            state: "AWAITING_DECISION",
+            stateChangedAt: "2026-11-15T12:30:00Z",
+            deliveryErrorCode: null,
+          },
+        ],
+        nextCursor: null,
+      }),
+    }),
+  );
+  await page.goto("/#review");
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await expect(
+      page.getByRole("main", { name: "Review workspace" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Review queue", level: 1 }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Studio", level: 1 }),
+    ).toHaveCount(0);
+    await expect(page.getByText("facebook · page-42")).toBeVisible();
+    await expect(
+      page.getByText(/exact media and caption can be reviewed/i),
+    ).toBeVisible();
+
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(
+      dimensions.contentWidth,
+      `horizontal overflow at ${viewport.width}px: ${JSON.stringify(dimensions)}`,
+    ).toBeLessThanOrEqual(dimensions.viewportWidth);
+  }
+
+  await expect(
+    page.getByRole("button", { name: /approve|reject/i }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("link", { name: "Skip to workspace" }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#review-queue-title$/);
+  await expect(
+    page.getByRole("heading", { name: "Review queue", level: 1 }),
+  ).toBeFocused();
+  expect(browserErrors).toEqual([]);
+});
+
 test("starts keyboard navigation at the skip link and moves focus to the workspace", async ({
   page,
 }) => {

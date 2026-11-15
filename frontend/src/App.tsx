@@ -1,10 +1,36 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "./components/Icon";
+import { ReviewQueue } from "./components/ReviewQueue";
 import { StudioNavigation } from "./components/StudioNavigation";
+
+type StudioSection = "studio" | "review";
+
+function studioSectionFromHash(hash: string): StudioSection {
+  return hash === "#review" || hash === "#review-queue-title"
+    ? "review"
+    : "studio";
+}
 
 export function App() {
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<StudioSection>(() =>
+    studioSectionFromHash(window.location.hash),
+  );
+
+  useEffect(() => {
+    const updateActiveSection = () => {
+      setActiveSection(studioSectionFromHash(window.location.hash));
+    };
+
+    window.addEventListener("hashchange", updateActiveSection);
+    return () => window.removeEventListener("hashchange", updateActiveSection);
+  }, []);
+
+  const navigateTo = (section: StudioSection) => {
+    setActiveSection(section);
+    setMobileNavigationOpen(false);
+  };
   const mobileNavigationToggleRef = useRef<HTMLButtonElement>(null);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -16,7 +42,12 @@ export function App() {
 
   return (
     <>
-      <a className="skip-link" href="#workspace">
+      <a
+        className="skip-link"
+        href={
+          activeSection === "review" ? "#review-queue-title" : "#workspace"
+        }
+      >
         Skip to workspace
       </a>
       <div className="studio-shell" onKeyDown={handleKeyDown}>
@@ -47,17 +78,25 @@ export function App() {
         </header>
 
         <StudioNavigation
+          activeSection={activeSection}
           mobileOpen={mobileNavigationOpen}
-          onStudioNavigate={() => setMobileNavigationOpen(false)}
+          onStudioNavigate={() => navigateTo("studio")}
+          onReviewNavigate={() => navigateTo("review")}
         />
 
         <main
           id="workspace"
           className="workspace"
-          aria-label="Creator workspace"
+          aria-label={
+            activeSection === "review" ? "Review workspace" : "Creator workspace"
+          }
           tabIndex={-1}
         >
-          <div className="page-heading">
+          {activeSection === "review" && <ReviewQueue />}
+          <div
+            className="page-heading"
+            hidden={activeSection === "review"}
+          >
             <div className="page-title">
               <p className="eyebrow">CREATOR WORKSPACE</p>
               <h1>Studio</h1>
@@ -90,13 +129,17 @@ export function App() {
             id="workflow-actions-availability"
             className="availability-note"
             role="note"
+            hidden={activeSection === "review"}
           >
             <Icon name="info" size={17} />
             Workflow editing, validation and authorized run actions are not
             implemented in P7-01.
           </p>
 
-          <div className="studio-panels">
+          <div
+            className="studio-panels"
+            hidden={activeSection === "review"}
+          >
             <section className="panel canvas-panel" aria-labelledby="canvas-title">
               <div className="panel-heading">
                 <div>
@@ -139,7 +182,11 @@ export function App() {
             </section>
           </div>
 
-          <section className="panel run-panel" aria-labelledby="run-title">
+          <section
+            className="panel run-panel"
+            aria-labelledby="run-title"
+            hidden={activeSection === "review"}
+          >
             <div className="panel-heading">
               <div>
                 <p className="panel-kicker">EXECUTION</p>
@@ -159,7 +206,10 @@ export function App() {
             </div>
           </section>
 
-          <p className="workspace-footnote">
+          <p
+            className="workspace-footnote"
+            hidden={activeSection === "review"}
+          >
             Liveness, GPU readiness and generated-output status are not queried
             or inferred by this screen.
           </p>
