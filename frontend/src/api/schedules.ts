@@ -103,7 +103,7 @@ export async function fetchSchedulePage(
   return payload;
 }
 
-async function previewRequest(
+async function scheduleRequest(
   url: string,
   options: RequestInit,
   signal?: AbortSignal,
@@ -126,9 +126,8 @@ async function previewRequest(
   }
 }
 
-export async function fetchSchedulePreview(id: string, signal?: AbortSignal): Promise<PreviewOutput> {
-  if (!isScheduleId(id)) throw new ScheduleListError("The schedule ID is invalid.", 422);
-  const session = record(await previewRequest("/api/v1/auth/session", {
+async function ownerCsrf(signal?: AbortSignal): Promise<string> {
+  const session = record(await scheduleRequest("/api/v1/auth/session", {
     method: "GET",
     headers: { Accept: "application/json" },
   }, signal));
@@ -141,12 +140,18 @@ export async function fetchSchedulePreview(id: string, signal?: AbortSignal): Pr
   if (typeof session.csrfToken !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(session.csrfToken)) {
     throw new ScheduleListError("The schedule service returned an invalid response.", 200);
   }
-  const result = record(await previewRequest(`/api/v1/schedules/${id}/previews`, {
+  return session.csrfToken;
+}
+
+export async function fetchSchedulePreview(id: string, signal?: AbortSignal): Promise<PreviewOutput> {
+  if (!isScheduleId(id)) throw new ScheduleListError("The schedule ID is invalid.", 422);
+  const csrfToken = await ownerCsrf(signal);
+  const result = record(await scheduleRequest(`/api/v1/schedules/${id}/previews`, {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-CSRF-Token": session.csrfToken,
+      "X-CSRF-Token": csrfToken,
     },
     body: "{}",
   }, signal));
@@ -164,6 +169,42 @@ export async function fetchSchedulePreview(id: string, signal?: AbortSignal): Pr
     throw new ScheduleListError("The schedule service returned an invalid response.", 200);
   }
   return { occurrences };
+}
+
+export async function setScheduleEnabled(
+  schedule: DescriptorOutput,
+  enabled: boolean,
+  signal?: AbortSignal,
+): Promise<DescriptorOutput> {
+  if (!isDescriptor(schedule) || schedule.enabled === enabled) {
+    throw new ScheduleListError("The schedule update is invalid.", 422);
+  }
+  const csrfToken = await ownerCsrf(signal);
+  const result = await scheduleRequest(`/api/v1/schedules/${schedule.id}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify({
+      workflowId: schedule.workflowId,
+      revision: schedule.revision,
+      expression: schedule.expression,
+      timeZone: schedule.timeZone,
+      enabled,
+      overlapPolicy: schedule.overlapPolicy,
+      missedRunPolicy: schedule.missedRunPolicy,
+      expectedVersion: schedule.version,
+    }),
+  }, signal);
+  if (!isDescriptor(result) || result.id !== schedule.id ||
+    result.enabled !== enabled || result.version !== schedule.version + 1 ||
+    result.workflowId !== schedule.workflowId || result.revision !== schedule.revision ||
+    result.expression !== schedule.expression || result.timeZone !== schedule.timeZone) {
+    throw new ScheduleListError("The schedule service returned an invalid response.", 200);
+  }
+  return result;
 }
 
 export function scheduleErrorMessage(error: unknown): string {

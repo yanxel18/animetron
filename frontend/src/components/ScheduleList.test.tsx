@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -39,7 +39,7 @@ describe("saved schedules", () => {
     expect(await screen.findByText("0 9 * * *")).toBeInTheDocument();
     expect(screen.getByText("Asia/Tokyo")).toBeInTheDocument();
     expect(screen.getByText(/dispatch is not implemented/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /create|edit|pause|resume/i }))
+    expect(screen.queryByRole("button", { name: /create|edit/i }))
       .not.toBeInTheDocument();
   });
 
@@ -104,7 +104,7 @@ describe("saved schedules", () => {
     expect(await screen.findByText("2026-11-16T09:00:00+09:00")).toBeInTheDocument();
     expect(screen.getByText("2026-11-16T00:00:00Z")).toBeInTheDocument();
     expect(screen.getByText(/preview does not start a run/i)).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(/preview ready/i);
+    expect(screen.getByText(/preview ready/i)).toHaveAttribute("role", "status");
   });
 
   it("removes displayed schedules if preview authorization is lost", async () => {
@@ -116,5 +116,102 @@ describe("saved schedules", () => {
     await user.click(await screen.findByRole("button", { name: `Preview next five for schedule ${id}` }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/sign in/i);
     expect(screen.queryByText(id)).not.toBeInTheDocument();
+  });
+
+  it("pauses a schedule and displays the returned descriptor", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({ ...schedule, enabled: false, nextDueAt: null, version: 2 })));
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Pause schedule ${id}` }));
+    expect(await screen.findByText("Paused")).toBeInTheDocument();
+    expect(screen.getByText("Not scheduled")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Resume schedule ${id}` })).toBeInTheDocument();
+  });
+
+  it("resumes a paused schedule using its current version", async () => {
+    const user = userEvent.setup();
+    const paused = { ...schedule, enabled: false, nextDueAt: null, version: 2 };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ data: [paused], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({ ...schedule, version: 3 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Resume schedule ${id}` }));
+    expect(await screen.findByText("Enabled")).toBeInTheDocument();
+    const options = fetchMock.mock.calls[2]?.[1] as RequestInit;
+    expect(JSON.parse(String(options.body))).toMatchObject({ enabled: true, expectedVersion: 2 });
+  });
+
+  it("discards stale data on a version conflict and refreshes only on request", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({}, 409))
+      .mockResolvedValueOnce(response({ data: [{ ...schedule, version: 2 }], nextCursor: null }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Pause schedule ${id}` }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/refresh/i);
+    expect(screen.queryByText(id)).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(screen.getByRole("button", { name: /refresh/i })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: /refresh/i }));
+    expect(await screen.findByText(id)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not automatically retry a lost update response", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockRejectedValueOnce(new TypeError("network disconnected"));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Pause schedule ${id}` }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/may not have completed/i);
+    expect(screen.queryByText(id)).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("recovers focus from another schedule control after a delayed conflict", async () => {
+    const user = userEvent.setup();
+    let finishUpdate: (value: Response) => void = () => { throw new Error("Missing update"); };
+    const pending = new Promise<Response>((resolve) => { finishUpdate = resolve; });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockReturnValueOnce(pending);
+    vi.stubGlobal("fetch", fetchMock);
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Pause schedule ${id}` }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    screen.getByRole("button", { name: `Preview next five for schedule ${id}` }).focus();
+    finishUpdate(response({}, 409));
+    await screen.findByRole("alert");
+    expect(screen.getByRole("button", { name: /refresh/i })).toHaveFocus();
+  });
+
+  it("does not steal unrelated focus when a delayed update fails", async () => {
+    const user = userEvent.setup();
+    let finishUpdate: (value: Response) => void = () => { throw new Error("Missing update"); };
+    const pending = new Promise<Response>((resolve) => { finishUpdate = resolve; });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockReturnValueOnce(pending);
+    vi.stubGlobal("fetch", fetchMock);
+    render(<><button type="button">Other control</button><ScheduleList /></>);
+    await user.click(await screen.findByRole("button", { name: `Pause schedule ${id}` }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    screen.getByRole("button", { name: "Other control" }).focus();
+    finishUpdate(response({}, 409));
+    await screen.findByRole("alert");
+    expect(screen.getByRole("button", { name: "Other control" })).toHaveFocus();
   });
 });

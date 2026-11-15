@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchSchedulePage, fetchSchedulePreview, scheduleErrorMessage } from "./schedules";
+import type { DescriptorOutput } from "./generated";
+import { fetchSchedulePage, fetchSchedulePreview, scheduleErrorMessage, setScheduleEnabled } from "./schedules";
 
 const id = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
 const schedule = {
@@ -16,7 +17,7 @@ const schedule = {
   version: 1,
   createdAt: "2026-11-15T00:00:00Z",
   updatedAt: "2026-11-15T00:00:00Z",
-};
+} satisfies DescriptorOutput;
 
 function response(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -99,6 +100,7 @@ describe("schedule list API", () => {
       data: [schedule],
       nextCursor: null,
     });
+
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/schedules?limit=50",
       expect.objectContaining({
@@ -130,5 +132,46 @@ describe("schedule list API", () => {
       scheduleErrorMessage(error),
     );
     expect(message).toMatch(/owner access/i);
+  });
+});
+
+describe("schedule pause and resume", () => {
+  it("uses the displayed version and preserves all other settings", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({ ...schedule, enabled: false, nextDueAt: null, version: 2 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(setScheduleEnabled(schedule, false)).resolves.toMatchObject({ enabled: false, version: 2 });
+    expect(fetchMock.mock.calls[1]).toEqual([
+      `/api/v1/schedules/${id}`,
+      expect.objectContaining({
+        method: "PUT",
+        headers: expect.objectContaining({ "X-CSRF-Token": "test-csrf" }),
+        body: JSON.stringify({
+          workflowId: schedule.workflowId, revision: schedule.revision,
+          expression: schedule.expression, timeZone: schedule.timeZone, enabled: false,
+          overlapPolicy: "skip", missedRunPolicy: "skip", expectedVersion: 1,
+        }),
+      }),
+    ]);
+  });
+
+  it("does not mutate when the session is not an owner", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ role: "viewer", csrfToken: "test-csrf" }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(setScheduleEnabled(schedule, false)).rejects.toMatchObject({ status: 403 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a conflicting or malformed update without retrying", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({}, 409))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({ ...schedule, enabled: false, version: 1 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(setScheduleEnabled(schedule, false)).rejects.toMatchObject({ status: 409 });
+    await expect(setScheduleEnabled(schedule, false)).rejects.toThrow(/invalid response/i);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });
