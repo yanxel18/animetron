@@ -101,7 +101,7 @@ verification. This checklist remains the only current progress source.
   immutable revision as read-only data, without editing or execution.
 - P7-04e merged in [#67](https://github.com/yanxel18/animetron/pull/67): create schedule
   descriptors without dispatch, preserving uncertain-outcome handling.
-- P6-02d is in review on `task/p6-02d-due-slot-records`: internal durable
+- P6-02d is in review in [#68](https://github.com/yanxel18/animetron/pull/68): internal durable
   schedule-slot observations, without scheduler dispatch or outcome decisions.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
