@@ -95,8 +95,8 @@ verification. This checklist remains the only current progress source.
   discovery of revisions for a known workflow ID.
 - P1-09d merged in [#64](https://github.com/yanxel18/animetron/pull/64): discover workflow
   IDs with persisted revisions without inventing draft or readiness data.
-- P7-02a is in review on `task/p7-02a-workflow-discovery`: a read-only
-  workflow and revision browser, without editing or execution.
+- P7-02a is in review in [#65](https://github.com/yanxel18/animetron/pull/65):
+  a read-only workflow and revision browser, without editing or execution.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -598,7 +598,9 @@ accessibility checks pass, not merely when mock screens exist.
     drift and three focused Chromium cases before a Unicode boundary fix.
     A valid 128-codepoint supplementary-Unicode revision was rejected by the
     client; a regression failed before correcting the codepoint count.
-    Review and independent verification of that correction are pending.
+    Independent review found no remaining required issues after correction;
+    independent correction QA passed six API client cases and verified the
+    backend model's 128/129-codepoint boundary.
     Live authenticated backend and screen-reader testing remain unverified.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
