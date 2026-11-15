@@ -272,8 +272,9 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09e Internal mutable draft persistence was investigated only; no
-    implementation or checks were performed before the stop request.
+  - [ ] P1-09e Internal mutable draft persistence is implemented in
+    [#73](https://github.com/yanxel18/animetron/pull/73) and in review; keep it
+    unchecked until required gates pass and it merges.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
