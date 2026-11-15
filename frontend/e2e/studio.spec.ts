@@ -130,7 +130,7 @@ test("exposes real disabled states and navigable landmarks", async ({ page }) =>
   await expect(
     page.getByRole("heading", { name: "No workflow is loaded" }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "No run is loaded" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Runs" })).toBeVisible();
   await expect(page.getByText("Backend not checked")).toBeVisible();
 });
 
@@ -209,6 +209,58 @@ test("renders the metadata-only review queue without overflow at every target wi
   expect(browserErrors).toEqual([]);
 });
 
+test("renders persisted run history across target widths", async ({ page }, testInfo) => {
+  const runId = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  await page.route(`**/api/v1/runs/${runId}**`, (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith("/events")
+      ? {
+          data: [{
+            runId,
+            sequence: 1,
+            state: "SUCCEEDED",
+            message: "Run completed",
+            occurredAt: "2026-11-15T12:00:00Z",
+          }],
+          nextAfterSequence: 1,
+          hasMore: false,
+        }
+      : { runId, state: "SUCCEEDED", lastSequence: 1 };
+    return route.fulfill({ status: 200, json: body });
+  });
+
+  await page.goto("/#runs");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Skip to workspace" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Run monitor" })).toBeFocused();
+  await page.getByLabel("Run ID").fill(runId);
+  await page.getByRole("button", { name: "Open run" }).click();
+  await expect(page.getByText("Run completed")).toBeVisible();
+  await expect(page.getByText("Run finished")).toBeVisible();
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByRole("heading", { name: "Run monitor" })).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+    await page.screenshot({
+      path: testInfo.outputPath(`runs-${viewport.width}.png`),
+      fullPage: true,
+    });
+  }
+  await expect(page.getByRole("button", { name: /start|cancel run/i })).toHaveCount(0);
+  expect(browserErrors).toEqual([]);
+});
+
 test("starts keyboard navigation at the skip link and moves focus to the workspace", async ({
   page,
 }) => {
@@ -246,17 +298,28 @@ test("opens and closes the mobile navigation without enabling unavailable screen
   await expect(
     page.getByRole("navigation", { name: "Studio sections" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Runs" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Runs" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Library" })).toBeDisabled();
 
-  const closeButton = page.getByRole("button", { name: "Close navigation" });
-  await expect(closeButton).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Studio" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(openButton).toBeFocused();
+  await expect(
+    page.getByRole("navigation", { name: "Studio sections" }),
+  ).toBeHidden();
+
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("navigation", { name: "Studio sections" }),
+  ).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(
     page.getByRole("button", { name: "Open navigation" }),
   ).toHaveAttribute("aria-expanded", "false");
-  await expect(
-    page.getByRole("navigation", { name: "Studio sections" }),
-  ).toBeHidden();
 });
 
 test("honors reduced motion and remains usable at a 200 percent effective viewport", async ({

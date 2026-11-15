@@ -1,10 +1,9 @@
 # P7-04a Review Queue Report
 
-**Status:** In review in [PR #55](https://github.com/yanxel18/animetron/pull/55),
-stacked on the API-contract prerequisite [PR #54](https://github.com/yanxel18/animetron/pull/54).
-PR #55 currently targets `task/p7-01b-api-contracts`; merge it only after #54 is
-reviewed and merged, then retarget #55 to `master`. Keep this item unchecked
-until independent review, required checks and merge are complete.
+**Status:** [PR #55](https://github.com/yanxel18/animetron/pull/55) merged into
+the API-contract prerequisite [PR #54](https://github.com/yanxel18/animetron/pull/54),
+not `master`. Keep this item unchecked until the combined work has been
+independently reviewed, required checks pass and #54 merges to `master`.
 
 ## Finding and change
 

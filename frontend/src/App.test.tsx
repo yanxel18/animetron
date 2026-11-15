@@ -116,4 +116,48 @@ describe("creator studio foundation", () => {
       screen.queryByRole("heading", { name: "Studio", level: 1 }),
     ).not.toBeInTheDocument();
   });
+
+  it("closes the mobile menu on Escape and returns focus to its toggle", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.tab();
+    await user.tab();
+    await user.keyboard("{Enter}");
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Studio" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+
+    const openButton = screen.getByRole("button", { name: "Open navigation" });
+    expect(openButton).toHaveAttribute("aria-expanded", "false");
+    expect(openButton).toHaveFocus();
+  });
+
+  it("keeps the review queue open when closing mobile navigation with Escape", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    render(<App />);
+
+    await user.click(screen.getByRole("link", { name: "Review" }));
+    await screen.findByRole("heading", { name: "Review queue" });
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
+    await user.tab();
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Review queue" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
 });

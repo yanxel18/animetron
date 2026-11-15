@@ -201,4 +201,32 @@ describe("run monitor", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/owner access/i);
     expect(screen.queryByText("Running")).not.toBeInTheDocument();
   });
+
+  it("clears saved run details when owner authorization is lost", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(runStatus("RUNNING", 1)))
+        .mockResolvedValueOnce(
+          jsonResponse(runEvents([runEvent(1, "RUNNING", "private event")], 1)),
+        )
+        .mockResolvedValueOnce(jsonResponse({ error: {} }, 403)),
+    );
+
+    render(<RunMonitor />);
+    submitRunId();
+    await flushPendingWork();
+    expect(screen.getByText("private event")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    await flushPendingWork();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/owner access/i);
+    expect(screen.queryByText("private event")).not.toBeInTheDocument();
+    expect(screen.queryByText(/through sequence/i)).not.toBeInTheDocument();
+  });
 });

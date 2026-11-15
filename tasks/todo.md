@@ -57,8 +57,8 @@ in-progress work, not yet browser-verified, pushed or submitted as a PR.
 ### Session handoff - 2026-11-14
 
 An earlier session stopped at the owner's request. At that point P7-01b was
-paused and unimplemented, and its incomplete test and manifest changes had been
-removed. The current resumed work is recorded below.
+paused and unimplemented, and its incomplete test and manifest changes had
+been removed. Subsequent work is recorded below.
 P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
@@ -77,6 +77,7 @@ verification. This checklist remains the only current progress source.
   run-ID-based monitor uses persisted status and event-replay endpoints;
   it does not create or cancel runs or invent progress.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
+Slices not yet merged to master remain unchecked. No external publishing was done.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -536,7 +537,14 @@ accessibility checks pass, not merely when mock screens exist.
     and bounded event replay. Poll durable state after reconnect; distinguish
     loading, live, stale/error and terminal states. No create/cancel controls or
     inferred progress. In progress on `task/p7-03a-run-monitor`.
-    Library and artifact preview remain outside this slice.
+    Library and artifact preview remain outside this slice. A failed later
+    replay page previously advanced the cursor without preserving earlier
+    events; the refresh now commits cursor and events together. Authorization
+    loss clears previously displayed run details. Regression tests reproduced
+    both issues before the fixes; Chromium also caught and verified a skip-link
+    focus fix. Validation: 24 frontend unit tests, production build, API drift
+    check and eight Chromium cases passed using local fixtures. Live
+    authenticated backend and assistive-technology testing remain unverified.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
   - [x] P7-04a Add the owner-only review metadata queue with truthful loading,
@@ -548,10 +556,12 @@ accessibility checks pass, not merely when mock screens exist.
     See [P7-04a report](p7-04a-review-queue-report.md).
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
-  - [x] P7-05a Close mobile navigation on Escape and restore focus to its
-    disclosure button. Merged in [#53](https://github.com/yanxel18/animetron/pull/53);
-    this is not full P7-05 evidence. See
-    [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
+  - [x] P7-05a Merged in
+    [#53](https://github.com/yanxel18/animetron/pull/53): close the mobile
+    Studio navigation on Escape and restore focus to its disclosure button.
+    Regression test, typecheck/build and all six Chromium acceptance cases pass;
+    this is a narrow keyboard interaction slice, not full P7-05 evidence. See
+    the [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the

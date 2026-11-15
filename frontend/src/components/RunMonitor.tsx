@@ -143,6 +143,19 @@ export function RunMonitor() {
         }
       } catch (requestError: unknown) {
         if (controller.signal.aborted) return;
+        if (
+          requestError instanceof RunMonitorError &&
+          (requestError.status === 401 || requestError.status === 403)
+        ) {
+          cursorRef.current = 0;
+          eventsRef.current = [];
+          previousStateRef.current = null;
+          setStatus(null);
+          setEvents([]);
+          setLastUpdated(null);
+          setHasOlderEvents(false);
+          setAnnouncement("");
+        }
         setError(requestError);
         setConnectionState("retrying");
         timer = window.setTimeout(() => void poll(), pollDelayMs);
@@ -188,7 +201,7 @@ export function RunMonitor() {
       <header className="page-heading">
         <div className="page-title">
           <p className="eyebrow">EXECUTION HISTORY</p>
-          <h1 id="run-monitor-title">Run monitor</h1>
+          <h1 id="run-monitor-title" tabIndex={-1}>Run monitor</h1>
           <p className="page-description">
             Inspect persisted status and ordered events for an existing workflow
             run.

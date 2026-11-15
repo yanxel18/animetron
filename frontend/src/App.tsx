@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "./components/Icon";
 import { ReviewQueue } from "./components/ReviewQueue";
@@ -32,6 +32,14 @@ export function App() {
     setActiveSection(section);
     setMobileNavigationOpen(false);
   };
+  const mobileNavigationToggleRef = useRef<HTMLButtonElement>(null);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape" && mobileNavigationOpen) {
+      setMobileNavigationOpen(false);
+      mobileNavigationToggleRef.current?.focus();
+    }
+  }
 
   return (
     <>
@@ -47,7 +55,7 @@ export function App() {
       >
         Skip to workspace
       </a>
-      <div className="studio-shell">
+      <div className="studio-shell" onKeyDown={handleKeyDown}>
         <header className="studio-header">
           <div className="brand-lockup" aria-label="AnimeTron">
             <Icon name="brand" size={26} />
@@ -55,6 +63,7 @@ export function App() {
           </div>
           <div className="header-controls">
             <button
+              ref={mobileNavigationToggleRef}
               className="mobile-navigation-toggle"
               type="button"
               aria-label={
