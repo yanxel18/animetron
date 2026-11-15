@@ -35,7 +35,7 @@ merged status changes.
 Main remaining gates include the historical #33 scanner failure, missing
 workflow execution and editing services, model feasibility and capacity,
 real media generation, and owner-involved P9 acceptance. P7-03a is local
-in-progress work, not yet browser-verified, pushed or submitted as a PR.
+work in review in [#57](https://github.com/yanxel18/animetron/pull/57).
 
 ## How to use
 
@@ -73,9 +73,9 @@ verification. This checklist remains the only current progress source.
   unit tests, production build, seven Chromium tests, API drift check and
   GitGuardian passed; an independent source review found stale report
   instructions, which were corrected before the owner merged #54.
-- P7-03a is in progress on `task/p7-03a-run-monitor`. This read-only,
-  run-ID-based monitor uses persisted status and event-replay endpoints;
-  it does not create or cancel runs or invent progress.
+- P7-03a is in review in [#57](https://github.com/yanxel18/animetron/pull/57).
+  This read-only, run-ID-based monitor uses persisted status and event-replay
+  endpoints; it does not create or cancel runs or invent progress.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -536,7 +536,7 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-03a Add an owner-only run-ID monitor backed by persisted run status
     and bounded event replay. Poll durable state after reconnect; distinguish
     loading, live, stale/error and terminal states. No create/cancel controls or
-    inferred progress. In progress on `task/p7-03a-run-monitor`.
+    inferred progress. In review in [#57](https://github.com/yanxel18/animetron/pull/57).
     Library and artifact preview remain outside this slice. A failed later
     replay page previously advanced the cursor without preserving earlier
     events; the refresh now commits cursor and events together. Authorization
