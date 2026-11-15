@@ -103,7 +103,7 @@ verification. This checklist remains the only current progress source.
   descriptors without dispatch, preserving uncertain-outcome handling.
 - P6-02d merged in [#68](https://github.com/yanxel18/animetron/pull/68): internal durable
   schedule-slot observations, without scheduler dispatch or outcome decisions.
-- P1-10b is in review on `task/p1-10b-sample-nodes`: pure deterministic
+- P1-10b is in review in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
