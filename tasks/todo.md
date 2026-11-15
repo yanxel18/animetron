@@ -543,8 +543,10 @@ accessibility checks pass, not merely when mock screens exist.
     loss clears previously displayed run details. Regression tests reproduced
     both issues before the fixes; Chromium also caught and verified a skip-link
     focus fix. Validation: 24 frontend unit tests, production build, API drift
-    check and eight Chromium cases passed using local fixtures. Live
-    authenticated backend and assistive-technology testing remain unverified.
+    check and eight Chromium cases passed using local fixtures. Independent
+    source review found no significant issues and reproduced the unit suite
+    and build. Live authenticated backend and assistive-technology testing
+    remain unverified.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
   - [x] P7-04a Add the owner-only review metadata queue with truthful loading,
