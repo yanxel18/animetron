@@ -73,7 +73,9 @@ verification. This checklist remains the only current progress source.
   resolution preserves both the review queue and mobile Escape behavior:
   13 frontend unit tests, the production build, seven Chromium tests and the
   local API contract drift check passed. The isolated worktree reused matching
-  local dependencies after an offline install lacked a cached package.
+  local dependencies after an offline install lacked a cached package. An
+  independent source review found stale #55 merge instructions in its report;
+  those instructions were corrected. GitHub review and merge gates remain open.
 - P7-04a review metadata queue merged in
   [#55](https://github.com/yanxel18/animetron/pull/55) to #54's branch;
   it is not yet merged to master.
