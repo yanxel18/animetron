@@ -1,10 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `4e31490deac801002cd7c73f49c87fb9c58d516a` on
-2026-11-14. Merged #41 through #51 were checked against exact-head checks,
-normal merge responses and the fetched commits. The historical #33 scanner
-failure remains unresolved.
+verified remote `master` at `45a8f897b568b46a0f55d985e84bc2b3e48e8226` on
+2026-11-15. Merged #52 was checked; it reconciles documentation and does not
+complete an implementation item. P7-05a is in review in #53 and remains
+unchecked. The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -29,12 +29,21 @@ and human-acceptance gates still apply. This checklist does not replace them.
 
 ### Session handoff - 2026-11-14
 
-The owner requested cleanup, final documentation publication and a session
-stop. No further implementation is running. P7-01b is paused and unimplemented;
-its incomplete test and manifest changes were removed, not shipped.
+An earlier session stopped at the owner's request. At that point P7-01b was
+paused and unimplemented, and its incomplete test and manifest changes had been
+removed. The current resumed work is recorded below.
 P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
+
+### Current work - 2026-11-15
+
+P7-01b has resumed on `task/p7-01b-api-contracts`, based on the verified
+`master` above. The local OpenAPI exporter, generated TypeScript contracts and
+drift check are implemented and verified; keep P7-01b unchecked until its PR is
+reviewed, all required checks pass and it is merged. See the
+[P7-01b report](p7-01b-contracts-report.md). P0-P9 and owner-involved P9
+acceptance remain incomplete.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -473,18 +482,16 @@ accessibility checks pass, not merely when mock screens exist.
   frozen install, audit and GitGuardian passed. Native 200% browser zoom and
   assistive technology remain unverified; P7-05/P7-06/P9 are not complete.
   [Measured foundation evidence](studio-foundation-report.md).
-  - [ ] P7-01b Paused at the owner's session-stop request: generate
+  - [ ] P7-01b Generate
     TypeScript contracts directly from local backend OpenAPI and detect drift.
     No live schema fetch, credential reading, runtime client or new screen.
-    Unimplemented; incomplete test and manifest edits were removed. No
-    dependency was installed or generated contract shipped. Resume with
-    implementation, checks and review on a new task branch.
-    Tooling finding: the attempted `openapi-typescript@7.13.0` install failed
-    with `ERESOLVE` because its TypeScript 5 peer range conflicts with the
-    project's pinned TypeScript 7.0.2. Do not force installation or downgrade
-    unrelated tooling; resolve compatibility first.
-    [Closeout findings](session-closeout-report.md).
-    This is a prerequisite to backend-owned frontend contracts, not P7 completion.
+    Implemented on `task/p7-01b-api-contracts`; awaiting PR review and merge.
+    `@hey-api/openapi-ts@0.99.0` uses the TypeScript-only plugin; the frontend
+    compiler is pinned to 5.9.3 because 7.0.2 lacks runtime APIs the generator
+    uses despite its declared peer range. A scoped `js-yaml@4.3.2` override
+    clears the transitive advisory; the full npm audit reports zero findings.
+    [P7-01b report](p7-01b-contracts-report.md). This is a prerequisite to
+    backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
