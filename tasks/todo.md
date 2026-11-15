@@ -92,7 +92,7 @@ verification. This checklist remains the only current progress source.
   owner-only reading of an already-known immutable workflow revision.
 - P1-09c merged in [#63](https://github.com/yanxel18/animetron/pull/63): bounded
   discovery of revisions for a known workflow ID.
-- P1-09d is in progress on `task/p1-09d-workflow-discovery`: discover workflow
+- P1-09d is in review in [#64](https://github.com/yanxel18/animetron/pull/64): discover workflow
   IDs with persisted revisions without inventing draft or readiness data.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
@@ -260,7 +260,8 @@ immutable workflow and recover its state without duplicate effects.
     Exact-head GitGuardian passed; merged at `7faf5d6`.
   - [ ] P1-09d List workflow IDs with persisted revisions using bounded,
     owner-only pagination. No workflow drafts, names, execution readiness or
-    dispatch are implied. In progress: 690 backend tests passed using an
+    dispatch are implied. In review in
+    [#64](https://github.com/yanxel18/animetron/pull/64): 690 backend tests passed using an
     isolated PostgreSQL instance, with 20 Windows skips; the live OIDC module
     was excluded because Python Playwright is missing. Migrations, Ruff,
     Linux-target mypy, 48 frontend tests, frontend build and API type drift
