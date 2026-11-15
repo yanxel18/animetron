@@ -1,0 +1,150 @@
+import { useEffect, useState } from "react";
+
+import type { DescriptorOutput } from "../api/generated";
+import {
+  fetchSchedulePage,
+  ScheduleListError,
+  scheduleErrorMessage,
+} from "../api/schedules";
+
+function formatUtc(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(value)) + " UTC";
+}
+
+export function ScheduleList() {
+  const [schedules, setSchedules] = useState<DescriptorOutput[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [request, setRequest] = useState<{ cursor: string | null; attempt: number }>({
+    cursor: null,
+    attempt: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    if (request.cursor === null) {
+      setSchedules([]);
+      setNextCursor(null);
+    }
+
+    void fetchSchedulePage(request.cursor, controller.signal)
+      .then((page) => {
+        if (controller.signal.aborted) return;
+        setSchedules((current) =>
+          request.cursor === null ? page.data : [...current, ...page.data],
+        );
+        setNextCursor(page.nextCursor);
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (
+          requestError instanceof ScheduleListError &&
+          (requestError.status === 401 || requestError.status === 403)
+        ) {
+          setSchedules([]);
+          setNextCursor(null);
+        }
+        setError(requestError);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [request]);
+
+  const denied = error instanceof ScheduleListError &&
+    (error.status === 401 || error.status === 403);
+
+  function retry() {
+    setRequest((current) => ({
+      cursor: denied ? null : current.cursor,
+      attempt: current.attempt + 1,
+    }));
+  }
+
+  return (
+    <section id="schedules" className="review-queue" aria-labelledby="schedule-list-title" aria-busy={loading}>
+      <header className="page-heading">
+        <div className="page-title">
+          <p className="eyebrow">SCHEDULE DESCRIPTORS</p>
+          <h1 id="schedule-list-title" tabIndex={-1}>Schedules</h1>
+          <p className="page-description">
+            Inspect saved schedules and their immutable workflow revisions.
+          </p>
+        </div>
+      </header>
+      <p className="review-blocked-note" role="note">
+        Scheduler dispatch is not implemented. Saved settings do not guarantee
+        that a run will start. Creating, editing and previewing schedules are
+        unavailable here.
+      </p>
+      {loading && <p role="status">Loading saved schedules...</p>}
+      {error !== null && (
+        <div className="review-error" role="alert">
+          <p>{scheduleErrorMessage(error)}</p>
+          {error instanceof ScheduleListError && error.status === 401 && (
+            <a className="review-login-link" href="/api/v1/auth/login">Sign in</a>
+          )}
+          <button className="button button--secondary" type="button" onClick={retry}>
+            Retry
+          </button>
+        </div>
+      )}
+      {!loading && error === null && schedules.length === 0 && (
+        <p role="status">No saved schedules are available.</p>
+      )}
+      {schedules.length > 0 && (
+        <ul className="review-list">
+          {schedules.map((schedule) => (
+            <li className="review-list-item" key={schedule.id}>
+              <article className="review-card" aria-labelledby={`schedule-${schedule.id}`}>
+                <header className="review-card-heading">
+                  <div className="review-card-title">
+                    <p className="panel-kicker">SAVED SCHEDULE</p>
+                    <h2 id={`schedule-${schedule.id}`}><code>{schedule.id}</code></h2>
+                  </div>
+                  <span className="review-state">{schedule.enabled ? "Enabled" : "Paused"}</span>
+                </header>
+                <dl className="review-metadata">
+                  <div><dt>Workflow</dt><dd><code>{schedule.workflowId}</code></dd></div>
+                  <div><dt>Revision</dt><dd><code>{schedule.revision}</code></dd></div>
+                  <div><dt>Cron expression</dt><dd><code>{schedule.expression}</code></dd></div>
+                  <div><dt>Time zone</dt><dd>{schedule.timeZone}</dd></div>
+                  <div>
+                    <dt>Next due time</dt>
+                    <dd>
+                      {schedule.nextDueAt === null
+                        ? "Not scheduled"
+                        : <time dateTime={schedule.nextDueAt}>{formatUtc(schedule.nextDueAt)}</time>}
+                    </dd>
+                  </div>
+                  <div><dt>Overlap and missed runs</dt><dd>Skip</dd></div>
+                </dl>
+              </article>
+            </li>
+          ))}
+        </ul>
+      )}
+      {nextCursor !== null && error === null && (
+        <div className="review-pagination">
+          <button
+            className="button button--secondary"
+            type="button"
+            disabled={loading}
+            onClick={() => setRequest((current) => ({ cursor: nextCursor, attempt: current.attempt + 1 }))}
+          >
+            {loading ? "Loading..." : "Load more"}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
