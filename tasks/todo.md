@@ -79,8 +79,9 @@ verification. This checklist remains the only current progress source.
 - P7-04b merged in [#58](https://github.com/yanxel18/animetron/pull/58):
   a read-only owner-only schedule list using the existing authenticated
   descriptor API. Create, edit, preview and dispatch were outside that slice.
-- P7-04c is in progress on `task/p7-04c-schedule-preview`: preview the next
-  five occurrences of an existing schedule without saving or dispatching.
+- P7-04c is in review in [#59](https://github.com/yanxel18/animetron/pull/59):
+  preview the next five occurrences of an existing schedule without saving or
+  dispatching.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -584,6 +585,8 @@ accessibility checks pass, not merely when mock screens exist.
     both were reproduced and fixed, then independently re-reviewed. Removing
     the UTC guard caused the regression test to fail. Browser checks do not
     establish live authenticated backend or assistive-technology behavior.
+    [#59](https://github.com/yanxel18/animetron/pull/59) remains unchecked
+    pending exact-head checks and merge.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in
