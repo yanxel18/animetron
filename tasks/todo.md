@@ -499,11 +499,12 @@ accessibility checks pass, not merely when mock screens exist.
   screens against their authorized services; explain blocked actions.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
-  - [ ] P7-05a In review: close the mobile Studio navigation on Escape and
-    restore focus to its disclosure button. Regression test, typecheck/build
-    and all six Chromium acceptance cases pass; this is a narrow keyboard
-    interaction slice, not full P7-05 evidence. See the
-    [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
+  - [ ] P7-05a In review in
+    [#53](https://github.com/yanxel18/animetron/pull/53): close the mobile
+    Studio navigation on Escape and restore focus to its disclosure button.
+    Regression test, typecheck/build and all six Chromium acceptance cases pass;
+    this is a narrow keyboard interaction slice, not full P7-05 evidence. See
+    the [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the

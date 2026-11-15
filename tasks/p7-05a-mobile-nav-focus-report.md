@@ -1,6 +1,7 @@
 # P7-05a Mobile Navigation Keyboard Report
 
-**Status:** In review on `feature/studio-mobile-nav-focus`. This report records a
+**Status:** In review in
+[#53](https://github.com/yanxel18/animetron/pull/53). This report records a
 narrow P7-05 keyboard-interaction slice; it does not claim full P7-05 or P7
 acceptance.
 
