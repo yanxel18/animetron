@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `cff6851` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `5f2e981` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -95,8 +95,10 @@ verification. This checklist remains the only current progress source.
   discovery of revisions for a known workflow ID.
 - P1-09d merged in [#64](https://github.com/yanxel18/animetron/pull/64): discover workflow
   IDs with persisted revisions without inventing draft or readiness data.
-- P7-02a is in review in [#65](https://github.com/yanxel18/animetron/pull/65):
+- P7-02a merged in [#65](https://github.com/yanxel18/animetron/pull/65):
   a read-only workflow and revision browser, without editing or execution.
+- P7-02b is in review in [#66](https://github.com/yanxel18/animetron/pull/66): inspect an
+  immutable revision as read-only data, without editing or execution.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -590,7 +592,7 @@ accessibility checks pass, not merely when mock screens exist.
   - Editing remains blocked: workflow create/update and validation routes are
     unavailable; prerequisite P1-09 remains unchecked. Do not invent a
     frontend-only workflow schema or enable editing before those APIs exist.
-  - [ ] P7-02a Browse persisted workflow IDs and immutable revision metadata
+  - [x] P7-02a Browse persisted workflow IDs and immutable revision metadata
     read-only, with bounded pagination and truthful loading, errors and access
     states. This does not provide editing, validation or execution.
     Local checks passed: 59 frontend tests, production build, API drift check and
@@ -602,6 +604,18 @@ accessibility checks pass, not merely when mock screens exist.
     independent correction QA passed six API client cases and verified the
     backend model's 128/129-codepoint boundary.
     Live authenticated backend and screen-reader testing remain unverified.
+    Exact-head GitGuardian passed; [#65](https://github.com/yanxel18/animetron/pull/65)
+    merged at `5f2e981`.
+  - [ ] P7-02b Inspect exact canonical JSON and digest of a selected immutable
+    revision through the authorized query lookup, without editing or execution.
+    Local checks passed: 81 frontend tests, production build, API drift check and
+    18 fixture-backed Chromium cases. Independent source review found no
+    significant issues; independent QA passed 32 focused tests, build, API drift
+    and five fixture-backed Chromium cases, with screenshot inspection.
+    Removing the late-response guard failed its focused regression; the source
+    was restored and that regression passed.
+    The digest is displayed as returned, not independently verified. Live
+    authenticated backend and screen-reader testing remain unverified.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status

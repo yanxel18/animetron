@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchWorkflowPage, fetchRevisionPage } from "./workflows";
+import { fetchWorkflowPage, fetchRevisionPage, fetchRevision } from "./workflows";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 afterEach(() => vi.unstubAllGlobals());
@@ -14,6 +14,48 @@ describe("workflow discovery API", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/v1/workflows?limit=50", expect.objectContaining({
       method: "GET", credentials: "same-origin", cache: "no-store",
     }));
+  });
+
+  describe("saved revision API", () => {
+    it.each(["../a/b?x=1&z=+ #雪", ".", "\ufeff", "😀".repeat(128)])(
+      "encodes a valid revision identifier in the query without changing it: %s", async (revision) => {
+        const body = { workflowId: id, revision, canonicalJson: '{"x":"<script>"}', sha256: "a".repeat(64) };
+        const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(body)));
+        vi.stubGlobal("fetch", fetcher);
+        await expect(fetchRevision(id, revision)).resolves.toEqual(body);
+        const [url, options] = fetcher.mock.calls[0];
+        const parsed = new URL(url, "http://localhost");
+        expect(parsed.pathname).toBe(`/api/v1/workflows/${id}/revision`);
+        expect([...parsed.searchParams.entries()]).toEqual([["revision", revision]]);
+        expect(options).toEqual(expect.objectContaining({ credentials: "same-origin", cache: "no-store", method: "GET" }));
+      },
+    );
+
+    it.each(["", " ", "😀".repeat(129), "\ud800", "a\0b"])("rejects invalid identifier %s", async (revision) => {
+      const fetcher = vi.fn();
+      vi.stubGlobal("fetch", fetcher);
+      await expect(fetchRevision(id, revision)).rejects.toThrow();
+      expect(fetcher).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { workflowId: id, revision: "other", canonicalJson: "{}", sha256: "a".repeat(64) },
+      { workflowId: id, revision: "r", canonicalJson: {}, sha256: "a".repeat(64) },
+      { workflowId: id, revision: "r", canonicalJson: "{}", sha256: "A".repeat(64) },
+    ])("rejects malformed or mismatched response", async (body) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(body))));
+      await expect(fetchRevision(id, "r")).rejects.toThrow("invalid response");
+    });
+
+    it.each([401, 403, 404, 503])("preserves HTTP %i without exposing error body", async (status) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("secret error", { status })));
+      await expect(fetchRevision(id, "r")).rejects.toMatchObject({ status, message: expect.not.stringContaining("secret") });
+    });
+
+    it("rejects malformed JSON", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{")));
+      await expect(fetchRevision(id, "r")).rejects.toThrow("invalid response");
+    });
   });
 
   it("rejects malformed or mismatched revision metadata", async () => {
