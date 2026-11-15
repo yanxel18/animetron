@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `c0da081` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `edb4858` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -115,9 +115,16 @@ verification. This checklist remains the only current progress source.
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
   complete their parent tasks.
-- Progress-reporting instruction updates are in review in
-  [#71](https://github.com/yanxel18/animetron/pull/71); they do not complete
-  a phase task.
+- [#71](https://github.com/yanxel18/animetron/pull/71) merged at `edb4858`,
+  adding task-by-task progress recount instructions. An independent
+  post-merge review found no code corrections; however, GitHub has no review
+  records and the PR body said independent review was pending at merge. The
+  exact-head GitGuardian check passed, but no other check runs or statuses were
+  present. The merge did not satisfy the independent-review gate.
+- Reconciled with `edb4858` on 2026-11-15: the top-level recount remains 18 of
+  57 (31.6%), with the phase counts above unchanged. #71 is documentation-only
+  and completes no P0-P9 task. P1-09e draft persistence remains pending; no
+  implementation or checks have been performed.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
