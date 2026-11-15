@@ -1,9 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `4e31490deac801002cd7c73f49c87fb9c58d516a` on
-2026-11-14. Merged #41 through #51 were checked against exact-head checks,
-normal merge responses and the fetched commits. The historical #33 scanner
+remote `master` at `45a8f897b568b46a0f55d985e84bc2b3e48e8226` on 2026-11-15.
+Merged #41 through #51 remain as previously verified; #52's merge and fetched
+master commit were confirmed, and its GitGuardian check passed. PR #52 was
+documentation-only and did not rerun product tests. The historical #33 scanner
 failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -29,9 +30,12 @@ and human-acceptance gates still apply. This checklist does not replace them.
 
 ### Session handoff - 2026-11-14
 
-The owner requested cleanup, final documentation publication and a session
-stop. No further implementation is running. P7-01b is paused and unimplemented;
-its incomplete test and manifest changes were removed, not shipped.
+At that stop, P7-01b was paused and unimplemented; its incomplete test and
+manifest changes were removed, not shipped. On the resumed local task worktree,
+the owner-authored OpenAPI exporter and test are preserved as untracked files;
+the test is blocked before assertions because Windows Application Control
+denies psycopg's native DLL. No workaround was used and no generated contracts
+or dependency changes were shipped.
 P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
@@ -473,12 +477,14 @@ accessibility checks pass, not merely when mock screens exist.
   frozen install, audit and GitGuardian passed. Native 200% browser zoom and
   assistive technology remain unverified; P7-05/P7-06/P9 are not complete.
   [Measured foundation evidence](studio-foundation-report.md).
-  - [ ] P7-01b Paused at the owner's session-stop request: generate
-    TypeScript contracts directly from local backend OpenAPI and detect drift.
-    No live schema fetch, credential reading, runtime client or new screen.
-    Unimplemented; incomplete test and manifest edits were removed. No
-    dependency was installed or generated contract shipped. Resume with
-    implementation, checks and review on a new task branch.
+  - [ ] P7-01b Paused: generate TypeScript contracts directly from local backend
+    OpenAPI and detect drift. No live schema fetch, credential reading, runtime
+    client or new screen. The owner-authored exporter/test remain untracked in
+    the root task worktree; focused pytest cannot import `app.main` because
+    Windows Application Control blocks psycopg's native DLL, so no schema
+    assertion ran. No workaround, dependency change or generated contract was
+    shipped. Resume with an approved test environment, full checks and review
+    on a new task branch.
     Tooling finding: the attempted `openapi-typescript@7.13.0` install failed
     with `ERESOLVE` because its TypeScript 5 peer range conflicts with the
     project's pinned TypeScript 7.0.2. Do not force installation or downgrade
@@ -493,6 +499,11 @@ accessibility checks pass, not merely when mock screens exist.
   screens against their authorized services; explain blocked actions.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
+  - [ ] P7-05a In review: close the mobile Studio navigation on Escape and
+    restore focus to its disclosure button. Regression test, typecheck/build
+    and all six Chromium acceptance cases pass; this is a narrow keyboard
+    interaction slice, not full P7-05 evidence. See the
+    [mobile navigation report](p7-05a-mobile-nav-focus-report.md).
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
