@@ -86,8 +86,8 @@ verification. This checklist remains the only current progress source.
   version-checked owner-only pause/resume, without scheduler dispatch.
 - P7-05b merged in [#61](https://github.com/yanxel18/animetron/pull/61):
   verify schedule conflict-recovery focus in Chromium with delayed responses.
-- P1-09b is in progress on `task/p1-09b-workflow-revision-read`: owner-only
-  reading of an already-known immutable workflow revision.
+- P1-09b is in review in [#62](https://github.com/yanxel18/animetron/pull/62):
+  owner-only reading of an already-known immutable workflow revision.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -229,8 +229,8 @@ immutable workflow and recover its state without duplicate effects.
   - [ ] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
-    No write, list, editing or execution authority is added. In review on
-    `task/p1-09b-workflow-revision-read`: 17 focused cases passed against an
+    No write, list, editing or execution authority is added. In review in
+    [#62](https://github.com/yanxel18/animetron/pull/62): 17 focused cases passed against an
     isolated PostgreSQL instance; 637 backend cases passed with 20 Windows
     skips, excluding the live OIDC test module because the Python Playwright
     package is missing. Migrations, Ruff, Linux-target mypy, frontend build and
