@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `391ecd9` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `c0da081` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -22,7 +22,8 @@ unweighted task count, not a measure of effort, functionality or production
 readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
-merged status changes.
+merged status changes and after each completed task or slice, even if the
+percentage is unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -50,6 +51,9 @@ real media generation, and owner-involved P9 acceptance.
 - Before starting and with each task PR, reconcile merged work, update the
   affected items and this document's date, and record blockers or changed scope.
   Split an item into smaller checkboxes when necessary; keep their evidence.
+- After each completed task or slice, record accomplished work and recalculate
+  the top-level counts, percentage and phase table; nested slices alone do not
+  change the top-level percentage.
 - Phase completion requires every task in that phase and its completion gate.
   Phases are dependency ordered, but independent slices may run in parallel.
 - No delivery date or effort estimate is established. Estimate and update dates
@@ -107,6 +111,13 @@ verification. This checklist remains the only current progress source.
   sample graph evaluation, not persisted or dispatched execution.
 - P1-09e draft persistence was investigated but not implemented before the
   2026-11-15 stop request; it remains pending.
+- [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
+  progress reconciliation. On `c0da081`, recounting confirms 18 of 57
+  top-level tasks complete (31.6%); newly completed slices do not by themselves
+  complete their parent tasks.
+- Progress-reporting instruction updates are in review in
+  [#71](https://github.com/yanxel18/animetron/pull/71); they do not complete
+  a phase task.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 

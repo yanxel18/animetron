@@ -7,6 +7,13 @@ task without waiting for earlier pull requests to be merged or closed. Use
 required specification approval, external-action authorization, or genuine
 blocker prevents safe progress.
 
+For each completed task or slice, reconcile `tasks/todo.md` with `master`,
+record the accomplished items, evidence, PR links and remaining blockers, and
+recalculate the progress percentage and per-phase counts using the tracker's
+stated counting method. Do this even if the percentage remains unchanged.
+Only mark items complete after merge and passing checks; keep open PRs unchecked
+and in review.
+
 For every task that changes the repository:
 
 1. Work on a task-specific branch, not directly on `master`.
