@@ -252,7 +252,8 @@ immutable workflow and recover its state without duplicate effects.
     migration checks, API type drift and frontend build passed. A maximal
     Unicode cursor failed before its bound was corrected; a listed slash ID
     exposed the path-lookup limitation and the query lookup now covers it.
-    Independent review found no remaining required issues after correction.
+    Independent review found no remaining required issues after correction;
+    independent offline QA passed 28 cases with 17 database cases skipped.
   - [x] P1-09a Merged in
     [#48](https://github.com/yanxel18/animetron/pull/48) at
     `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69`: internal
