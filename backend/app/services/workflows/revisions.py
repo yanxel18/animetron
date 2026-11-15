@@ -14,9 +14,11 @@ from sqlalchemy import (
     String,
     Table,
     Uuid,
+    bindparam,
     func,
     literal,
     select,
+    text,
     tuple_,
 )
 from sqlalchemy.dialects.postgresql import insert
@@ -68,6 +70,32 @@ class RevisionConflict(Exception):
 
 class RevisionCorrupt(Exception):
     pass
+
+
+def list_workflow_ids(
+    connection: Connection, *, after: UUID | None, limit: int
+) -> list[UUID]:
+    if type(limit) is not int or not 1 <= limit <= 101:
+        raise ValueError("Workflow page limit is invalid")
+    # Each recursive step seeks strictly beyond the preceding workflow ID,
+    # instead of scanning all revisions to deduplicate a workflow.
+    seed_filter = "WHERE workflow_id > :after" if after is not None else ""
+    statement = text(
+        "WITH RECURSIVE workflow_ids AS ("
+        "(SELECT workflow_id, 1 AS n FROM workflow_revisions "
+        f"{seed_filter} ORDER BY workflow_id LIMIT 1) "
+        "UNION ALL "
+        "SELECT next_id.workflow_id, ids.n + 1 FROM workflow_ids AS ids "
+        "CROSS JOIN LATERAL (SELECT workflow_id FROM workflow_revisions "
+        "WHERE workflow_id > ids.workflow_id ORDER BY workflow_id LIMIT 1) AS next_id "
+        "WHERE ids.n < :limit"
+        ") SELECT workflow_id FROM workflow_ids ORDER BY n"
+    )
+    parameters: dict[str, UUID | int] = {"limit": limit}
+    if after is not None:
+        statement = statement.bindparams(bindparam("after", type_=Uuid()))
+        parameters["after"] = after
+    return list(connection.execute(statement, parameters).scalars())
 
 
 def list_revisions(

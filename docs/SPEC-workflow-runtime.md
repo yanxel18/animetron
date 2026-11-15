@@ -108,6 +108,33 @@ so valid identifiers containing slashes or dot segments remain addressable;
 missing, repeated, unknown or invalid parameters return `422`. The earlier
 path-based read remains available for identifiers representable in a path.
 
+## Owner-only workflow ID discovery (P1-09d)
+
+`GET /api/v1/workflows?limit=50&cursor=<opaque>` returns exactly
+`{ "data": [{ "workflowId": "<UUID>" }], "nextCursor": "<opaque>" }`,
+where `nextCursor` is `null` on the final page.
+Only IDs with at least one persisted revision appear, once each. No name,
+draft, timestamp, content, validity, runnability, or readiness is implied.
+The ascending PostgreSQL UUID order is stable. A versioned canonical URL-safe
+cursor encodes the last returned UUID; it is exclusive, is not a snapshot or
+an authorization credential, and need not refer to an existing row. New IDs
+after the cursor may appear in subsequent pages; new IDs at or before it are
+missed until refresh. New revisions for an existing ID do not duplicate it.
+
+The primary key `(workflow_id, revision)` supports successive ordered index
+seeks, one per distinct ID, bounded to `limit + 1` probes/rows, rather than a
+distinct/group scan through every revision. There is no offset or count query.
+PostgreSQL may choose a different execution plan, and physical index/heap work
+is not a strict constant bound under MVCC, bloat, or concurrent activity.
+`limit` defaults to 50, is ASCII decimal, 1..100, at most three characters
+(leading zeroes allowed). The optional cursor is 1..128 URL-safe characters,
+canonical and versioned. Unknown or repeated parameters and invalid cursors or
+limits return generic 422. Missing or stale authentication returns 401; other
+roles return 403 before lookup. Persistence failures return generic 503.
+All responses retain shared security headers and `Cache-Control: no-store`.
+This is discovery only, with no writes, execution, scheduling, model, or
+publication behavior.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run

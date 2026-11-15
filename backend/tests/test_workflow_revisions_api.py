@@ -1,17 +1,18 @@
 """Owner-only reads of known immutable workflow revisions."""
 
+import base64
 import hashlib
 import json
 import os
 import secrets
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
-from sqlalchemy import update
+from sqlalchemy import event, text, update
 
 from app.api.auth import SESSION_COOKIE
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
@@ -56,6 +57,12 @@ def offline_context(monkeypatch):
             id="workflow-operator",
             role="operator",
             csrf="operator-csrf",
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        ),
+        "viewer-session": Principal(
+            id="workflow-viewer",
+            role="viewer",
+            csrf="viewer-csrf",
             expires_at=datetime.now(UTC) + timedelta(hours=1),
         ),
     }
@@ -150,6 +157,173 @@ def assert_error(response, status):
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["strict-transport-security"] == "max-age=31536000"
     assert response.headers["x-request-id"] == body["error"]["requestId"]
+
+
+def test_workflow_discovery_owner_pages_and_concurrent_inserts(context):
+    from app.api.workflows import _encode_workflow_cursor
+
+    client, _, engine, _, _ = context
+    maximum = (1 << 128) - 1
+    ids = [UUID(int=maximum - n) for n in (4, 3, 2, 1, 0)]
+    for workflow_id in (ids[1], ids[2], ids[4]):
+        save_workflow_revision(engine, workflow_id)
+        save_workflow_revision(engine, workflow_id, "rev-2")
+    first = client.get(
+        "/api/v1/workflows",
+        params={"limit": 2, "cursor": _encode_workflow_cursor(UUID(int=maximum - 5))},
+    )
+    assert first.status_code == 200, first.text
+    assert first.headers["cache-control"] == "no-store"
+    assert first.headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
+    assert first.json()["data"] == [{"workflowId": str(ids[1])}, {"workflowId": str(ids[2])}]
+    cursor = first.json()["nextCursor"]
+    assert cursor
+    save_workflow_revision(engine, ids[0])
+    save_workflow_revision(engine, ids[3])
+    second = client.get("/api/v1/workflows", params={"limit": 2, "cursor": cursor})
+    assert second.status_code == 200, second.text
+    assert second.json()["data"] == [{"workflowId": str(ids[3])}, {"workflowId": str(ids[4])}]
+    assert second.json()["nextCursor"] is None
+
+
+@pytest.mark.parametrize("query", [
+    "?extra=1", "?limit=1&limit=2", "?cursor=x&cursor=y", "?cursor=",
+    "?cursor=bad", "?limit=", "?limit=0", "?limit=101", "?limit=0001",
+    "?limit=%2B1", "?limit=1.0", "?cursor=" + "a" * 129,
+])
+def test_workflow_discovery_rejects_bad_query(offline_context, query):
+    client, _ = offline_context
+    assert_error(client.get("/api/v1/workflows" + query), 422)
+
+
+def test_workflow_discovery_authorization_precedes_lookup(offline_context, monkeypatch):
+    client, _ = offline_context
+    monkeypatch.setattr(
+        "app.api.workflows.list_workflow_ids",
+        lambda *_args, **_kwargs: pytest.fail("unauthorized lookup"),
+        raising=False,
+    )
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+    assert_error(client.get("/api/v1/workflows"), 403)
+    client.cookies.set(SESSION_COOKIE, "viewer-session")
+    assert_error(client.get("/api/v1/workflows"), 403)
+    client.cookies.clear()
+    assert_error(client.get("/api/v1/workflows"), 401)
+    client.cookies.set(SESSION_COOKIE, "stale-session")
+    assert_error(client.get("/api/v1/workflows"), 401)
+    client.cookies.set(SESSION_COOKIE, "owner-session")
+    assert_error(client.get("/api/v1/workflows", headers={"Origin": "https://evil.example"}), 403)
+
+
+@pytest.mark.parametrize("query,expected", [("", 51), ("?limit=001", 2), ("?limit=100", 101)])
+def test_workflow_discovery_bounds_overfetch(offline_context, monkeypatch, query, expected):
+    client, _ = offline_context
+    observed = []
+
+    def lookup(_connection, *, after, limit):
+        observed.append((after, limit))
+        return []
+
+    monkeypatch.setattr("app.api.workflows.list_workflow_ids", lookup)
+    response = client.get("/api/v1/workflows" + query)
+    assert response.status_code == 200
+    assert response.json() == {"data": [], "nextCursor": None}
+    assert observed == [(None, expected)]
+
+
+@pytest.mark.parametrize("payload", [
+    b'{"after":"00000000-0000-0000-0000-000000000001","version":true}',
+    b'{"after":"00000000-0000-0000-0000-000000000001","version":2}',
+    b'{"after":"00000000000000000000000000000001","version":1}',
+    b'{"version":1,"after":"00000000-0000-0000-0000-000000000001"}',
+    b'{"after":"00000000-0000-0000-0000-000000000001","version":1,"extra":1}',
+])
+def test_workflow_discovery_rejects_noncanonical_cursor(offline_context, payload):
+    client, _ = offline_context
+    cursor = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+    assert_error(client.get("/api/v1/workflows", params={"cursor": cursor}), 422)
+
+
+def test_workflow_discovery_rejects_revision_cursor(offline_context):
+    from app.api.workflows import _encode_revision_cursor
+
+    client, _ = offline_context
+    cursor = _encode_revision_cursor(uuid4(), datetime(2026, 1, 1, tzinfo=UTC), "one")
+    assert_error(client.get("/api/v1/workflows", params={"cursor": cursor}), 422)
+
+
+def test_workflow_discovery_database_failure_is_generic(offline_context):
+    client, store = offline_context
+    store.transaction_error = RuntimeError("private connection information")
+    response = client.get("/api/v1/workflows")
+    assert_error(response, 503)
+    assert "private connection information" not in response.text
+
+
+def test_workflow_discovery_rechecks_real_session_and_roles(context, monkeypatch):
+    client, store, _, owner_handle, _ = context
+    monkeypatch.setattr(
+        "app.api.workflows.list_workflow_ids",
+        lambda *_args, **_kwargs: pytest.fail("unauthorized lookup"),
+    )
+    for subject in ("workflow-operator", "workflow-viewer"):
+        handle, _ = store.create_session(subject, "discovery-role-test")
+        client.cookies.set(SESSION_COOKIE, handle)
+        assert_error(client.get("/api/v1/workflows"), 403)
+    store.revoke(owner_handle, "discovery-revoke")
+    client.cookies.set(SESSION_COOKIE, owner_handle)
+    assert_error(client.get("/api/v1/workflows"), 401)
+
+
+def test_workflow_discovery_uses_index_seeks_with_many_revisions(context):
+    from app.services.workflows.revisions import list_workflow_ids
+
+    _, _, engine, _, _ = context
+    first, second = UUID(int=100), UUID(int=200)
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            connection.execute(text(
+                "INSERT INTO workflow_revisions (workflow_id, revision, document, sha256) "
+                "SELECT :id, 'bulk-' || n, '\\x00'::bytea, repeat('0',64) "
+                "FROM generate_series(1, 10000) AS n"
+            ), {"id": first})
+            connection.execute(text(
+                "INSERT INTO workflow_revisions (workflow_id, revision, document, sha256) "
+                "VALUES (:id, 'one', '\\x00'::bytea, repeat('0',64))"
+            ), {"id": second})
+            connection.execute(text("ANALYZE workflow_revisions"))
+            captured = []
+
+            def capture(_conn, _cursor, statement, parameters, _context, _many):
+                captured.append((statement, parameters))
+
+            event.listen(connection, "before_cursor_execute", capture)
+            try:
+                result = list_workflow_ids(connection, after=UUID(int=99), limit=2)
+            finally:
+                event.remove(connection, "before_cursor_execute", capture)
+            assert result == [first, second]
+            assert len(captured) == 1
+            sql, params = captured[0]
+            assert all(word not in sql.upper() for word in ("DISTINCT", "OFFSET", "COUNT("))
+            plan = connection.exec_driver_sql(
+                "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + sql, params
+            ).scalar_one()[0]["Plan"]
+
+            def nodes(node):
+                yield node
+                for child in node.get("Plans", []):
+                    yield from nodes(child)
+
+            scans = [node for node in nodes(plan) if node.get("Index Name") == "workflow_revisions_pkey"]
+            assert len(scans) >= 2, plan
+            assert all("workflow_id >" in node.get("Index Cond", "") for node in scans), plan
+            assert all(node["Actual Rows"] <= 1 for node in scans), plan
+            assert all(node["Actual Loops"] <= 2 for node in scans), plan
+            assert list_workflow_ids(connection, after=UUID(int=(1 << 128) - 1), limit=2) == []
+        finally:
+            transaction.rollback()
 
 
 def test_owner_reads_exact_persisted_revision_document_and_digest(context):

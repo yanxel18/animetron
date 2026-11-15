@@ -22,6 +22,7 @@ from app.services.workflows.revisions import (
     RevisionNotFound,
     get_revision,
     list_revisions,
+    list_workflow_ids,
 )
 
 _ASCII_DECIMAL = re.compile(r"[0-9]+\Z")
@@ -32,6 +33,7 @@ _CURSOR_TIMESTAMP = re.compile(
 _DEFAULT_REVISION_LIMIT = 50
 _MAX_REVISION_LIMIT = 100
 _MAX_CURSOR_LENGTH = 2304
+_MAX_WORKFLOW_CURSOR_LENGTH = 128
 
 
 class RevisionOutput(BaseModel):
@@ -56,6 +58,56 @@ class RevisionListOutput(BaseModel):
 
     data: list[RevisionSummaryOutput]
     next_cursor: str | None = Field(alias="nextCursor")
+
+
+class WorkflowIdOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    workflow_id: UUID = Field(alias="workflowId")
+
+
+class WorkflowIdListOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    data: list[WorkflowIdOutput]
+    next_cursor: str | None = Field(alias="nextCursor")
+
+
+def _encode_workflow_cursor(workflow_id: UUID) -> str:
+    payload = json.dumps(
+        {"after": str(workflow_id), "version": 1}, separators=(",", ":"), sort_keys=True
+    ).encode("ascii")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
+def _parse_workflow_cursor(value: str | None) -> UUID | None:
+    if value is None:
+        return None
+    if (
+        not value
+        or len(value) > _MAX_WORKFLOW_CURSOR_LENGTH
+        or _CURSOR_CHARS.fullmatch(value) is None
+    ):
+        raise AuthDenied("INVALID_REQUEST", 422)
+    try:
+        data = base64.b64decode(
+            value + "=" * (-len(value) % 4), altchars=b"-_", validate=True
+        )
+        payload = json.loads(data.decode("ascii"))
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"after", "version"}
+            or type(payload["version"]) is not int
+            or payload["version"] != 1
+            or not isinstance(payload["after"], str)
+        ):
+            raise ValueError("Invalid cursor")
+        workflow_id = UUID(payload["after"])
+        if _encode_workflow_cursor(workflow_id) != value:
+            raise ValueError("Non-canonical cursor")
+    except (binascii.Error, UnicodeDecodeError, ValueError, RecursionError):
+        raise AuthDenied("INVALID_REQUEST", 422) from None
+    return workflow_id
 
 
 def _parse_revision_limit(value: str | None) -> int:
@@ -148,6 +200,45 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
         if config is None or store is None:
             raise AuthDenied("AUTH_UNAVAILABLE", 503)
         return store
+
+    @router.get("", response_model=WorkflowIdListOutput)
+    def discover_workflows(
+        request: Request,
+        _: Annotated[Principal, Depends(owner)],
+        cursor: Annotated[
+            str | None,
+            Query(
+                description="Opaque exclusive continuation cursor from a prior page.",
+                min_length=1,
+                max_length=_MAX_WORKFLOW_CURSOR_LENGTH,
+                pattern=r"^[A-Za-z0-9_-]+$",
+            ),
+        ] = None,
+        limit: Annotated[
+            str | None,
+            Query(
+                description="ASCII decimal page size, default 50 and bounded to 1..100.",
+                min_length=1,
+                max_length=3,
+                pattern=r"^[0-9]+$",
+            ),
+        ] = None,
+    ) -> WorkflowIdListOutput:
+        names = [name for name, _value in request.query_params.multi_items()]
+        if set(names) - {"cursor", "limit"} or len(names) != len(set(names)):
+            raise AuthDenied("INVALID_REQUEST", 422)
+        page_size = _parse_revision_limit(limit)
+        position = _parse_workflow_cursor(cursor)
+        try:
+            with persistence().transaction() as connection:
+                ids = list_workflow_ids(connection, after=position, limit=page_size + 1)
+        except (RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+        page = ids[:page_size]
+        return WorkflowIdListOutput(
+            data=[WorkflowIdOutput(workflowId=workflow_id) for workflow_id in page],
+            nextCursor=_encode_workflow_cursor(page[-1]) if len(ids) > page_size else None,
+        )
 
     @router.get("/{id}/revisions", response_model=RevisionListOutput)
     def list_workflow_revisions(
