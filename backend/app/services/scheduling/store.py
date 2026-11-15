@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import RFC_4122, UUID
 
-from psycopg import Connection as PsycopgConnection
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -90,6 +89,8 @@ class ScheduleConflict(Exception):
 
 
 def _transaction(connection: Connection) -> None:
+    from psycopg import Connection as PsycopgConnection
+
     driver = connection.connection.driver_connection
     if (
         not connection.in_transaction()

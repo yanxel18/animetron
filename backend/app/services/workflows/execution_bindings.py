@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from psycopg import Connection as PsycopgConnection
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -75,6 +74,8 @@ class ExecutionBindingCorrupt(Exception):
 
 
 def _guard(connection: Connection, workflow_id: UUID, revision: str) -> None:
+    from psycopg import Connection as PsycopgConnection
+
     driver = connection.connection.driver_connection
     if not connection.in_transaction() or not isinstance(driver, PsycopgConnection) or driver.autocommit:
         raise RuntimeError("An explicit non-autocommit psycopg transaction is required")

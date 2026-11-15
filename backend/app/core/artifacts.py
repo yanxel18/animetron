@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from uuid import RFC_4122, UUID
 
-from psycopg import Connection as PsycopgConnection
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
@@ -129,6 +128,8 @@ def save_artifact(
     connection: Connection, record: ArtifactMetadata
 ) -> ArtifactMetadata:
     """Insert or replay identical metadata without committing the transaction."""
+    from psycopg import Connection as PsycopgConnection
+
     driver = connection.connection.driver_connection
     if (
         not connection.in_transaction()

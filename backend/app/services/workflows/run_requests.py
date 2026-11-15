@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import RFC_4122, UUID, uuid4
 
-from psycopg import Connection as PsycopgConnection
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -122,6 +121,8 @@ def request_run(
     expected_sha256: str,
 ) -> RunRequest:
     """Persist/replay one internal request; caller owns transaction and authorization."""
+    from psycopg import Connection as PsycopgConnection
+
     driver = connection.connection.driver_connection
     if (
         not connection.in_transaction()
