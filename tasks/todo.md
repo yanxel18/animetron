@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `d50a8b3` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `42dab5c` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -101,8 +101,10 @@ verification. This checklist remains the only current progress source.
   immutable revision as read-only data, without editing or execution.
 - P7-04e merged in [#67](https://github.com/yanxel18/animetron/pull/67): create schedule
   descriptors without dispatch, preserving uncertain-outcome handling.
-- P6-02d is in review in [#68](https://github.com/yanxel18/animetron/pull/68): internal durable
+- P6-02d merged in [#68](https://github.com/yanxel18/animetron/pull/68): internal durable
   schedule-slot observations, without scheduler dispatch or outcome decisions.
+- P1-10b is in review on `task/p1-10b-sample-nodes`: pure deterministic
+  sample graph evaluation, not persisted or dispatched execution.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -305,6 +307,16 @@ immutable workflow and recover its state without duplicate effects.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
     ([#15](https://github.com/yanxel18/animetron/pull/15); no scheduling or
     dispatch).
+  - [ ] P1-10b Evaluate a bounded deterministic sample graph internally,
+    demonstrating typed fan-out/join and failure/skip behavior without dispatch.
+    Independent review found no required issues; independent QA passed 58
+    focused tests, Ruff and Linux-target mypy. An isolated PostgreSQL-backed
+    regression passed 723 tests with 20 Windows filesystem skips, excluding
+    live OIDC because Python Playwright is missing. Migrations, Ruff and
+    Linux-target whole-app mypy passed. Weakening the upstream-failure guard
+    failed its focused regression; the source was restored and passed.
+    No runtime, handler-pin enforcement,
+    model readiness or production execution is implied.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
@@ -518,7 +530,7 @@ schedule creates at most one run intent per due slot and never grants approval.
     required by P6-03.
 - [ ] P6-02 Implement authorized schedule CRUD, next-occurrence preview,
   durable slots and atomic run-intent/outbox creation.
-  - [ ] P6-02d Persist immutable schedule-slot observations without dispatching
+  - [x] P6-02d Persist immutable schedule-slot observations without dispatching
     runs, recording skip decisions or conferring publication approval.
     Local checks passed: 21 PostgreSQL cases; 712 backend cases with 20 Windows
     filesystem skips, excluding live OIDC collection because Python Playwright
@@ -528,6 +540,8 @@ schedule creates at most one run intent per due slot and never grants approval.
     a temporary owned cache after the harness's `NUL` cache setting failed on
     Windows. Removing the canonical-key check failed its focused regression.
     The ledger does not decide whether a slot is due, skipped or dispatched.
+    Exact-head GitGuardian passed; [#68](https://github.com/yanxel18/animetron/pull/68)
+    merged at `42dab5c`.
   - [x] P6-02c Merged in
     [#47](https://github.com/yanxel18/animetron/pull/47) at
     `f315e9bbb877893d871174d6542355c767c2e80a`: authenticated

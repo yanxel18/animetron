@@ -304,6 +304,42 @@ intents, scheduler/due slots, relay/consumer, handlers, inference or external
 effects. P1-08 handler implementation, configuration-default and model-revision
 pinning remain prerequisites to EXECUTION; a stored request proves none of them.
 
+## Bounded internal P1-10b sample evaluator
+
+`app.services.workflows.sample_evaluator.evaluate_sample_graph(data)` is a
+pure, local demonstration over workflow-document bytes. It uses the existing
+backend-owned document, port and strict config validation and dependency plan.
+Its fixed text-only catalog contains `sample.constant` (configured text
+output), `sample.prefix` (prefix transform), `sample.join` (left/right join,
+default separator `" | "`), and `sample.fail` (deliberate typed failure).
+Handlers receive validated Pydantic config values and text inputs by declared
+port; successful outputs must contain exactly the declared text ports and
+string values.
+
+The evaluator rejects documents over 32,768 bytes and graphs over 32 nodes or
+48 edges. It emits at most 8,192 UTF-8 bytes per output value and 16,384 UTF-8
+bytes across all successful node outputs. Topological ordering uses original
+node declaration order as the tie-break among ready nodes; each node's output
+ports are returned in name order. Invalid documents raise the existing
+`InvalidWorkflowDocument`; invalid or unsupported graphs raise
+`InvalidWorkflowGraph`. `sample.fail` returns a failed node with error code
+`SAMPLE_FAILURE`. An output type or per-value/aggregate output-bound violation
+fails that node with a stable error code and no partial outputs. Any node with
+a failed or skipped predecessor is skipped with `UPSTREAM_FAILED`; independent
+nodes continue. These outcomes are returned in deterministic topological
+order in the frozen `SampleEvaluation(revision, execution_order, nodes)`;
+per-node results contain `node_id`, `status` (`succeeded`, `failed` or
+`skipped`), sorted `(port, text)` output tuples and an optional stable
+`error_code`. Failed and skipped nodes have no outputs. Unexpected programming
+exceptions are not converted into simulated node failures.
+
+This evaluator is not production execution and does not load or verify pinned
+handler artifacts or models. It does not claim model readiness, create runs,
+persist state, dispatch work, start workers, authorize callers, or perform
+external effects. In particular, execution-snapshot handler digests remain
+metadata only here; this sample evaluator is not a consumer of that snapshot
+or a fulfillment of the P1-08 runtime-enforcement prerequisite.
+
 ## Testing and acceptance criteria
 
 1. Reject cycles, dangling/duplicate ids, invalid ports/configs, oversized graphs
