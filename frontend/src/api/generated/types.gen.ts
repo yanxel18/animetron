@@ -417,6 +417,28 @@ export type ReviewScopeInput = {
 export type ReviewState = 'PENDING_DELIVERY' | 'AWAITING_DECISION' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'SUPERSEDED' | 'DELIVERY_FAILED' | 'DELIVERY_UNKNOWN';
 
 /**
+ * RevisionOutput
+ */
+export type RevisionOutput = {
+    /**
+     * Canonicaljson
+     */
+    canonicalJson: string;
+    /**
+     * Revision
+     */
+    revision: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Workflowid
+     */
+    workflowId: string;
+};
+
+/**
  * RunEventOutput
  */
 export type RunEventOutput = {
@@ -1249,3 +1271,53 @@ export type PreviewApiV1SchedulesIdPreviewsPostResponses = {
 };
 
 export type PreviewApiV1SchedulesIdPreviewsPostResponse = PreviewApiV1SchedulesIdPreviewsPostResponses[keyof PreviewApiV1SchedulesIdPreviewsPostResponses];
+
+export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+        /**
+         * Revision
+         */
+        revision: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/revisions/{revision}';
+};
+
+export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetError = ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetErrors[keyof ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetErrors];
+
+export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RevisionOutput;
+};
+
+export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponse = ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses[keyof ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses];

@@ -34,6 +34,32 @@ Run states: QUEUED, RUNNING, WAITING_REVIEW, SUCCEEDED, PARTIAL_FAILURE, FAILED,
 CANCELLING, CANCELLED. Review decisions and publication states are separate
 domain records, not overloaded generation success.
 
+## Owner-only immutable workflow revision read (P1-09b)
+
+`GET /api/v1/workflows/{id}/revisions/{revision}` reads one already-known
+immutable revision through the persisted `get_revision` integrity-checked
+service. It returns exactly
+`{ "workflowId": "<UUID>", "revision": "<revision>",
+"canonicalJson": "<exact stored canonical JSON bytes decoded as ASCII>",
+"sha256": "<lowercase SHA-256 of canonicalJson>" }`. `canonicalJson` preserves
+the exact persisted bytes so callers can independently verify the digest.
+
+The route accepts no query parameters. The workflow ID must parse as a UUID;
+the revision identifier uses the existing validator and is bounded to 1–128
+characters. Malformed identifiers or query parameters return the standard
+generic `422`; unauthenticated or stale sessions return `401`; non-owner
+roles are denied with `403` before revision lookup; an absent revision returns
+`404`. Missing auth/database configuration, database failures, and revision
+integrity failures fail closed with the standard generic `503` envelope;
+responses never expose stored content or internal failure details on errors.
+Successful and error responses retain the shared security headers and
+`Cache-Control: no-store`; the route reuses the fresh-session and exact-origin
+owner dependency.
+
+This is a read of one addressed revision only. It adds no workflow create,
+list, update, delete, validation, execution, scheduling, model, or publishing
+behavior, and does not claim workflow editing is available.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run
