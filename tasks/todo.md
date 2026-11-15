@@ -1,9 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `e5c9456` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `ac10dd0` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
-#56 reconciled progress documentation and #57 merged read-only run monitoring.
+#56 reconciled progress documentation, #57 merged read-only run monitoring,
+and #58 merged the read-only schedule list.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -75,9 +76,12 @@ verification. This checklist remains the only current progress source.
 - P7-03a merged in [#57](https://github.com/yanxel18/animetron/pull/57).
   This read-only, run-ID-based monitor uses persisted status and event-replay
   endpoints; it does not create or cancel runs or invent progress.
-- P7-04b is in review in [#58](https://github.com/yanxel18/animetron/pull/58):
+- P7-04b merged in [#58](https://github.com/yanxel18/animetron/pull/58):
   a read-only owner-only schedule list using the existing authenticated
-  descriptor API. Create, edit, preview and dispatch are outside this slice.
+  descriptor API. Create, edit, preview and dispatch were outside that slice.
+- P7-04c is in review in [#59](https://github.com/yanxel18/animetron/pull/59):
+  preview the next five occurrences of an existing schedule without saving or
+  dispatching.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -558,7 +562,7 @@ accessibility checks pass, not merely when mock screens exist.
     branch and reached master in #54. Unit, production-build, API-drift and
     seven Chromium checks passed.
     See [P7-04a report](p7-04a-review-queue-report.md).
-  - [ ] P7-04b Show owner-only saved schedule descriptors with truthful
+  - [x] P7-04b Show owner-only saved schedule descriptors with truthful
     loading, empty, error and pagination states. Use the existing P6-02c API,
     explain that dispatch is not implemented, and expose no mutation controls.
     Verify authorized and error states, pagination, responsive layout, keyboard
@@ -567,8 +571,22 @@ accessibility checks pass, not merely when mock screens exist.
     drift check and nine fixture-backed Chromium cases, including four viewport
     widths and skip-link focus. Live authenticated backend and assistive
     technology remain unverified. Independent source review found no significant
-    issues; it did not independently run tests. [#58](https://github.com/yanxel18/animetron/pull/58)
-    remains in review pending exact-head checks and merge.
+    issues; it did not independently run tests. Exact-head GitGuardian passed
+    and [#58](https://github.com/yanxel18/animetron/pull/58) merged normally
+    at `ac10dd023eb492aa35ac37299ec287d60bb8dbdd`.
+  - [ ] P7-04c Preview the next five server-calculated occurrences for a saved
+    schedule via the existing owner-only, CSRF-protected P6-02c API. Display
+    offset-bearing local times and UTC due times with truthful loading and
+    errors; do not save, edit, dispatch or imply execution. Verify authorization,
+    CSRF handling, response validation, keyboard and responsive behavior.
+    Local checks: 39 frontend tests, production build, API drift check and ten
+    fixture-backed Chromium cases passed. Independent review identified a
+    non-UTC value mislabeled as UTC and missing preview-completion announcement;
+    both were reproduced and fixed, then independently re-reviewed. Removing
+    the UTC guard caused the regression test to fail. Browser checks do not
+    establish live authenticated backend or assistive-technology behavior.
+    [#59](https://github.com/yanxel18/animetron/pull/59) remains unchecked
+    pending exact-head checks and merge.
 - [ ] P7-05 Test keyboard and non-drag alternatives, focus, announcements,
   200% zoom, reduced motion and 375/768/1024/1440px layouts.
   - [x] P7-05a Merged in

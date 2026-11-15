@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { DescriptorOutput } from "../api/generated";
 import {
@@ -6,6 +6,7 @@ import {
   ScheduleListError,
   scheduleErrorMessage,
 } from "../api/schedules";
+import { SchedulePreview } from "./SchedulePreview";
 
 function formatUtc(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -24,9 +25,11 @@ export function ScheduleList() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const activeRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
+    activeRequest.current = controller;
     setLoading(true);
     setError(null);
     if (request.cursor === null) {
@@ -70,6 +73,14 @@ export function ScheduleList() {
     }));
   }
 
+  function accessDenied(requestError: ScheduleListError) {
+    activeRequest.current?.abort();
+    setLoading(false);
+    setSchedules([]);
+    setNextCursor(null);
+    setError(requestError);
+  }
+
   return (
     <section id="schedules" className="review-queue" aria-labelledby="schedule-list-title" aria-busy={loading}>
       <header className="page-heading">
@@ -83,8 +94,7 @@ export function ScheduleList() {
       </header>
       <p className="review-blocked-note" role="note">
         Scheduler dispatch is not implemented. Saved settings do not guarantee
-        that a run will start. Creating, editing and previewing schedules are
-        unavailable here.
+        that a run will start. Creating and editing schedules are unavailable here.
       </p>
       {loading && <p role="status">Loading saved schedules...</p>}
       {error !== null && (
@@ -128,6 +138,7 @@ export function ScheduleList() {
                   </div>
                   <div><dt>Overlap and missed runs</dt><dd>Skip</dd></div>
                 </dl>
+                <SchedulePreview id={schedule.id} onAccessDenied={accessDenied} />
               </article>
             </li>
           ))}

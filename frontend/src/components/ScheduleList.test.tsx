@@ -87,4 +87,34 @@ describe("saved schedules", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/owner access/i);
     expect(screen.queryByText(items[0]!.id)).not.toBeInTheDocument();
   });
+
+  it("previews five local and UTC times without changing the saved schedule", async () => {
+    const user = userEvent.setup();
+    const occurrences = Array.from({ length: 5 }, (_, index) => ({
+      localTime: `2026-11-${16 + index}T09:00:00+09:00`,
+      dueAt: `2026-11-${16 + index}T00:00:00Z`,
+      slotKey: `Asia/Tokyo:2026-11-${16 + index}T09:00`,
+    }));
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({ role: "owner", csrfToken: "test-csrf" }))
+      .mockResolvedValueOnce(response({ occurrences })));
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Preview next five for schedule ${id}` }));
+    expect(await screen.findByText("2026-11-16T09:00:00+09:00")).toBeInTheDocument();
+    expect(screen.getByText("2026-11-16T00:00:00Z")).toBeInTheDocument();
+    expect(screen.getByText(/preview does not start a run/i)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/preview ready/i);
+  });
+
+  it("removes displayed schedules if preview authorization is lost", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(response({ data: [schedule], nextCursor: null }))
+      .mockResolvedValueOnce(response({}, 401)));
+    render(<ScheduleList />);
+    await user.click(await screen.findByRole("button", { name: `Preview next five for schedule ${id}` }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/sign in/i);
+    expect(screen.queryByText(id)).not.toBeInTheDocument();
+  });
 });
