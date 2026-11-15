@@ -1,11 +1,12 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `7c189e8` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `c7bc998` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #61 merged Chromium coverage for schedule-conflict focus recovery.
+#62 merged owner-only reads of known immutable workflow revisions.
 The historical #33 scanner failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
@@ -86,8 +87,10 @@ verification. This checklist remains the only current progress source.
   version-checked owner-only pause/resume, without scheduler dispatch.
 - P7-05b merged in [#61](https://github.com/yanxel18/animetron/pull/61):
   verify schedule conflict-recovery focus in Chromium with delayed responses.
-- P1-09b is in review in [#62](https://github.com/yanxel18/animetron/pull/62):
+- P1-09b merged in [#62](https://github.com/yanxel18/animetron/pull/62):
   owner-only reading of an already-known immutable workflow revision.
+- P1-09c is in progress on `task/p1-09c-workflow-revision-list`: bounded
+  discovery of revisions for a known workflow ID.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -226,17 +229,29 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09b Add owner-only read of a known persisted immutable workflow
+  - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
-    No write, list, editing or execution authority is added. In review in
+    No write, list, editing or execution authority is added. Merged in
     [#62](https://github.com/yanxel18/animetron/pull/62): 17 focused cases passed against an
     isolated PostgreSQL instance; 637 backend cases passed with 20 Windows
     skips, excluding the live OIDC test module because the Python Playwright
     package is missing. Migrations, Ruff, Linux-target mypy, frontend build and
     API type drift checks passed. Independent review and offline QA found no
     significant issues. An owner-guard mutation failed its focused regression
-    and was restored. The live OIDC module and full workflow UI remain unverified.
+    and was restored. Exact-head GitGuardian passed; merged at `c7bc998`.
+    The live OIDC module and full workflow UI remain unverified.
+  - [ ] P1-09c List immutable revisions for a known workflow ID with bounded
+    owner-only pagination. This does not discover workflow IDs, edit workflows,
+    validate execution readiness or dispatch work. The separate query lookup
+    reads identifiers containing path separators or dot segments without changing
+    the existing path lookup. In progress: 664 backend tests passed using an
+    isolated PostgreSQL instance, with 20 Windows skips; the live OIDC module was
+    excluded because Python Playwright is missing. Ruff, Linux-target mypy,
+    migration checks, API type drift and frontend build passed. A maximal
+    Unicode cursor failed before its bound was corrected; a listed slash ID
+    exposed the path-lookup limitation and the query lookup now covers it.
+    Independent review found no remaining required issues after correction.
   - [x] P1-09a Merged in
     [#48](https://github.com/yanxel18/animetron/pull/48) at
     `d5f7f43e3ccaafdc2f4b24dc294633158c29bf69`: internal

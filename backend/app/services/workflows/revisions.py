@@ -1,18 +1,23 @@
 import hashlib
 import json
 from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import (
     Column,
     DateTime,
+    Index,
     LargeBinary,
     MetaData,
     String,
     Table,
     Uuid,
     func,
+    literal,
     select,
+    tuple_,
 )
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import Connection
@@ -33,6 +38,24 @@ revisions = Table(
         "created_at", DateTime(timezone=True), nullable=False, server_default=func.now()
     ),
 )
+Index(
+    "ix_workflow_revisions_list_cursor",
+    revisions.c.workflow_id,
+    revisions.c.created_at,
+    revisions.c.revision,
+)
+
+
+@dataclass(frozen=True)
+class RevisionCursor:
+    created_at: datetime
+    revision: str
+
+
+@dataclass(frozen=True)
+class WorkflowRevisionSummary:
+    revision: str
+    created_at: datetime
 
 
 class RevisionNotFound(LookupError):
@@ -45,6 +68,67 @@ class RevisionConflict(Exception):
 
 class RevisionCorrupt(Exception):
     pass
+
+
+def list_revisions(
+    connection: Connection,
+    workflow_id: UUID,
+    *,
+    after: RevisionCursor | None,
+    limit: int,
+) -> list[WorkflowRevisionSummary]:
+    if type(limit) is not int or not 1 <= limit <= 101:
+        raise ValueError("Revision page limit is invalid")
+    if after is not None:
+        if (
+            after.created_at.tzinfo is None
+            or after.created_at.utcoffset() is None
+        ):
+            raise ValueError("Revision cursor timestamp must be timezone-aware")
+        validate_revision_identifier(after.revision)
+        position = tuple_(
+            revisions.c.created_at,
+            revisions.c.revision,
+        ) < tuple_(
+            literal(after.created_at, type_=DateTime(timezone=True)),
+            literal(after.revision, type_=String(128)),
+        )
+    else:
+        position = None
+
+    statement = select(
+        revisions.c.revision,
+        revisions.c.created_at,
+    ).where(revisions.c.workflow_id == workflow_id)
+    if position is not None:
+        statement = statement.where(position)
+    rows = connection.execute(
+        statement.order_by(
+            revisions.c.created_at.desc(),
+            revisions.c.revision.desc(),
+        ).limit(limit)
+    )
+
+    summaries: list[WorkflowRevisionSummary] = []
+    for row in rows:
+        if (
+            not isinstance(row.revision, str)
+            or not isinstance(row.created_at, datetime)
+            or row.created_at.tzinfo is None
+            or row.created_at.utcoffset() is None
+        ):
+            raise RevisionCorrupt("Workflow revision metadata is invalid")
+        try:
+            validate_revision_identifier(row.revision)
+        except ValueError:
+            raise RevisionCorrupt("Workflow revision metadata is invalid") from None
+        summaries.append(
+            WorkflowRevisionSummary(
+                revision=row.revision,
+                created_at=row.created_at.astimezone(UTC),
+            )
+        )
+    return summaries
 
 
 def get_revision(

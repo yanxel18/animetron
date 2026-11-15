@@ -20,6 +20,7 @@ from app.main import SecurityHeaders, create_api
 from app.services.workflows.revisions import (
     RevisionCorrupt,
     RevisionNotFound,
+    WorkflowRevisionSummary,
     revisions,
     save_revision,
 )
@@ -174,6 +175,283 @@ def test_owner_reads_exact_persisted_revision_document_and_digest(context):
     ).hexdigest() == response.json()["sha256"]
 
 
+def test_owner_lists_persisted_revisions_in_stable_bounded_pages(context):
+    client, _, engine, _, _ = context
+    workflow_id = uuid4()
+    with engine.begin() as connection:
+        for revision in ("rev-a", "rev-m", "rev-z"):
+            save_revision(
+                connection,
+                workflow_id,
+                workflow_document(revision),
+                DEFINITIONS,
+                LIMITS,
+                max_bytes=4096,
+            )
+
+    first = client.get(
+        f"/api/v1/workflows/{workflow_id}/revisions?limit=2"
+    )
+
+    assert first.status_code == 200, first.text
+    assert first.headers["cache-control"] == "no-store"
+    first_page = first.json()
+    assert set(first_page) == {"data", "nextCursor"}
+    assert [item["revision"] for item in first_page["data"]] == ["rev-z", "rev-m"]
+    assert first_page["nextCursor"] is not None
+    assert all(
+        set(item) == {"workflowId", "revision", "createdAt"}
+        and item["workflowId"] == str(workflow_id)
+        and item["createdAt"].endswith("Z")
+        for item in first_page["data"]
+    )
+
+    second = client.get(
+        f"/api/v1/workflows/{workflow_id}/revisions",
+        params={"cursor": first_page["nextCursor"], "limit": 2},
+    )
+
+    assert second.status_code == 200, second.text
+    second_page = second.json()
+    assert [item["revision"] for item in second_page["data"]] == ["rev-a"]
+    assert second_page["nextCursor"] is None
+
+
+@pytest.mark.parametrize("revision", ["team/rev", "..", "\U0001f600" * 128])
+def test_listed_revision_can_be_read_by_query(context, revision):
+    client, _, engine, _, _ = context
+    workflow_id = uuid4()
+    snapshot = save_workflow_revision(engine, workflow_id, revision)
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    listed = client.get(path)
+    assert listed.status_code == 200
+    assert listed.json()["data"][0]["revision"] == snapshot.revision
+    response = client.get(
+        f"/api/v1/workflows/{workflow_id}/revision",
+        params={"revision": revision},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["revision"] == snapshot.revision
+
+
+@pytest.mark.parametrize(
+    "query", ["", "?revision=", "?revision=one&revision=two", "?revision=one&extra=1"]
+)
+def test_revision_query_lookup_rejects_missing_or_ambiguous_input(offline_context, query):
+    client, _ = offline_context
+    response = client.get(f"/api/v1/workflows/{uuid4()}/revision{query}")
+    assert_error(response, 422)
+
+
+def test_revision_query_lookup_denies_non_owner_before_read(offline_context, monkeypatch):
+    client, _ = offline_context
+    monkeypatch.setattr(
+        "app.api.workflows.get_revision",
+        lambda *_args, **_kwargs: pytest.fail("unauthorized revision lookup"),
+    )
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+    response = client.get(
+        f"/api/v1/workflows/{uuid4()}/revision", params={"revision": "team/rev"}
+    )
+    assert_error(response, 403)
+
+
+def test_revision_cursor_round_trips_maximum_unicode_identifier(context):
+    client, _, engine, _, _ = context
+    workflow_id = uuid4()
+    long_revision = "\U0001f600" * 128
+    with engine.begin() as connection:
+        for revision in ("earlier", long_revision):
+            save_revision(
+                connection,
+                workflow_id,
+                workflow_document(revision),
+                DEFINITIONS,
+                LIMITS,
+                max_bytes=4096,
+            )
+        connection.execute(
+            update(revisions)
+            .where(
+                revisions.c.workflow_id == workflow_id,
+                revisions.c.revision == long_revision,
+            )
+            .values(created_at=datetime(2030, 1, 1, tzinfo=UTC))
+        )
+
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    first = client.get(path, params={"limit": 1})
+    assert first.status_code == 200, first.text
+    assert first.json()["data"][0]["revision"] == long_revision
+    cursor = first.json()["nextCursor"]
+    assert cursor is not None
+    second = client.get(path, params={"cursor": cursor, "limit": 1})
+    assert second.status_code == 200, second.text
+    assert [item["revision"] for item in second.json()["data"]] == ["earlier"]
+
+
+def test_revision_cursor_traversal_does_not_repeat_rows_after_concurrent_insert(context):
+    client, _, engine, _, _ = context
+    workflow_id = uuid4()
+    with engine.begin() as connection:
+        for revision in ("rev-a", "rev-b", "rev-c", "rev-d"):
+            save_revision(
+                connection,
+                workflow_id,
+                workflow_document(revision),
+                DEFINITIONS,
+                LIMITS,
+                max_bytes=4096,
+            )
+
+    first = client.get(
+        f"/api/v1/workflows/{workflow_id}/revisions?limit=2"
+    )
+    assert first.status_code == 200, first.text
+    first_page = first.json()
+
+    save_workflow_revision(engine, workflow_id, "rev-new")
+
+    second = client.get(
+        f"/api/v1/workflows/{workflow_id}/revisions",
+        params={"cursor": first_page["nextCursor"], "limit": 2},
+    )
+    assert second.status_code == 200, second.text
+    visited = [
+        item["revision"]
+        for item in first_page["data"] + second.json()["data"]
+    ]
+    assert visited == ["rev-d", "rev-c", "rev-b", "rev-a"]
+    assert len(visited) == len(set(visited))
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "?unexpected=1",
+        "?limit=1&limit=2",
+        "?cursor=bad",
+        "?limit=",
+        "?limit=0",
+        "?limit=101",
+        "?limit=0001",
+        "?limit=%2B1",
+        "?limit=1.0",
+    ],
+)
+def test_revision_list_rejects_malformed_or_repeated_query_parameters(
+    offline_context, query
+):
+    client, _ = offline_context
+
+    response = client.get(f"/api/v1/workflows/{uuid4()}/revisions{query}")
+
+    assert_error(response, 422)
+
+
+def test_revision_list_accepts_bounded_leading_zero_limit_and_empty_page(
+    offline_context, monkeypatch
+):
+    client, _ = offline_context
+    monkeypatch.setattr(
+        "app.api.workflows.list_revisions",
+        lambda *_args, **_kwargs: [],
+        raising=False,
+    )
+
+    response = client.get(
+        f"/api/v1/workflows/{uuid4()}/revisions?limit=001"
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"data": [], "nextCursor": None}
+
+
+def test_revision_list_rejects_cursor_bound_to_another_workflow(
+    offline_context, monkeypatch
+):
+    client, _ = offline_context
+    workflow_id = uuid4()
+    monkeypatch.setattr(
+        "app.api.workflows.list_revisions",
+        lambda *_args, **_kwargs: [
+            WorkflowRevisionSummary(
+                revision="rev-b",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+            WorkflowRevisionSummary(
+                revision="rev-a",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        ],
+    )
+    first = client.get(
+        f"/api/v1/workflows/{workflow_id}/revisions?limit=1"
+    )
+    assert first.status_code == 200, first.text
+    cursor = first.json()["nextCursor"]
+
+    response = client.get(
+        f"/api/v1/workflows/{uuid4()}/revisions",
+        params={"cursor": cursor},
+    )
+
+    assert_error(response, 422)
+
+
+def test_non_owner_is_denied_before_revision_list_lookup(
+    offline_context, monkeypatch
+):
+    client, _ = offline_context
+
+    def forbidden_lookup(*_args, **_kwargs):
+        pytest.fail("revision list lookup occurred before owner authorization")
+
+    monkeypatch.setattr(
+        "app.api.workflows.list_revisions", forbidden_lookup, raising=False
+    )
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+
+    response = client.get(
+        f"/api/v1/workflows/{uuid4()}/revisions"
+    )
+
+    assert_error(response, 403)
+
+
+def test_revision_list_database_failure_uses_generic_error(offline_context):
+    client, store = offline_context
+    store.transaction_error = RuntimeError("private connection information")
+
+    response = client.get(
+        f"/api/v1/workflows/{uuid4()}/revisions"
+    )
+
+    assert_error(response, 503)
+    assert "private connection information" not in response.text
+
+
+def test_corrupt_revision_identifier_fails_closed_without_exposure(context):
+    client, _, engine, _, _ = context
+    workflow_id = uuid4()
+    snapshot = save_workflow_revision(engine, workflow_id)
+    with engine.begin() as connection:
+        connection.execute(
+            update(revisions)
+            .where(
+                revisions.c.workflow_id == workflow_id,
+                revisions.c.revision == snapshot.revision,
+            )
+            .values(revision=" ")
+        )
+
+    response = client.get(f"/api/v1/workflows/{workflow_id}/revisions")
+
+    assert_error(response, 503)
+    assert "private" not in response.text
+    assert '"revision":" "' not in response.text
+
+
 @pytest.mark.parametrize("role,subject", [
     ("operator", "workflow-operator"),
     ("viewer", "workflow-viewer"),
@@ -267,8 +545,9 @@ def test_offline_boundary_rejects_bad_identifiers_queries_and_origins(
         (RevisionCorrupt("private stored content"), 503),
     ],
 )
+@pytest.mark.parametrize("lookup", ["path", "query"])
 def test_offline_revision_failures_use_generic_error_envelopes(
-    offline_context, monkeypatch, failure, status
+    offline_context, monkeypatch, failure, status, lookup
 ):
     client, _ = offline_context
 
@@ -276,9 +555,13 @@ def test_offline_revision_failures_use_generic_error_envelopes(
         raise failure
 
     monkeypatch.setattr("app.api.workflows.get_revision", fail_lookup)
-    response = client.get(
-        f"/api/v1/workflows/{uuid4()}/revisions/rev-1"
+    workflow_id = uuid4()
+    path = (
+        f"/api/v1/workflows/{workflow_id}/revisions/rev-1"
+        if lookup == "path"
+        else f"/api/v1/workflows/{workflow_id}/revision?revision=rev-1"
     )
+    response = client.get(path)
 
     assert_error(response, status)
     assert "private stored content" not in response.text
