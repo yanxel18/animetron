@@ -39,8 +39,8 @@ describe("saved schedules", () => {
     expect(await screen.findByText("0 9 * * *")).toBeInTheDocument();
     expect(screen.getByText("Asia/Tokyo")).toBeInTheDocument();
     expect(screen.getByText(/dispatch is not implemented/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /create|edit/i }))
-      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create schedule" }))
+      .toHaveAttribute("aria-expanded", "false");
   });
 
   it("shows a real empty state", async () => {

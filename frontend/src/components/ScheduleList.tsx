@@ -7,6 +7,7 @@ import {
   scheduleErrorMessage,
   setScheduleEnabled,
 } from "../api/schedules";
+import { ScheduleCreateForm } from "./ScheduleCreateForm";
 import { SchedulePreview } from "./SchedulePreview";
 
 function formatUtc(value: string) {
@@ -29,15 +30,17 @@ export function ScheduleList() {
   const activeRequest = useRef<AbortController | null>(null);
   const activeUpdate = useRef<AbortController | null>(null);
   const scheduleList = useRef<HTMLUListElement | null>(null);
+  const createArea = useRef<HTMLDivElement | null>(null);
   const recoveryButton = useRef<HTMLButtonElement | null>(null);
   const focusRecovery = useRef(false);
   const [updating, setUpdating] = useState(false);
   const [updateFailed, setUpdateFailed] = useState(false);
   const [updateStatus, setUpdateStatus] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => () => activeUpdate.current?.abort(), []);
   useEffect(() => {
-    if (updateFailed && error !== null && focusRecovery.current) {
+    if (error !== null && focusRecovery.current) {
       recoveryButton.current?.focus();
       focusRecovery.current = false;
     }
@@ -97,6 +100,9 @@ export function ScheduleList() {
         Boolean(scheduleList.current?.contains(document.activeElement));
       setUpdateFailed(true);
     }
+    focusRecovery.current = document.activeElement === document.body ||
+      Boolean(scheduleList.current?.contains(document.activeElement)) ||
+      Boolean(createArea.current?.contains(document.activeElement));
     activeUpdate.current?.abort();
     activeUpdate.current = null;
     setUpdating(false);
@@ -104,6 +110,7 @@ export function ScheduleList() {
     setLoading(false);
     setSchedules([]);
     setNextCursor(null);
+    setCreateOpen(false);
     setError(requestError);
   }
 
@@ -137,6 +144,10 @@ export function ScheduleList() {
     }
   }
 
+  function refreshFirstPage() {
+    setRequest((current) => ({ cursor: null, attempt: current.attempt + 1 }));
+  }
+
   return (
     <section id="schedules" className="review-queue" aria-labelledby="schedule-list-title" aria-busy={loading}>
       <header className="page-heading">
@@ -150,7 +161,7 @@ export function ScheduleList() {
       </header>
       <p className="review-blocked-note" role="note">
         Scheduler dispatch is not implemented. Saved settings do not guarantee
-        that a run will start. Creating and editing schedule details are unavailable here.
+        that a run will start, and saved schedules will not run automatically. Editing details is unavailable here.
       </p>
       <p className="visually-hidden" role="status">{updateStatus}</p>
       {loading && <p role="status">Loading saved schedules...</p>}
@@ -166,6 +177,26 @@ export function ScheduleList() {
           <button ref={recoveryButton} className="button button--secondary" type="button" onClick={retry}>
             {updateFailed ? "Refresh schedules" : "Retry"}
           </button>
+        </div>
+      )}
+      {error === null && (!loading || createOpen) && (
+        <div ref={createArea} className="schedule-create-entry">
+          <button
+            className="button button--primary"
+            type="button"
+            aria-expanded={createOpen}
+            aria-controls="schedule-create-form"
+            onClick={() => setCreateOpen((open) => !open)}
+          >
+            {createOpen ? "Close creation form" : "Create schedule"}
+          </button>
+          {createOpen && (
+            <ScheduleCreateForm
+              onCreated={() => refreshFirstPage()}
+              onAuthorizationLost={accessDenied}
+              onRefresh={refreshFirstPage}
+            />
+          )}
         </div>
       )}
       {!loading && error === null && schedules.length === 0 && (

@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `5f2e981` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `f0e610b` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -97,8 +97,10 @@ verification. This checklist remains the only current progress source.
   IDs with persisted revisions without inventing draft or readiness data.
 - P7-02a merged in [#65](https://github.com/yanxel18/animetron/pull/65):
   a read-only workflow and revision browser, without editing or execution.
-- P7-02b is in review in [#66](https://github.com/yanxel18/animetron/pull/66): inspect an
+- P7-02b merged in [#66](https://github.com/yanxel18/animetron/pull/66): inspect an
   immutable revision as read-only data, without editing or execution.
+- P7-04e is in review on `task/p7-04e-schedule-create`: create schedule
+  descriptors without dispatch, preserving uncertain-outcome handling.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -606,7 +608,7 @@ accessibility checks pass, not merely when mock screens exist.
     Live authenticated backend and screen-reader testing remain unverified.
     Exact-head GitGuardian passed; [#65](https://github.com/yanxel18/animetron/pull/65)
     merged at `5f2e981`.
-  - [ ] P7-02b Inspect exact canonical JSON and digest of a selected immutable
+  - [x] P7-02b Inspect exact canonical JSON and digest of a selected immutable
     revision through the authorized query lookup, without editing or execution.
     Local checks passed: 81 frontend tests, production build, API drift check and
     18 fixture-backed Chromium cases. Independent source review found no
@@ -616,6 +618,8 @@ accessibility checks pass, not merely when mock screens exist.
     was restored and that regression passed.
     The digest is displayed as returned, not independently verified. Live
     authenticated backend and screen-reader testing remain unverified.
+    Exact-head GitGuardian passed; [#66](https://github.com/yanxel18/animetron/pull/66)
+    merged at `f0e610b`.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
@@ -634,6 +638,21 @@ accessibility checks pass, not merely when mock screens exist.
     remain unverified.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
+  - [ ] P7-04e Create schedule descriptors from persisted workflows and
+    revisions. Preserve explicit non-idempotent uncertainty and do not imply
+    dispatch or execution.
+    Local checks passed: 113 frontend tests, production build and API drift;
+    15 fixture-backed Chromium cases passed before a revision-validation
+    correction. Independent review found no remaining required issues after
+    correction. Independent QA passed 38 focused tests, build, drift and two
+    Chromium cases before correction; correction QA passed 67 focused tests and
+    compared 40 values against the backend validator. Disabling the uncertainty
+    acknowledgement guard failed its regression; source was restored and passed.
+    The pending-attempt marker
+    is browser-profile/origin scoped and cannot survive cleared storage or
+    coordinate across devices. A matching descriptor cannot prove an uncertain
+    attempt succeeded. Live authenticated backend and screen-reader testing
+    remain unverified.
   - [x] P7-04a Add the owner-only review metadata queue with truthful loading,
     empty, error and pagination states. Keep decisions unavailable until the
     exact artifact and caption can be previewed; depends on P7-01b API types.
