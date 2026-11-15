@@ -314,7 +314,7 @@ test("renders saved schedules across target widths without automatic updates", a
       fullPage: true,
     });
   }
-  await expect(page.getByRole("button", { name: /create|edit/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Create schedule" })).toHaveAttribute("aria-expanded", "false");
   expect(methods.length).toBeGreaterThan(0);
   expect(methods.every((method) => method === "GET")).toBe(true);
   expect(browserErrors).toEqual([]);

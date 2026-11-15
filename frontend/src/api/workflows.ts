@@ -42,7 +42,7 @@ function pageUrl(path: string, cursor: string | null, max: number): string {
   return `${path}?${query}`;
 }
 
-function revisionValid(value: string): boolean {
+export function revisionValid(value: string): boolean {
   const points = Array.from(value);
   return points.length > 0 && points.length <= 128 &&
     !/^[\u0009-\u000d\u001c-\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*$/u.test(value) && !value.includes("\0") &&
