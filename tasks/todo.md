@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `42dab5c` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `391ecd9` on 2026-11-15. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -103,8 +103,10 @@ verification. This checklist remains the only current progress source.
   descriptors without dispatch, preserving uncertain-outcome handling.
 - P6-02d merged in [#68](https://github.com/yanxel18/animetron/pull/68): internal durable
   schedule-slot observations, without scheduler dispatch or outcome decisions.
-- P1-10b is in review in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
+- P1-10b merged in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
+- P1-09e draft persistence was investigated but not implemented before the
+  2026-11-15 stop request; it remains pending.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -243,6 +245,8 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
+  - [ ] P1-09e Internal mutable draft persistence was investigated only; no
+    implementation or checks were performed before the stop request.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
@@ -307,7 +311,7 @@ immutable workflow and recover its state without duplicate effects.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
     ([#15](https://github.com/yanxel18/animetron/pull/15); no scheduling or
     dispatch).
-  - [ ] P1-10b Evaluate a bounded deterministic sample graph internally,
+  - [x] P1-10b Evaluate a bounded deterministic sample graph internally,
     demonstrating typed fan-out/join and failure/skip behavior without dispatch.
     Independent review found no required issues; independent QA passed 58
     focused tests, Ruff and Linux-target mypy. An isolated PostgreSQL-backed
@@ -317,6 +321,8 @@ immutable workflow and recover its state without duplicate effects.
     failed its focused regression; the source was restored and passed.
     No runtime, handler-pin enforcement,
     model readiness or production execution is implied.
+    Exact-head GitGuardian passed; [#69](https://github.com/yanxel18/animetron/pull/69)
+    merged at `391ecd9`.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
