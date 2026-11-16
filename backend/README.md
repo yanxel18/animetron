@@ -135,6 +135,18 @@ P1-08 implementation/default/model pinning remains an EXECUTION prerequisite.
 Privileged SQL tampering is outside the trust boundary. See the
 [internal contract](../docs/SPEC-workflow-runtime.md#bounded-internal-p1-09a-contract).
 
+### Internal mutable workflow drafts (P1-09e)
+
+`app.services.workflows.drafts` stores one bounded UTF-8 draft per workflow ID,
+preserving exact bytes without parsing or validating the document. `save_draft`
+creates a draft when `expected_version` is `None`, or replaces it only when the
+supplied version matches; every update increments that version. `get_draft`
+returns the stored bytes and version. Both operations are internal persistence
+only: they add no HTTP/authorization, workflow validation, immutable revision,
+readiness, execution, or external-effect behavior. Writes require a caller-owned
+transaction. The migration downgrade removes all draft data and requires
+authorization/recovery planning for populated databases.
+
 The internal transactional outbox stores intent IDs, topics, and resource IDs
 in a caller-managed transaction. Claims use expiring database leases and a
 token to reject stale acknowledgements. This is storage infrastructure only:
