@@ -206,10 +206,12 @@ have the security and recovery guarantees below.
     byte/metadata atomicity or automatic orphan recovery).
   - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
     byte inventories without changing either store.
-    Implemented on branch `task/p0-07c-artifact-reconciliation`; no PR is
-    available yet. The PR-creation API and GitHub CLI are unavailable here, so
-    this remains unchecked pending an independently reviewed, verified PR and
-    merge ([compare with master](https://github.com/yanxel18/animetron/compare/master...task/p0-07c-artifact-reconciliation)).
+    Implemented in pushed commit `a25fd7f` on branch
+    `task/p0-07c-artifact-reconciliation`. No PR was created because the
+    available GitHub tools have no PR-creation operation and the GitHub CLI is
+    unavailable; use [the PR creation page](https://github.com/yanxel18/animetron/pull/new/task/p0-07c-artifact-reconciliation).
+    This remains unchecked pending an independently reviewed, verified PR and
+    merge.
     Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
     byte-store tests (26 passed), backend suite outside owner-gated auth tests
     (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The owned
