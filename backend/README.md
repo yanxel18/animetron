@@ -295,16 +295,28 @@ A process crash before linking leaves an unused pending file; a crash between
 linking and unlinking leaves two names for one inode, which reads reject. After
 unlinking, a complete file can be read using trusted expectations. No pending
 files are swept at startup, and no published files are deleted on failure.
-Offline, explicitly authorized reconciliation must identify exact pending names,
-verify UID/mode and inode/link relationships plus trusted hashes, and stop writers
-before cleanup; it is **not implemented** here. Process-crash tests do not certify
-power-loss durability; durability depends on local filesystem/device sync behavior.
+`audit_artifacts(connection, store, max_total_bytes=..., max_entries=...)` provides
+a bounded, report-only offline comparison. It reports consistent, missing,
+orphaned, corrupt, unsafe and invalid metadata IDs, exact safe/unsafe pending
+names, and a count of unexpected directory entries. It checks private file
+ownership/mode and single-link status, hashes valid artifact files, and returns
+no content or storage paths. Entry/byte limit exhaustion fails without a partial
+report; at most `max_entries + 1` names are enumerated to detect entry overflow.
+Stop **all** metadata and byte writers before calling it: the database
+transaction cannot make filesystem and metadata reads atomic. The audit never
+changes either store, deletes or repairs files, authorizes access, or makes an
+artifact usable. Pending bytes have no trusted digest and must not be adopted.
+It is not a cleanup or recovery operation. Focused metadata checks:
+`python -m pytest tests/test_artifacts.py -q -p no:cacheprovider`.
+Process-crash tests do not certify power-loss durability; durability depends on
+local filesystem/device sync behavior.
 
 Byte publication and metadata commit are **not atomic**: DB rollback/crash can
-leave orphan bytes. No recovery/retention, coordinated backup, encryption, media
-signature/probing validation or readiness certification is supplied. Hashes detect
-corruption, not malicious edits to both bytes and metadata. Callers must validate
-media and enforce access policy before making artifacts usable.
+leave orphan bytes. This report does not supply automatic recovery, retention,
+coordinated backup, encryption, media signature/probing validation or readiness
+certification. Hashes detect corruption, not malicious edits to both bytes and
+metadata. Callers must validate media and enforce access policy before making
+artifacts usable.
 
 Dependency-free Linux tests use the existing `python:3.12-slim` image, read-only
 code, no network, a fresh private named volume and service UID 10001. From this
