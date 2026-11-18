@@ -278,15 +278,14 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   recorded and the combined status is pending; keep it unchecked.
   Full P1-12 end-to-end verification still requires the workflow dispatch
   consumer/worker, which is not present in the current backend.
-- P0-07d is reapplied to current master on
-  `task/p0-07d-artifact-read-master`. The owned disposable PostgreSQL harness
+- P0-07d is reapplied to current master in
+  [#90](https://github.com/yanxel18/animetron/pull/90). The owned disposable PostgreSQL harness
   passed 7 artifact API tests, migrations, Ruff and Linux-target mypy. Both
   non-owner tests failed when the owner dependency was weakened, then passed
   after restoration. The OpenAPI export test, generated API type drift check,
   frontend typecheck, 113 frontend tests and build passed. This slice exposes
   metadata only, not bytes or uploads; keep unchecked pending review, required
-  checks and merge:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p0-07d-artifact-read-master?expand=1).
+  checks and merge.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #89 and recording P0-07d. Nested slices do not change the project
   counts.
@@ -372,7 +371,8 @@ have the security and recovery guarantees below.
   - [ ] P0-07d Expose owner-only reads of artifact metadata without returning
     storage locators or artifact bytes. Implemented in `6ccd3c2` on
     `task/p0-07d-artifact-metadata-read`; PR #77 merged into the #76 branch, not
-    `master`. Reapplied on `task/p0-07d-artifact-read-master` from `4cce20c`;
+    `master`. Reapplied in [#90](https://github.com/yanxel18/animetron/pull/90)
+    from `4cce20c`;
     7 owned PostgreSQL authorization/API tests, migrations, Ruff and mypy
     passed. OpenAPI export, frontend type drift, typecheck, 113 tests and build
     passed. Keep unchecked until the master-based PR is reviewed, passes its
