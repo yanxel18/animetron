@@ -390,6 +390,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   durable start evidence and no automatic retry. Owner approval is required
   before implementation; trusted binding of the pinned digest to the actual
   built-in implementation is a prerequisite, not an existing guarantee.
+  The proposal is in review in
+  [#104](https://github.com/yanxel18/animetron/pull/104).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #102 and #103 and recording the P1-10g proposal. Nested slices do
   not change the project counts. The earlier reconciliation merged in
@@ -778,6 +780,7 @@ immutable workflow and recover its state without duplicate effects.
     unchecked. It remains read-only and does not authorize execution.
   - [ ] P1-10g Implement one-shot bounded sample execution only after owner
     approval of the [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10g-one-shot-sample-execution-contract-not-approved).
+    In review in [#104](https://github.com/yanxel18/animetron/pull/104).
     No worker, model invocation, external effect or automatic retry is authorized.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
