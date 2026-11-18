@@ -1249,7 +1249,9 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-02c Load an existing draft by ID, validate its saved version and
     create an immutable revision. The UI preserves draft context on conflict
     and uncertain creation, clears protected data on authorization loss, and
-    does not edit drafts or run workflows. Local validation: 125 frontend
+    does not edit drafts or run workflows. Recovery state is currently lost
+    if the panel is unmounted or the page closes during creation; this must
+    be resolved before merge. Local validation: 125 frontend
     tests, production build, API type drift and six fixture-backed Chromium
     workflow tests passed. Live authenticated backend, screen-reader use and
     independent review remain unverified.
