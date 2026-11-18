@@ -1,5 +1,6 @@
 """Internal Linux-only bytes, independent of database transactions and HTTP."""
 
+import errno
 import hashlib
 import os
 import re
@@ -28,6 +29,10 @@ class UnsafeStorageError(OSError):
 
 
 class ByteIntegrityError(OSError):
+    pass
+
+
+class ArtifactAuditLimitExceeded(ValueError):
     pass
 
 
@@ -62,6 +67,15 @@ class StoredBytes:
     @property
     def storage_locator(self) -> str:
         return f"artifacts/{self.id.hex}"
+
+
+@dataclass(frozen=True)
+class ByteStoreInventory:
+    files: tuple[StoredBytes, ...]
+    unsafe_ids: tuple[UUID, ...]
+    pending_names: tuple[str, ...]
+    unsafe_pending_names: tuple[str, ...]
+    unexpected_count: int
 
 
 def _capabilities() -> None:
@@ -278,6 +292,115 @@ class ArtifactByteStore:
                 return bytes(data)
             finally:
                 os.close(content)
+
+    def audit(
+        self, *, max_total_bytes: int, max_entries: int
+    ) -> ByteStoreInventory:
+        """Hash a bounded inventory without changing the volume or exposing paths."""
+        _size(max_total_bytes)
+        if type(max_entries) is not int or max_entries < 1:
+            raise ValueError("Artifact audit entry limit must be positive")
+
+        with self._locked(exclusive=True) as root_fd, self._artifacts(root_fd) as fd:
+            names: list[str] = []
+            with os.scandir(fd) as entries:
+                for index, entry in enumerate(entries):
+                    if index == max_entries:
+                        raise ArtifactAuditLimitExceeded(
+                            "Artifact audit exceeds configured entry limit"
+                        )
+                    names.append(entry.name)
+            names.sort()
+
+            files: list[StoredBytes] = []
+            unsafe_ids: list[UUID] = []
+            pending_names: list[str] = []
+            unsafe_pending_names: list[str] = []
+            unexpected_count = 0
+            total_bytes = 0
+            for name in names:
+                if re.fullmatch(r"\.pending-[0-9a-f]{32}", name) is not None:
+                    try:
+                        content = os.open(
+                            name,
+                            os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                            dir_fd=fd,
+                        )
+                    except OSError as exc:
+                        if exc.errno in (errno.EACCES, errno.ELOOP, errno.EPERM):
+                            unsafe_pending_names.append(name)
+                            continue
+                        raise
+                    try:
+                        try:
+                            _private_file(content)
+                        except UnsafeStorageError:
+                            unsafe_pending_names.append(name)
+                        else:
+                            pending_names.append(name)
+                    finally:
+                        os.close(content)
+                    continue
+                try:
+                    identifier = UUID(hex=name)
+                except ValueError:
+                    unexpected_count += 1
+                    continue
+                if identifier.hex != name:
+                    unexpected_count += 1
+                    continue
+                try:
+                    _identifier(identifier)
+                except ValueError:
+                    unexpected_count += 1
+                    continue
+
+                try:
+                    content = os.open(
+                        name,
+                        os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                        dir_fd=fd,
+                    )
+                except OSError as exc:
+                    if exc.errno in (errno.EACCES, errno.ELOOP, errno.EPERM):
+                        unsafe_ids.append(identifier)
+                        continue
+                    raise
+                try:
+                    try:
+                        before = _private_file(content)
+                    except UnsafeStorageError:
+                        unsafe_ids.append(identifier)
+                        continue
+                    if total_bytes + before.st_size > max_total_bytes:
+                        raise ArtifactAuditLimitExceeded(
+                            "Artifact audit exceeds configured byte limit"
+                        )
+
+                    digest = hashlib.sha256()
+                    size = 0
+                    while size < before.st_size:
+                        chunk = os.read(content, min(_CHUNK, before.st_size - size))
+                        if not chunk:
+                            break
+                        digest.update(chunk)
+                        size += len(chunk)
+                    after = _private_file(content)
+                    if (
+                        size != before.st_size
+                        or (before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                        != (after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+                    ):
+                        raise ByteIntegrityError("Artifact changed during audit")
+                    total_bytes += size
+                    files.append(StoredBytes(identifier, digest.hexdigest(), size))
+                finally:
+                    os.close(content)
+
+            return ByteStoreInventory(
+                tuple(files), tuple(unsafe_ids), tuple(pending_names),
+                tuple(unsafe_pending_names), unexpected_count,
+            )
 
     def close(self) -> None:
         if self._root_fd != -1:
