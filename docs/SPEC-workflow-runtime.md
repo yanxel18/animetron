@@ -558,6 +558,49 @@ recovery of unknown effects need separate contracts and are not solved by this
 slice. Downgrading the claim migration destroys evidence and requires explicit
 authorization and recovery planning on populated databases.
 
+## Proposed P1-10e node outcome contract (not approved)
+
+This proposal adds a durable record of a **confirmed** outcome for one
+previously admitted node. Owner approval is required before implementation. It
+does not add a worker, invoke handlers, or authorize effects.
+
+A trusted internal caller may report `SUCCEEDED` or `FAILED` for an existing
+claim, using the claim's exact run and node association. The claim ID is an
+identifier, not authentication or proof that a handler ran: the caller must
+independently know the outcome. Missing or unknown outcomes remain unrecorded;
+neither a timeout nor a lost claimant is evidence of failure. No automatic
+retry, expiry, claim reassignment, or inference from a database lease is allowed.
+
+The database retains at most one immutable outcome per claim. An exact replay
+returns the existing outcome without a second event or write; a conflicting
+outcome or association fails. Success has no error code. Failure carries one
+bounded, server-defined non-sensitive code, never a raw exception, credential,
+path, output, or arbitrary caller message. This slice does not store node
+outputs or artifact references: success here must not unlock dependent nodes or
+be presented as evidence that their inputs are available.
+
+Recording takes a caller-owned PostgreSQL transaction and locks the run before
+the claim/outcome, matching cancellation and admission lock order. A confirmed
+late outcome may be recorded after a cancellation request, without reversing
+the cancellation, marking the run terminal, creating an executable intent, or
+claiming that in-flight effects stopped. Any contradiction with a previously
+reported terminal run requires later reconciliation; it must not be hidden.
+Use a savepoint so a failed operation leaves no partial outcome even when the
+caller catches the error and commits unrelated work. Use an additive migration;
+downgrading populated outcome records requires separate authorization and
+recovery planning.
+
+PostgreSQL verification must cover exact and conflicting replay, competing
+outcomes, nonexistent or mismatched claims, caller rollback and caught-error
+recovery, both cancellation/outcome lock orderings, and late confirmed results.
+Tests must use synthetic outcomes without executing handlers or external
+effects. Completion of a run, dependent-node admission, output validation,
+failure/skip propagation, executor fencing, and unknown-effect recovery remain
+separate work.
+
+**Approval needed:** Confirm this record-only outcome contract before
+implementation.
+
 ## Bounded internal P1-10b sample evaluator
 
 `app.services.workflows.sample_evaluator.evaluate_sample_graph(data)` is a
