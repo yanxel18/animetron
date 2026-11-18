@@ -35,7 +35,8 @@ review and required checks.
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 #94 and #95 verify P1-12d and P1-12e; #96 verifies persisted readiness.
 #97 merged the P1-10d contract; the owner approved implementation on
-2026-11-18. The implementation is in review and does not change these counts.
+2026-11-18. The implementation is in review in #99 and does not change these
+counts.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -346,8 +347,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   [#97](https://github.com/yanxel18/animetron/pull/97) at `39aa8c0`. The owner
   approved implementation on 2026-11-18.
   GitGuardian passed; no independent review is recorded and combined status is
-  pending. The implementation adds durable root-node claims serialized with
-  cancellation, but no worker, execution or external effects. Sixteen owned
+  pending. The implementation in [#99](https://github.com/yanxel18/animetron/pull/99)
+  adds durable root-node claims serialized with cancellation, but no worker,
+  execution or external effects. Sixteen owned
   PostgreSQL admission tests, six migration tests, nine dispatch tests,
   13 cancellation tests, migrations, Ruff and mypy passed; removing the run
   lock failed both cancellation race cases. Combined no-database workflow
@@ -721,9 +723,10 @@ immutable workflow and recover its state without duplicate effects.
   - [ ] P1-10d Implement durable node admission under the
     [approved contract](../docs/SPEC-workflow-runtime.md#p1-10d-node-admission-contract-approved-2026-11-18).
     The owner approved implementation on 2026-11-18. The implementation is in
-    review and depends on tracker reconciliation in #98. It does not authorize
-    handler execution or automatic retries. Keep unchecked pending review,
-    required checks and merge.
+    review in [#99](https://github.com/yanxel18/animetron/pull/99) and depends
+    on tracker reconciliation in #98. It does not authorize handler execution
+    or automatic retries. Keep unchecked pending review, required checks and
+    merge.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
