@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `f7b3171` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `c0560a1` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,11 +27,12 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`f7b3171`; #82, #83, #84, #86, #87, #88, #89, #90, #91 and #92 are merged but
+`c0560a1`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 are merged but
 are not credited without a passing independent review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
-verifies P0-07c; #92 adds P1-12c. P1-09f reached master via
+verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
+P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -186,8 +187,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `f7b3171`. PRs #75, #78, #79, #81,
-  #82, #83, #84, #86, #87, #88, #89, #90, #91 and #92 merged. #75 includes the
+- Reconciled with verified `master` at `c0560a1`. PRs #75, #78, #79, #81,
+  #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked pending independent review and remaining
   integration verification. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
@@ -299,8 +300,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   separately. The owned harness passed 61 tests, migrations, Ruff and
   Linux-target mypy. Individually removing isolation, committing the caller
   transaction, or omitting either comparison caused the new regression to
-  fail; restored code passed. Actual filesystem/byte-store integration remains
-  outside this test. Keep unchecked pending review, required checks and merge.
+  fail; restored code passed. Merged at `c0560a1`; GitGuardian passed, but no
+  independent review is recorded and the combined status is pending. Actual
+  filesystem/byte-store integration remains outside this test; keep unchecked.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
@@ -311,8 +313,18 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   The slice merged in [#92](https://github.com/yanxel18/animetron/pull/92)
   at `5bce7b7`. GitGuardian passed, but no independent review is recorded and
   combined status is pending; keep unchecked.
+- P1-12d tests both cancellation-first and dispatch-first lock orderings on
+  PostgreSQL using real persisted run requests and a fake execution binding.
+  The owned harness passed 8 dispatch and 13 cancellation tests, migrations,
+  Ruff and Linux-target mypy. Removing both dispatch and preflight locks made
+  cancellation-first resolve a handler before cancellation committed, failing
+  the regression; restored locks passed. If dispatch wins, its run-ready and
+  node intents remain after cancellation. No worker or suppression of such
+  previously prepared work is tested. This slice is in review on
+  `task/p1-12d-postgres-dispatch-cancellation`:
+  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12d-postgres-dispatch-cancellation?expand=1).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #91 and recording its review follow-up. Nested slices do not change the project
+  reconciling #93 and recording P1-12d. Nested slices do not change the project
   counts.
 
 ## Phase 0 - Plan and shared foundations
@@ -388,7 +400,8 @@ have the security and recovery guarantees below.
     A later owned PostgreSQL harness passed 61 artifact tests, including a new
     audit regression against migrated metadata with a fake byte inventory,
     merged in #91. A post-merge review identified test gaps; their follow-up
-    is in progress. The test is not a real filesystem integration test; keep
+    merged in #93, pending independent review and required checks. The test is
+    not a real filesystem integration test; keep
     unchecked pending review, required checks and remaining integration
     verification. Its branch included master commit
     `8d10be9` to resolve the checklist conflict.
@@ -722,6 +735,11 @@ immutable workflow and recover its state without duplicate effects.
     [#92](https://github.com/yanxel18/animetron/pull/92) at `5bce7b7`;
     GitGuardian passed, but independent review is not recorded and combined
     status is pending, so keep unchecked.
+  - [ ] P1-12d Verify cancellation and dispatch preparation serialize on
+    PostgreSQL in both lock orderings. Eight dispatch and 13 cancellation
+    tests passed in the owned harness. Uses a fake execution binding and does
+    not verify a worker or suppression of already-prepared run-ready intents;
+    keep unchecked pending review, required checks and merge.
 
 ## Phase 2 - Model registry and hardware readiness
 
