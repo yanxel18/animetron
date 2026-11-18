@@ -23,8 +23,9 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Reconciled with remote `master` at `df80d91`; P1-09f,
-P1-09g, P1-09h and P1-09i remain unmerged, so the counts do not change.
+percentage is unchanged. Reconciled with remote `master` at `df80d91` on
+2026-11-18; P1-08c and P1-09f, P1-09g, P1-09h and P1-09i remain unmerged, so
+the counts do not change.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -309,9 +310,18 @@ immutable workflow and recover its state without duplicate effects.
     `FAILED` run behavior on 2026-11-18. Draft is in
     `docs/SPEC-workflow-runtime.md` on
     `task/p1-08c-runtime-readiness-spec`; the owner approved the contract on
-    2026-11-18. Implementation is proceeding on a dependent task branch.
-    No downloads, model acquisition, artifact fetching or handler code loading
-    are permitted in this slice. No implementation has started.
+    2026-11-18. Implementation is pushed on dependent branch
+    `task/p1-08c-runtime-readiness`, based on spec commit `6615b19`. Exact
+    handler digest and full model-manifest matching, full-graph preflight,
+    safe typed terminal failure events, and no partial handles on failure are
+    implemented. Focused readiness plus related binding/revision/run-request
+    tests passed (75 passed, 68 skipped); Ruff and strict Linux-target mypy
+    passed. A deliberate handler-digest comparison mutation was caught by its
+    regression test and reverted. No downloads, model acquisition, artifact
+    fetching or handler code loading occurred. No PR can be created through the
+    available read-only GitHub integration, so no independent PR review or
+    merge exists; keep unchecked. Compare branch:
+    [task/p1-08c-runtime-readiness-spec...task/p1-08c-runtime-readiness](https://github.com/yanxel18/animetron/compare/task/p1-08c-runtime-readiness-spec...task/p1-08c-runtime-readiness?expand=1).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
   - [ ] P1-09e Internal mutable-draft persistence merged in
