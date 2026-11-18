@@ -32,6 +32,7 @@ are not credited without a passing independent review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
+P1-12d and P1-12e are in review and do not count as complete.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -322,9 +323,16 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   node intents remain after cancellation. No worker or suppression of such
   previously prepared work is tested. This slice is in review in
   [#94](https://github.com/yanxel18/animetron/pull/94).
+- P1-12e tests duplicate dispatch preparation under PostgreSQL contention,
+  stacked on #94. The owned harness passed 9 dispatch tests, migrations, Ruff
+  and Linux-target mypy. Replacing the existing-dispatch replay with a conflict
+  made the new test fail; restoring it passed. The test verifies one node plan,
+  run-ready intent and running transition, not worker delivery or execution.
+  The slice is in review in
+  [#95](https://github.com/yanxel18/animetron/pull/95).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #93 and recording P1-12d. Nested slices do not change the project
-  counts.
+  reconciling #93 and recording P1-12d and P1-12e. Nested slices do not change
+  the project counts.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -740,6 +748,12 @@ immutable workflow and recover its state without duplicate effects.
     not verify a worker or suppression of already-prepared run-ready intents;
     keep unchecked pending review, required checks and merge of
     [#94](https://github.com/yanxel18/animetron/pull/94).
+  - [ ] P1-12e Verify concurrent duplicate dispatch preparation reuses one
+    persisted node plan and run-ready intent after waiting on PostgreSQL.
+    Nine dispatch tests, migrations, Ruff and Linux-target mypy passed in the
+    owned harness; a replay-path mutation failed the new regression. This is
+    in review in [#95](https://github.com/yanxel18/animetron/pull/95), depends
+    on #94, and does not verify worker delivery or execution.
 
 ## Phase 2 - Model registry and hardware readiness
 
