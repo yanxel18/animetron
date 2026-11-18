@@ -262,6 +262,60 @@ Downgrading a populated binding table destroys replay evidence and requires
 explicit authorization and a recovery plan. Destructive migration tests run
 only against the harness-owned disposable database.
 
+## P1-08c pre-execution readiness gate (approved 2026-11-18)
+
+This slice enforces the installed-code and model pins retained by a
+checked execution binding before any workflow node handler starts. It does not
+acquire models or execute handlers.
+
+The owner confirmed on 2026-11-18 that handler resolution uses a trusted
+server-owned catalog and readiness failures persist a terminal `FAILED` run
+before node dispatch.
+
+The trusted runtime loads the stored binding through
+`get_execution_binding` and verifies the source revision association and both
+digests. Before starting any node, it preflights every node in the immutable
+execution snapshot:
+
+- Resolve each `artifactId` through a server-owned handler catalog. The
+  installed artifact digest must exactly match the node's pinned lowercase
+  SHA-256. The resolver returns an opaque handle bound to that verified
+  artifact; workflow data cannot provide a path, module name, URL or import
+  instruction.
+- Resolve each pinned model using its full immutable provider, repository and
+  revision identity. The registry must report `READY` and the resolved
+  manifest (engine, license identifier and complete file path/size/digest set)
+  must exactly match the snapshot. An Ollama engine or matching model tag alone
+  does not establish readiness; the exact pinned local model and file
+  integrity must be verified by the registry.
+- Complete the whole-graph preflight before invoking any handler. If any pin is
+  missing, mismatched or not ready, invoke no handlers and create no node
+  intents or execution outbox work. The existing run-request notification
+  remains non-executable.
+
+On failure, persist the run as `FAILED` with a typed, non-sensitive readiness
+reason before node dispatch. Do not repair or repin the binding, choose a
+fallback handler/model, or infer readiness from a directory, Ollama
+availability, or a model tag. This guard never pulls models, fetches artifacts,
+accepts licenses, or uses credentials. If acquisition is later needed, it is a
+separate model-registry task subject to its license, access and resource gates.
+A fully ready preflight returns the verified opaque handles to the dispatcher;
+dispatch and handler execution remain separate work.
+
+The trusted handler catalog is an injected server-side dependency. This slice
+consumes only verified digest-bound handles; artifact installation, packaging
+and filesystem layout are outside its scope. Workflow data must never select
+those locations or load executable code.
+
+Focused tests must prove exact handler/model matches pass, missing or changed
+pins fail closed, and one unready node prevents every handler from starting.
+Tests use fake trusted catalogs and readiness results; they perform no model
+downloads or external requests.
+
+This contract was approved by the owner on 2026-11-18. Implement the gate
+before enabling node dispatch; this approval does not authorize model downloads,
+artifact fetching or external effects.
+
 ## Bounded internal P1-09a contract
 
 `app.services.workflows.run_requests.request_run(connection, request_id,

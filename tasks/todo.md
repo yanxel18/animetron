@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `edb4858` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `df80d91` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -15,7 +15,7 @@ The owner approved the
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
 
-## Overall progress snapshot - 2026-11-15
+## Overall progress snapshot - 2026-11-18
 
 **31.6%: 18 of 57 top-level P0-P9 checklist tasks are complete.** This is an
 unweighted task count, not a measure of effort, functionality or production
@@ -23,7 +23,8 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged.
+percentage is unchanged. Reconciled with remote `master` at `df80d91`; P1-09f,
+P1-09g, P1-09h and P1-09i remain unmerged, so the counts do not change.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -71,7 +72,7 @@ P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
 
-### Current work - 2026-11-15
+### Current work - 2026-11-18
 
 - P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
@@ -109,17 +110,16 @@ verification. This checklist remains the only current progress source.
   schedule-slot observations, without scheduler dispatch or outcome decisions.
 - P1-10b merged in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
-- P1-09e draft persistence had been investigated only before the 2026-11-15 stop.
-  The internal mutable-draft slice is now in review in
-  [#73](https://github.com/yanxel18/animetron/pull/73). It stores bounded exact
-  UTF-8 bytes separately from immutable revisions and uses caller-owned
-  transactions with version-checked updates; it adds no API, UI, validation,
-  execution or external effects. The owned PostgreSQL harness passed 7 focused
-  tests, Alembic upgrade/check, Ruff and Linux-target mypy. The backend suite
-  outside owner-gated auth suites passed 348 tests with 335 skips. Independent
-  code review found no actionable issues. #73 remains open: GitGuardian passed,
-  but no GitHub review record exists and the combined status is pending. Keep
-  this slice unchecked until required gates pass and it is merged.
+- P1-09e internal mutable-draft persistence merged in
+  [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. It stores
+  bounded exact UTF-8 bytes separately from immutable revisions and uses
+  caller-owned transactions with version-checked updates; it adds no API, UI,
+  validation, execution or external effects. The owned PostgreSQL harness
+  passed 7 focused tests, Alembic upgrade/check, Ruff and Linux-target mypy.
+  The backend suite outside owner-gated auth suites passed 348 tests with 335
+  skips. GitHub has no review, no commit statuses (combined status pending),
+  and only a passing GitGuardian check, so P1-09e remains unchecked. PR #74
+  records the merge reconciliation.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
@@ -130,10 +130,42 @@ verification. This checklist remains the only current progress source.
   records and the PR body said independent review was pending at merge. The
   exact-head GitGuardian check passed, but no other check runs or statuses were
   present. The merge did not satisfy the independent-review gate.
-- Reconciled with `edb4858` on 2026-11-15: the top-level recount remains 18 of
-  57 (31.6%), with the phase counts above unchanged. #71 is documentation-only
-  and completes no P0-P9 task. P1-09e in #73 is open and remains unchecked;
-  no top-level task or phase is complete from this work.
+- P1-09f owner-only mutable draft read is pushed on
+  `task/p1-09f-workflow-draft-read` at `0afb79f` (implementation commit
+  `4b6ff05`), based on `master` at `df80d91`. Workflow API, draft persistence
+  and OpenAPI tests passed (62 passed, 22 skipped); PostgreSQL/Keycloak
+  verification remains blocked by Windows Application Control preventing
+  psycopg from loading. No PR was created through the read-only GitHub
+  integration; keep unchecked and use the
+  [branch link](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read).
+- P1-09g owner-only mutable draft write is pushed on
+  `task/p1-09g-workflow-draft-write` at `b989872` (implementation commit
+  `f0d21a7`), stacked on P1-09f. Focused workflow API, persistence and OpenAPI
+  tests passed (76 passed, 22 skipped); Ruff and strict Linux-target mypy
+  passed. PostgreSQL/Keycloak verification is blocked by the same psycopg
+  restriction. No PR was created through the read-only integration; keep
+  unchecked and use the
+  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1).
+- P1-09h owner-only mutable draft validation is pushed on
+  `task/p1-09h-workflow-draft-validation` at `c6de17a` (implementation commit
+  `2ceb73b`), based on P1-09g. Focused workflow/API/OpenAPI tests passed
+  (119 passed, 20 skipped); Ruff, strict Linux-target mypy, and a stale-version
+  mutation check passed. PostgreSQL/Keycloak verification remains blocked by
+  the psycopg restriction. No PR or review comment can be created through the
+  read-only integration; keep unchecked and use the
+  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
+- P1-09i owner-only idempotent run creation is implemented in `abbb12b` on
+  `task/p1-09i-workflow-run-create`, based directly on `master` at `df80d91`.
+  Focused API/OpenAPI tests passed (65 passed, 20 skipped); Ruff and strict
+  Linux-target mypy passed. The earlier full backend run lacked database and
+  OIDC test configuration (379 passed, 335 skipped, 3 failed, 48 errors).
+  No PR or review can be created through the read-only integration; keep
+  unchecked and use the
+  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-09i-workflow-run-create?expand=1).
+- Reconciled remote `master` at `df80d91` on 2026-11-18. Open PRs to master
+  are #74, #75, #78, #79 and #81; no PRs #76, #77 or #80 targeting master were
+  returned, and no new master merges were found. Recount remains 18/57
+  (31.6%), P0 4/9 and P1 7/12; unmerged slices do not change these counts.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -270,11 +302,30 @@ immutable workflow and recover its state without duplicate effects.
     self-approval or gate waiver. Root master was pulled; tested source,
     migrations, tests and spec matched. Runtime enforcement remains open.
     [Binding verification](execution-revision-bindings-report.md).
+  - [ ] P1-08c Draft a pre-execution readiness gate: resolve only exact-pinned
+    installed handlers from a trusted server-owned catalog, require exact
+    pinned model manifests to be `READY`, and prevent all node handlers from
+    starting if any check fails. The owner confirmed the catalog and terminal
+    `FAILED` run behavior on 2026-11-18. Draft is in
+    `docs/SPEC-workflow-runtime.md` on
+    `task/p1-08c-runtime-readiness-spec`; the owner approved the contract on
+    2026-11-18. Implementation is proceeding on a dependent task branch.
+    No downloads, model acquisition, artifact fetching or handler code loading
+    are permitted in this slice. No implementation has started.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09e Internal mutable draft persistence is implemented in
-    [#73](https://github.com/yanxel18/animetron/pull/73) and in review; keep it
-    unchecked until required gates pass and it merges.
+  - [ ] P1-09e Internal mutable-draft persistence merged in
+    [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
+    unchecked because GitHub has no review record and the combined status is
+    pending.
+    - [ ] P1-09e1 Correct migration downgrade test expectations for the
+      `workflow_drafts` table. Implemented in `efe330c` on
+      `task/p1-09e-migration-downgrade-tests`; open draft
+      [#79](https://github.com/yanxel18/animetron/pull/79). Migration and
+      backend auth/integration tests, Alembic upgrade/check, Ruff and
+      Linux-target mypy passed. GitHub has no review, the combined status is
+      pending, and the only check run (GitGuardian) passed. Keep unchecked
+      until gates pass and it merges.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
