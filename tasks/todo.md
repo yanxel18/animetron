@@ -228,13 +228,18 @@ have the security and recovery guarantees below.
     persistent backup target or encryption, retention duration, or deletion
     behavior. The task branch depends on draft PR #75 and must remain unchecked
     until its checks pass, independent review is recorded, and it is merged.
-    Local evidence on `task/p0-08-local-recovery-test`: the disposable Docker
-    test restored a synthetic metadata row and artifact into fresh resources
-    with a matching SHA-256; it verified private PostgreSQL networking and a
-    loopback-only test endpoint. Ruff passed; the backend suite outside
-    owner-gated auth files passed (352 passed, 340 skipped). Reversing the
-    restored-hash assertion failed as expected, then the restored check passed.
-    This does not prove a production backup procedure or actual gateway setup.
+    Implemented in commit `3fde341` on
+    `task/p0-08-local-recovery-test`; open draft
+    [#76](https://github.com/yanxel18/animetron/pull/76), based on #75.
+    GitGuardian passed, but the combined status is pending and no GitHub review
+    is recorded; do not merge. The disposable Docker test restored a synthetic
+    metadata row and artifact into fresh resources with a matching SHA-256,
+    verified private PostgreSQL networking and a loopback-only test endpoint,
+    and left no labeled resources. Ruff and Python compilation passed; the
+    backend suite outside owner-gated auth files passed (352 passed, 340
+    skipped). Reversing the restored-hash assertion failed as expected, then
+    the restored check passed. This does not prove a production backup
+    procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
