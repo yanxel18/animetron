@@ -1,15 +1,19 @@
 import hashlib
 import json
+import os
 from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import Column, MetaData, String, Table, Uuid, create_engine, insert
+from test_execution_bindings import bind, save
+from test_execution_snapshot import LIMITS, MANIFEST
 
 from app.services.models.manifest import ModelFile, ModelManifest
 from app.services.models.reference import ModelReference
-from app.services.workflows import execution_readiness
+from app.services.workflows import execution_bindings, execution_readiness
+from app.services.workflows import run_requests as requests
 from app.services.workflows.execution_bindings import ExecutionBinding
 from app.services.workflows.execution_readiness import ReadyModel, ResolvedHandler
 from app.services.workflows.run_requests import run_requests
@@ -187,6 +191,55 @@ def test_preflight_returns_only_exact_ready_handler_and_model_handles(
         assert [event.state for event in list_events(connection, run_id, 0)] == [
             RunState.QUEUED
         ]
+
+
+@pytest.mark.parametrize("binding_exists", [True, False])
+def test_preflight_loads_persisted_binding_on_postgresql(binding_exists):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
+    engine = create_engine(url)
+    workflow_id = uuid4()
+    handler = object()
+    model = object()
+    try:
+        with engine.begin() as connection:
+            snapshot = save(connection, workflow_id)
+            if binding_exists:
+                bind(execution_bindings, connection, workflow_id, snapshot.sha256)
+            request = requests.request_run(
+                connection, uuid4(), workflow_id, "r1", snapshot.sha256,
+            )
+        catalog = HandlerCatalog(ResolvedHandler("story-handler", "c" * 64, handler))
+        with engine.begin() as connection:
+            result = execution_readiness.preflight_run(
+                connection, request.run_id, catalog,
+                ModelRegistry(ReadyModel(MANIFEST, model)), LIMITS, max_bytes=100_000,
+            )
+        with engine.connect() as connection:
+            status = get_run_status(connection, request.run_id)
+            events = list_events(connection, request.run_id, 0)
+    finally:
+        engine.dispose()
+
+    if binding_exists:
+        assert result.ready
+        assert result.failure_code is None
+        assert result.handlers[0][1].handle is handler
+        assert result.models[0][2].handle is model
+        assert status.state is RunState.QUEUED
+        assert [event.state for event in events] == [RunState.QUEUED]
+        assert catalog.calls == ["story-handler"]
+    else:
+        assert not result.ready
+        assert (
+            result.failure_code
+            is execution_readiness.ReadinessFailureCode.EXECUTION_BINDING_NOT_FOUND
+        )
+        assert result.handlers == result.models == ()
+        assert status.state is RunState.FAILED
+        assert [event.state for event in events] == [RunState.QUEUED, RunState.FAILED]
+        assert catalog.calls == []
 
 
 def test_preflight_returns_node_dependencies_in_snapshot_order(

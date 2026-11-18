@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `f7b3171` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `c0560a1` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,11 +27,13 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`f7b3171`; #82, #83, #84, #86, #87, #88, #89, #90, #91 and #92 are merged but
+`c0560a1`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 are merged but
 are not credited without a passing independent review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
-verifies P0-07c; #92 adds P1-12c. P1-09f reached master via
+verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
+P1-12d and P1-12e remain in review in #94 and #95, respectively; the
+persisted-readiness verification is also in review. P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -299,8 +301,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   separately. The owned harness passed 61 tests, migrations, Ruff and
   Linux-target mypy. Individually removing isolation, committing the caller
   transaction, or omitting either comparison caused the new regression to
-  fail; restored code passed. Actual filesystem/byte-store integration remains
-  outside this test. Keep unchecked pending review, required checks and merge.
+  fail; restored code passed. Merged at `c0560a1`; GitGuardian passed, but no
+  independent review is recorded and the combined status is pending. Actual
+  filesystem/byte-store integration remains outside this test; keep unchecked.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
@@ -311,9 +314,25 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   The slice merged in [#92](https://github.com/yanxel18/animetron/pull/92)
   at `5bce7b7`. GitGuardian passed, but no independent review is recorded and
   combined status is pending; keep unchecked.
+- P1-12d is in review in [#94](https://github.com/yanxel18/animetron/pull/94):
+  its PostgreSQL tests cover both cancellation and dispatch lock orderings,
+  using fake execution bindings. Eight dispatch and 13 cancellation tests
+  passed. It does not test a worker or suppression of previously prepared work.
+- P1-12e is in review in [#95](https://github.com/yanxel18/animetron/pull/95),
+  stacked on #94: its PostgreSQL test checks that concurrent dispatches reuse
+  one prepared node plan and run-ready intent. Nine dispatch tests passed;
+  breaking replay caused the new test to fail. Worker delivery and execution
+  remain unverified.
+- P1-08c persisted-readiness verification is in review on
+  `task/p1-08c-postgres-persisted-readiness`. PostgreSQL tests exercise a real
+  persisted run request and execution binding, plus a missing-binding failure,
+  with fake handler and model registries. Nine readiness tests, migrations,
+  Ruff and Linux-target mypy passed. Forcing binding lookup to fail caused the
+  ready-case regression to fail; restored code passed. This does not load real
+  handlers or models or verify worker execution.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #91 and recording its review follow-up. Nested slices do not change the project
-  counts.
+  reconciling #93 and recording the in-review slices. Nested slices do not
+  change the project counts.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -539,6 +558,11 @@ immutable workflow and recover its state without duplicate effects.
     [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`.
     #86 has no independent review record and only a GitGuardian check; keep
     unchecked pending the missing review and required verification gates.
+    - [ ] P1-08c1 Verify readiness against persisted PostgreSQL run requests
+      and execution bindings, including the missing-binding failure. The owned
+      harness passed 9 readiness tests, migrations, Ruff and Linux-target mypy.
+      In review on `task/p1-08c-postgres-persisted-readiness`; fake registries
+      do not prove installed-handler or model readiness.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
   - [ ] P1-09e Internal mutable draft persistence merged in
