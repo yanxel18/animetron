@@ -423,7 +423,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   recorded and combined status is pending. Merge reconciliation
   [#107](https://github.com/yanxel18/animetron/pull/107) merged at `ad6ad64`;
   GitGuardian passed, but no independent GitHub review is recorded and
-  combined status is pending.
+  combined status is pending. The approval record is in review in
+  [#108](https://github.com/yanxel18/animetron/pull/108).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #107 and recording owner approval. Nested slices do
   not change the project counts. The earlier reconciliation merged in
