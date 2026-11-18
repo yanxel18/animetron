@@ -49,6 +49,7 @@ def main():
         "tests/test_artifacts.py",
         "tests/test_run_cancellations.py",
         "tests/test_artifacts_api.py",
+        "tests/test_run_dispatch.py",
     ])
     args = parser.parse_args()
     env = dict(os.environ)
