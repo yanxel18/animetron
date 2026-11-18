@@ -773,7 +773,8 @@ immutable workflow and recover its state without duplicate effects.
     not a checked-in regression; it did not test a live OIDC provider, worker,
     handler execution or external effects. Owned container, network and
     anonymous volume cleanup were verified. #84 has no independent review
-    record and only a GitGuardian check. Keep unchecked.
+    record and only a GitGuardian check. Verification evidence is in review
+    in [#109](https://github.com/yanxel18/animetron/pull/109). Keep unchecked.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
