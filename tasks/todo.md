@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `39aa8c0` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `5ae984e` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,16 +27,16 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`39aa8c0`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
-#94, #95 and #96 are merged but are not credited without a passing independent
+`5ae984e`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+#94, #95, #96 and #99 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 #94 and #95 verify P1-12d and P1-12e; #96 verifies persisted readiness.
 #97 merged the P1-10d contract; the owner approved implementation on
-2026-11-18. The implementation is in review in #99 and does not change these
-counts.
+2026-11-18. The implementation merged in #99 and does not change these counts.
+The P1-10e outcome contract is proposed in #100, not approved.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -347,18 +347,24 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   [#97](https://github.com/yanxel18/animetron/pull/97) at `39aa8c0`. The owner
   approved implementation on 2026-11-18.
   GitGuardian passed; no independent review is recorded and combined status is
-  pending. The implementation in [#99](https://github.com/yanxel18/animetron/pull/99)
-  adds durable root-node claims serialized with cancellation, but no worker,
+  pending. The implementation merged in
+  [#99](https://github.com/yanxel18/animetron/pull/99) at `5ae984e`, adding
+  durable root-node claims serialized with cancellation, but no worker,
   execution or external effects. Sixteen owned
   PostgreSQL admission tests, six migration tests, nine dispatch tests,
   13 cancellation tests, migrations, Ruff and mypy passed; removing the run
   lock failed both cancellation race cases. Combined no-database workflow
-  checks passed 25 tests with 22 database cases skipped.
+  checks passed 25 tests with 22 database cases skipped. GitGuardian passed,
+  but independent review is not recorded and combined status is pending;
+  keep unchecked.
+- P1-10e proposes recording confirmed node outcomes without unlocking
+  downstream work or retrying unknown effects. The contract is in review in
+  [#100](https://github.com/yanxel18/animetron/pull/100); owner approval is
+  required before implementation.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #94 through #97 and recording P1-10d. Nested slices do not change
-  the project counts.
-  This reconciliation is in review in
-  [#98](https://github.com/yanxel18/animetron/pull/98).
+  reconciling #98 and #99 and recording the P1-10e proposal. Nested slices do
+  not change the project counts. The earlier reconciliation merged in
+  [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -722,11 +728,14 @@ immutable workflow and recover its state without duplicate effects.
     unchecked pending the required review and verification gates.
   - [ ] P1-10d Implement durable node admission under the
     [approved contract](../docs/SPEC-workflow-runtime.md#p1-10d-node-admission-contract-approved-2026-11-18).
-    The owner approved implementation on 2026-11-18. The implementation is in
-    review in [#99](https://github.com/yanxel18/animetron/pull/99) and depends
-    on tracker reconciliation in #98. It does not authorize handler execution
-    or automatic retries. Keep unchecked pending review, required checks and
-    merge.
+    The owner approved implementation on 2026-11-18. The implementation merged
+    in [#99](https://github.com/yanxel18/animetron/pull/99) at `5ae984e`.
+    It does not authorize handler execution or automatic retries. Independent
+    review is not recorded and combined status is pending; keep unchecked.
+  - [ ] P1-10e Implement confirmed node-outcome records after approval of the
+    [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10e-node-outcome-contract-not-approved).
+    In review in [#100](https://github.com/yanxel18/animetron/pull/100). This
+    does not execute handlers, store outputs, or unlock dependent nodes.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
