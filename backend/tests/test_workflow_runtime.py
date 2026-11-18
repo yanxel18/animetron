@@ -136,6 +136,78 @@ def codes(value: Graph) -> set[str]:
     return {issue.code for issue in validate_graph(value, DEFINITIONS, LIMITS)}
 
 
+def test_validation_issues_identify_affected_ports() -> None:
+    definitions = {
+        **DEFINITIONS,
+        "join": NodeDefinition(
+            inputs={"left": Port("text", True), "right": Port("text", True)}
+        ),
+    }
+
+    source_issue = next(
+        issue
+        for issue in validate_graph(
+            graph(
+                [Node("a", "source"), Node("b", "transform")],
+                [Edge("source-edge", "a", "missing", "b", "in")],
+            ),
+            definitions,
+            LIMITS,
+        )
+        if issue.code == "INVALID_SOURCE_PORT"
+    )
+    target_issue = next(
+        issue
+        for issue in validate_graph(
+            graph(
+                [Node("a", "source"), Node("b", "transform")],
+                [Edge("target-edge", "a", "out", "b", "missing")],
+            ),
+            definitions,
+            LIMITS,
+        )
+        if issue.code == "INVALID_TARGET_PORT"
+    )
+    incompatible_issue = next(
+        issue
+        for issue in validate_graph(
+            graph(
+                [Node("a", "source"), Node("b", "image_sink")],
+                [Edge("incompatible-edge", "a", "out", "b", "in")],
+            ),
+            definitions,
+            LIMITS,
+        )
+        if issue.code == "INCOMPATIBLE_PORTS"
+    )
+    missing_input_issue = next(
+        issue
+        for issue in validate_graph(
+            graph([Node("b", "transform")]), definitions, LIMITS
+        )
+        if issue.code == "MISSING_REQUIRED_INPUT"
+    )
+
+    assert (source_issue.edge_id, source_issue.source_port, source_issue.target_port) == (
+        "source-edge",
+        "missing",
+        None,
+    )
+    assert (target_issue.edge_id, target_issue.source_port, target_issue.target_port) == (
+        "target-edge",
+        None,
+        "missing",
+    )
+    assert (
+        incompatible_issue.source_port,
+        incompatible_issue.target_port,
+    ) == ("out", "in")
+    assert (missing_input_issue.node_id, missing_input_issue.target_port) == (
+        "b",
+        "in",
+    )
+
+
 def test_valid_fan_out_and_join() -> None:
     definitions = {
         **DEFINITIONS,

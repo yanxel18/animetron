@@ -309,9 +309,14 @@ have the security and recovery guarantees below.
     (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The audit
     requires all metadata and byte writers to be stopped; it does not repair
     or adopt files.
+  - [ ] P0-07d Expose owner-only reads of artifact metadata without returning
+    storage locators or artifact bytes. Implemented in `6ccd3c2` on
+    `task/p0-07d-artifact-metadata-read`; PR #77 merged into the #76 branch, not
+    `master`. The branch has not been rebased onto current `master`; keep
+    unchecked until a master-based PR is reviewed, passes its gates, and merges.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
-  - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
+  - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
     metadata and artifact bytes. Verify restored metadata matches restored bytes
     by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
     loopback. The harness must use uniquely labeled resources and clean up only
@@ -337,7 +342,7 @@ have the security and recovery guarantees below.
     [#39](https://github.com/yanxel18/animetron/pull/39); this is not a fix
     for or clearance of the blocked auth scanner.
     [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
-  - [ ] P0-09b Assert that authentication failure responses never reflect a
+  - [x] P0-09b Assert that authentication failure responses never reflect a
     supplied bearer token. Implemented in commit `c8ab7a2` on
     `task/p0-09b-auth-error-secret-redaction`; merged in
     [#78](https://github.com/yanxel18/animetron/pull/78). Five parameterized
@@ -449,7 +454,7 @@ immutable workflow and recover its state without duplicate effects.
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is
     pending.
-    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
+    - [x] P1-09e1 Update migration downgrade integration-test expectations for
       `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
       `task/p1-09e-migration-downgrade-tests`; merged through
       [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
@@ -458,6 +463,24 @@ immutable workflow and recover its state without duplicate effects.
       Linux-target mypy passed. No migration or production behavior changed.
       GitGuardian passed; no independent GitHub review was recorded at merge.
       Keep unchecked pending review-gate reconciliation.
+  - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
+    preserving its stored UTF-8 text and version. Implemented on
+    `task/p1-09f-workflow-draft-read` at `4aca101`; its required PostgreSQL/
+    Keycloak verification is blocked by Windows Application Control. No PR
+    exists; keep unchecked.
+  - [ ] P1-09g Add an owner-only version-checked write for an existing mutable
+    workflow draft. Implemented in `f0d21a7` and merged through
+    [#82](https://github.com/yanxel18/animetron/pull/82) at `429e1a7`.
+    Focused tests passed (76 passed, 22 skipped); Ruff and Linux-target mypy
+    passed. The PostgreSQL/Keycloak harness is blocked by Windows Application
+    Control; no independent GitHub review record exists. Keep unchecked.
+  - [ ] P1-09h Add owner-only, version-checked validation of a mutable workflow
+    draft. Implemented in `2ceb73b` and merged through
+    [#83](https://github.com/yanxel18/animetron/pull/83) at `3e5c52a`.
+    Focused tests passed (124 passed, 22 skipped); Ruff and Linux-target mypy
+    passed. The full backend run's auth/database failures were blocked by the
+    missing test database URL; no independent GitHub review record exists.
+    Keep unchecked.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
