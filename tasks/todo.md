@@ -559,6 +559,11 @@ immutable workflow and recover its state without duplicate effects.
     [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`.
     #86 has no independent review record and only a GitGuardian check; keep
     unchecked pending the missing review and required verification gates.
+    - [ ] P1-08c1 Verify readiness against persisted PostgreSQL run requests
+      and execution bindings, including the missing-binding failure. The owned
+      harness passed 9 readiness tests, migrations, Ruff and Linux-target mypy.
+      In review in [#96](https://github.com/yanxel18/animetron/pull/96); fake registries
+      do not prove installed-handler or model readiness.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
   - [ ] P1-09e Internal mutable draft persistence merged in
