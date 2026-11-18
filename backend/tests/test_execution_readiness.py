@@ -60,6 +60,7 @@ def _binding(
     revision: str,
     manifest: ModelManifest,
     node_ids: tuple[str, ...] = ("node-1",),
+    edges: tuple[tuple[str, str], ...] = (),
 ) -> ExecutionBinding:
     source_sha256 = "c" * 64
     document = {
@@ -69,7 +70,16 @@ def _binding(
         "nodes": [
             {"id": node_id, "type": "sample.node", "config": {}} for node_id in node_ids
         ],
-        "edges": [],
+        "edges": [
+            {
+                "id": f"edge-{index}",
+                "source": source,
+                "sourcePort": "text",
+                "target": target,
+                "targetPort": "text",
+            }
+            for index, (source, target) in enumerate(edges)
+        ],
         "nodePins": {
             node_id: {
                 "handler": {
@@ -177,6 +187,46 @@ def test_preflight_returns_only_exact_ready_handler_and_model_handles(
         assert [event.state for event in list_events(connection, run_id, 0)] == [
             RunState.QUEUED
         ]
+
+
+def test_preflight_returns_node_dependencies_in_snapshot_order(
+    queued_run, monkeypatch
+):
+    engine, run_id, workflow_id, revision = queued_run
+    binding = _binding(
+        workflow_id,
+        revision,
+        _manifest(),
+        ("node-1", "node-2", "node-3"),
+        (("node-2", "node-3"), ("node-1", "node-3")),
+    )
+    monkeypatch.setattr(
+        execution_readiness,
+        "get_execution_binding",
+        lambda *_args: binding,
+        raising=False,
+    )
+
+    class AllHandlers:
+        def resolve(self, artifact_id: str) -> ResolvedHandler:
+            return ResolvedHandler(artifact_id, "d" * 64, object())
+
+    with engine.begin() as connection:
+        result = execution_readiness.preflight_run(
+            connection,
+            run_id,
+            AllHandlers(),
+            ModelRegistry(ReadyModel(_manifest(), object())),
+            GraphLimits(max_nodes=8, max_edges=8),
+            max_bytes=4096,
+        )
+
+    assert result.ready is True
+    assert result.node_dependencies == (
+        ("node-1", ()),
+        ("node-2", ()),
+        ("node-3", ("node-1", "node-2")),
+    )
 
 
 def test_preflight_fails_run_when_handler_digest_does_not_match(

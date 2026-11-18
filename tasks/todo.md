@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `181bf6c` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `dc88fbe` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -25,9 +25,10 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after integrating latest verified master
-`181bf6c`; open work is not credited, and P1-08c and P1-09f/g/h/i remain
-unmerged, so the percentage and per-phase counts remain unchanged.
+percentage is unchanged. Recalculated after reconciling latest verified master
+`dc88fbe`; #82 and #83 merged but are not credited without independent review
+and required checks. P1-08c and P1-09f/i remain unmerged, so the percentage
+and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -180,12 +181,14 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `181bf6c`. PRs #75, #78, #79 and #81
-  merged. #75 includes the P0-08a recovery harness from #76; P0-07c remains
-  unchecked because its required owned PostgreSQL harness could not run. #79
-  includes #80 and P1-09e1; P1-09e1 stays unchecked because required review
-  and status gates were not recorded. #77 merged into stacked #76, not master,
-  so P0-07d is not credited.
+- Reconciled with verified `master` at `dc88fbe`. PRs #75, #78, #79, #81,
+  #82 and #83 merged. #75 includes the P0-08a recovery harness from #76;
+  P0-07c remains unchecked because its required owned PostgreSQL harness could
+  not run. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
+  required review and status gates were not recorded. #82 and #83 have no
+  independent GitHub review records; each has only a passing GitGuardian run,
+  and #83's combined status is pending. Keep P1-09g/h unchecked. #77 merged
+  into stacked #76, not master, so P0-07d is not credited.
 - P1-08c is implemented on `task/p1-08c-runtime-readiness`, with its approved
   specification on the dependent spec branch. The current branch integrates
   master `181bf6c`. Focused readiness, binding, revision, run-request, artifact
@@ -199,15 +202,17 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   including master `181bf6c`; six focused tests, Ruff and mypy passed.
   PostgreSQL/Keycloak verification is blocked by Windows Application Control.
   No PR exists; keep unchecked.
-- P1-09g is pushed on `task/p1-09g-workflow-draft-write` through `429e1a7`,
-  stacked on P1-09f. Focused tests passed (76 passed, 22 skipped); Ruff and
-  Linux-target mypy passed. PostgreSQL/Keycloak verification is blocked by
-  Windows Application Control. No PR exists; keep unchecked.
-- P1-09h is pushed on `task/p1-09h-workflow-draft-validation` through
-  `3e5c52a`, based on P1-09g. Focused tests passed (124 passed, 22 skipped);
-  Ruff and Linux-target mypy passed. The full backend run had 408 passed,
-  341 skipped, 3 failures and 48 errors; auth/database cases were blocked by
-  the missing test database URL. No PR exists; keep unchecked.
+- P1-09g merged through [#82](https://github.com/yanxel18/animetron/pull/82)
+  at `429e1a7`, stacked on P1-09f. Focused tests passed (76 passed, 22
+  skipped); Ruff and Linux-target mypy passed. Its only check is GitGuardian
+  and it has no independent review record; PostgreSQL/Keycloak verification
+  remains blocked by Windows Application Control. Keep unchecked.
+- P1-09h merged through [#83](https://github.com/yanxel18/animetron/pull/83)
+  at `3e5c52a`, based on P1-09g. Focused tests passed (124 passed, 22
+  skipped); Ruff and Linux-target mypy passed. The full backend run had 408
+  passed, 341 skipped, 3 failures and 48 errors; auth/database cases were
+  blocked by the missing test database URL. Its only check is GitGuardian and
+  it has no independent review record; keep unchecked.
 - P1-09i is pushed on `task/p1-09i-workflow-run-create` through `3c6de03`.
   Focused tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy
   passed. Its PostgreSQL-backed service tests remain unverified without the
@@ -215,6 +220,14 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 - P1-10 production dispatch remains gated on P1-08 runtime enforcement; the
   approved spec explicitly says P1-10b's sample evaluator does not verify
   handler artifacts or model readiness and does not satisfy this prerequisite.
+- P1-10c is in progress on `task/p1-10c-ready-dispatch-intents`, stacked on
+  P1-08c. The slice persists validated node dependencies and a distinct
+  run-ready outbox record atomically with the run transition; readiness
+  failures do not create executable intents. Focused dispatch/readiness tests
+  pass (12), Ruff passes, Linux-target strict mypy passes (47 app files), and
+  Alembic reports the new revision as head. A live migration upgrade/check is
+  blocked by unavailable owned database configuration. No PR exists yet; keep
+  unchecked.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12. Unmerged slices do not
   change the project counts.
 
@@ -521,6 +534,13 @@ immutable workflow and recover its state without duplicate effects.
     model readiness or production execution is implied.
     Exact-head GitGuardian passed; [#69](https://github.com/yanxel18/animetron/pull/69)
     merged at `391ecd9`.
+  - [ ] P1-10c Persist a verified node-intent plan and a distinct run-ready
+    outbox intent in one caller-owned transaction, only after the P1-08c
+    whole-graph readiness preflight succeeds. A readiness failure must leave
+    the run terminally failed with no node intents or executable outbox event;
+    duplicate notifications must not create duplicate intents. This slice does
+    not invoke handlers, acquire models or fetch artifacts. It depends on
+    `task/p1-08c-runtime-readiness` and is being developed on a stacked branch.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in

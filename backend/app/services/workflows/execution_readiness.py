@@ -81,6 +81,7 @@ class ExecutionReadiness:
     failure_code: ReadinessFailureCode | None = None
     handlers: tuple[tuple[str, ResolvedHandler], ...] = ()
     models: tuple[tuple[str, int, ReadyModel], ...] = ()
+    node_dependencies: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -88,6 +89,7 @@ class _NodePins:
     node_id: str
     handler: HandlerArtifact
     models: tuple[ModelManifest, ...]
+    dependencies: tuple[str, ...]
 
 
 class _InvalidExecutionDocument(ValueError):
@@ -233,12 +235,19 @@ def _decode_pins(
         node_ids.append(node_id)
     if len(set(node_ids)) != len(node_ids) or set(pins) != set(node_ids):
         raise _InvalidExecutionDocument("Execution node pins are incomplete")
+    node_positions = {node_id: index for index, node_id in enumerate(node_ids)}
+    dependencies: dict[str, set[str]] = {node_id: set() for node_id in node_ids}
     for edge in edges:
         edge_data = _object(
             edge, {"id", "source", "sourcePort", "target", "targetPort"}
         )
         for key in ("id", "source", "sourcePort", "target", "targetPort"):
             _string(edge_data[key])
+        source = _string(edge_data["source"])
+        target = _string(edge_data["target"])
+        if source not in dependencies or target not in dependencies:
+            raise _InvalidExecutionDocument("Execution edge references an unknown node")
+        dependencies[target].add(source)
 
     decoded: list[_NodePins] = []
     for node_id in node_ids:
@@ -259,6 +268,7 @@ def _decode_pins(
                 node_id,
                 handler,
                 tuple(_model_manifest(model) for model in raw_models),
+                tuple(sorted(dependencies[node_id], key=node_positions.__getitem__)),
             )
         )
     return tuple(decoded)
@@ -414,4 +424,7 @@ def preflight_run(
         True,
         handlers=tuple(resolved_handlers),
         models=tuple(resolved_models),
+        node_dependencies=tuple(
+            (node.node_id, node.dependencies) for node in pins
+        ),
     )
