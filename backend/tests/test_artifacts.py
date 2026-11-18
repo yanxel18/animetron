@@ -150,6 +150,42 @@ def test_audit_compares_complete_metadata_and_bytes_without_writing() -> None:
         engine.dispose()
 
 
+def test_audit_reads_postgresql_metadata_without_mutation(engine) -> None:
+    consistent = replace(
+        artifact(), sha256=hashlib.sha256(b"ok").hexdigest(), byte_size=2,
+    )
+    missing, corrupt, orphan_id = artifact(), artifact(), uuid4()
+    inventory = SimpleNamespace(
+        files=(
+            StoredBytes(consistent.id, consistent.sha256, consistent.byte_size),
+            StoredBytes(corrupt.id, hashlib.sha256(b"bad").hexdigest(), 3),
+            StoredBytes(orphan_id, hashlib.sha256(b"orphan").hexdigest(), 6),
+        ),
+        unsafe_ids=(),
+        pending_names=(),
+        unsafe_pending_names=(),
+        unexpected_count=0,
+    )
+    with engine.connect() as conn:
+        transaction = conn.begin()
+        try:
+            for record in (consistent, missing, corrupt):
+                save_artifact(conn, record)
+            before = conn.execute(select(artifacts).order_by(artifacts.c.id)).all()
+
+            report = artifact_module.audit_artifacts(
+                conn, FakeByteStore(inventory), max_total_bytes=64, max_entries=10,
+            )
+
+            assert report.consistent == (consistent.id,)
+            assert report.missing == (missing.id,)
+            assert report.corrupt == (corrupt.id,)
+            assert report.orphaned == (orphan_id,)
+            assert conn.execute(select(artifacts).order_by(artifacts.c.id)).all() == before
+        finally:
+            transaction.rollback()
+
+
 def test_audit_excludes_invalid_metadata_ids_from_orphaned_bytes() -> None:
     engine = sqlite_artifact_engine()
     identifier = uuid4()
