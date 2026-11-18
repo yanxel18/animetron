@@ -5,9 +5,10 @@ const second = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const revision = { workflowId: id, revision: "saved-revision-1", createdAt: "2025-01-02T03:04:05Z" };
 const canonicalJson = '{"revision":"saved-revision-1","text":"<script>inert</script>"}';
 
-test("validates a saved draft and creates its revision with keyboard controls", async ({ page }, testInfo) => {
+test("saves an edited draft before validation and revision creation with keyboard controls", async ({ page }, testInfo) => {
   const requests: string[] = [];
   const errors: string[] = [];
+  const editedDocument = '{"revision":"saved-revision-2"}';
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
     const request = route.request();
@@ -16,29 +17,39 @@ test("validates a saved draft and creates its revision with keyboard controls", 
       await route.fulfill({ json: { data: [], nextCursor: null } });
     } else if (path === "/api/v1/auth/session") {
       await route.fulfill({ json: { role: "owner", csrfToken: "fixture-csrf" } });
-    } else if (path.endsWith("/draft")) {
+    } else if (request.method() === "PUT" && path.endsWith("/draft")) {
+      requests.push(`${request.method()}:${path}:${request.postData()}`);
+      await route.fulfill({ json: { workflowId: id, version: 4, document: editedDocument } });
+    } else if (request.method() === "GET" && path.endsWith("/draft")) {
       await route.fulfill({ json: { workflowId: id, version: 3, document: '{"revision":"saved-revision-1"}' } });
     } else if (request.method() === "POST") {
-      requests.push(`${path}:${request.postData()}`);
+      requests.push(`${request.method()}:${path}:${request.postData()}`);
       await route.fulfill({ json: path.endsWith("/validations")
-        ? { workflowId: id, draftVersion: 3, isValid: true, issues: [] }
-        : { workflowId: id, revision: revision.revision, canonicalJson, sha256: "a".repeat(64) } });
+        ? { workflowId: id, draftVersion: 4, isValid: true, issues: [] }
+        : { workflowId: id, revision: "saved-revision-2", canonicalJson: editedDocument, sha256: "a".repeat(64) } });
     } else await route.fulfill({ status: 404 });
   });
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto("/#workflows");
   await page.getByRole("textbox", { name: "Workflow ID", exact: true }).fill(id);
   await page.getByRole("textbox", { name: "Workflow ID", exact: true }).press("Enter");
-  await expect(page.getByLabel("Saved draft document")).toContainText("saved-revision-1");
+  await expect(page.getByLabel("Workflow draft JSON")).toHaveValue('{"revision":"saved-revision-1"}');
+  await page.getByLabel("Workflow draft JSON").fill(editedDocument);
+  await expect(page.getByText(/unsaved changes/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
+  await page.getByRole("button", { name: "Save draft" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Draft saved as version 4.")).toBeVisible();
   await page.getByRole("button", { name: "Validate saved draft" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Draft is valid for version 3.")).toBeVisible();
+  await expect(page.getByText("Draft is valid for version 4.")).toBeVisible();
   await page.getByRole("button", { name: "Create immutable revision" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/Revision saved:/)).toBeVisible();
   expect(requests).toEqual([
-    `/api/v1/workflows/${id}/validations:{"expectedVersion":3}`,
-    `/api/v1/workflows/${id}/revisions:{"expectedVersion":3}`,
+    `PUT:/api/v1/workflows/${id}/draft:${JSON.stringify({ document: editedDocument, expectedVersion: 3 })}`,
+    `POST:/api/v1/workflows/${id}/validations:{"expectedVersion":4}`,
+    `POST:/api/v1/workflows/${id}/revisions:{"expectedVersion":4}`,
   ]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(errors).toEqual([]);
@@ -75,11 +86,11 @@ test("restores an uncertain revision attempt after reload without retrying it", 
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Workflow ID", exact: true })).toHaveValue(id);
   await expect(page.getByRole("alert")).toContainText(/previous revision attempt/i);
-  await expect(page.getByRole("button", { name: "Load draft" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Reload saved draft" })).toBeEnabled();
   expect(revisionAttempts).toBe(1);
 
-  await page.getByRole("button", { name: "Load draft" }).click();
-  await expect(page.getByLabel("Saved draft document")).toContainText("saved-revision-1");
+  await page.getByRole("button", { name: "Reload saved draft" }).click();
+  await expect(page.getByLabel("Workflow draft JSON")).toHaveValue('{"revision":"saved-revision-1"}');
   await expect(page.getByRole("button", { name: "Create immutable revision" })).toBeDisabled();
   expect(revisionAttempts).toBe(1);
 });

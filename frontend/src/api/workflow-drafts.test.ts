@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import {
-  createDraftRevision, readWorkflowDraft, validateWorkflowDraft,
+  createDraftRevision, readWorkflowDraft, saveWorkflowDraft, validateWorkflowDraft,
 } from "./workflow-drafts";
 
 const id = "12345678-1234-4234-8234-123456789abc";
@@ -32,6 +32,59 @@ it("reads a draft and validates the server response", async () => {
     `/api/v1/workflows/${id}/draft`,
     expect.objectContaining({ method: "GET", credentials: "same-origin", cache: "no-store" }),
   );
+});
+
+it("saves an edited document using the owner CSRF token and expected version", async () => {
+  const document = '{"schemaVersion":1,"revision":"r2","nodes":[],"edges":[]}';
+  const updated = { workflowId: id, document, version: 4 };
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(json(updated));
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(saveWorkflowDraft(id, document, 3)).resolves.toEqual(updated);
+  expect(fetcher.mock.calls[1][0]).toBe(`/api/v1/workflows/${id}/draft`);
+  expect(fetcher.mock.calls[1][1]).toEqual(expect.objectContaining({
+    method: "PUT", credentials: "same-origin", cache: "no-store",
+    headers: expect.objectContaining({ "X-CSRF-Token": "test-csrf" }),
+    body: JSON.stringify({ document, expectedVersion: 3 }),
+  }));
+});
+
+it("distinguishes a rejected draft version from an uncertain save result", async () => {
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(new Response("", { status: 409 }))
+    .mockResolvedValueOnce(json(session))
+    .mockRejectedValueOnce(new Error("connection lost"));
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(saveWorkflowDraft(id, "{}", 3)).rejects.toMatchObject({
+    status: 409, uncertain: false,
+  });
+  await expect(saveWorkflowDraft(id, "{}", 3)).rejects.toMatchObject({
+    status: null, uncertain: true,
+  });
+});
+
+it("treats a malformed successful draft save response as uncertain", async () => {
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(json({ workflowId: id, document: "{}", version: 3 })));
+
+  await expect(saveWorkflowDraft(id, "updated", 3)).rejects.toMatchObject({
+    uncertain: true,
+  });
+});
+
+it("does not submit a draft save when the session is not an owner", async () => {
+  const fetcher = vi.fn().mockResolvedValue(json({ role: "viewer", csrfToken: "test-csrf" }));
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(saveWorkflowDraft(id, "{}", 3)).rejects.toMatchObject({
+    status: 403, uncertain: false,
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
 it("validates a saved version and creates its revision with separate requests", async () => {
