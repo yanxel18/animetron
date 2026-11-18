@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `df80d91` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `181bf6c` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -11,8 +11,8 @@ and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #64 merged owner-only discovery of workflow IDs with persisted revisions.
 PR #73 merged mutable workflow-draft persistence at `df80d91`; GitHub has no
 review, no commit statuses (combined status pending), and only a passing
-GitGuardian check, so P1-09e remains unchecked.
-The historical #33 scanner failure remains unresolved.
+GitGuardian check, so P1-09e remains unchecked. The historical #33 scanner
+failure remains unresolved.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -26,8 +26,9 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Reconciled with remote `master` at `df80d91`; the
-unmerged P1-09f/g/h/i branches do not change the counts.
+percentage is unchanged. Recalculated after master commit `181bf6c`; merged
+subtask slices do not complete top-level tasks. P1-09f/g/h/i remain unmerged,
+so the percentage and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -42,9 +43,10 @@ unmerged P1-09f/g/h/i branches do not change the counts.
 | P8 MCP bridge | 0 / 2 |
 | P9 Integrated readiness | 0 / 4 |
 
-Main remaining gates include the historical #33 scanner failure, missing
-workflow execution and editing services, model feasibility and capacity,
-real media generation, and owner-involved P9 acceptance.
+Main remaining gates include the unresolved #33 scanner review/check state,
+missing authorized artifact lifecycle and workflow execution/editing services,
+model feasibility and capacity, real media generation, and owner-involved P9
+acceptance.
 
 ## How to use
 
@@ -75,7 +77,7 @@ P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
 
-### Current work - 2026-11-15
+### Current work - 2026-11-18
 
 - P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
@@ -113,16 +115,18 @@ verification. This checklist remains the only current progress source.
   schedule-slot observations, without scheduler dispatch or outcome decisions.
 - P1-10b merged in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
-- P1-09e internal mutable-draft persistence merged in
+- P1-09e draft persistence had been investigated only before the 2026-11-15 stop.
+  The internal mutable-draft slice merged in
   [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. It stores
   bounded exact UTF-8 bytes separately from immutable revisions and uses
   caller-owned transactions with version-checked updates; it adds no API, UI,
-  validation, execution or external effects. The owned PostgreSQL harness
-  passed 7 focused tests, Alembic upgrade/check, Ruff and Linux-target mypy.
-  The backend suite outside owner-gated auth suites passed 348 tests with 335
-  skips. P1-09e remains unchecked because no GitHub review record exists and
-  the combined status is pending; [#74](https://github.com/yanxel18/animetron/pull/74)
-  records the merge reconciliation.
+  validation, execution or external effects. The PR reports 7 focused PostgreSQL
+  tests, Alembic upgrade/check, Ruff, Linux-target mypy, and a backend suite
+  outside owner-gated auth suites (348 passed, 335 skipped). The PR description
+  reports an independent review with no findings, and GitGuardian passed; GitHub
+  has no review record and the combined status is pending. It merged before
+  those required gates were recorded; keep this slice unchecked and do not infer
+  approval from the PR description or merge.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
@@ -133,52 +137,56 @@ verification. This checklist remains the only current progress source.
   records and the PR body said independent review was pending at merge. The
   exact-head GitGuardian check passed, but no other check runs or statuses were
   present. The merge did not satisfy the independent-review gate.
-- P1-09f owner-only mutable draft read is pushed on
-  `task/p1-09f-workflow-draft-read` at `0afb79f` (implementation commit
-  `4b6ff05`), based on `master` at `df80d91`. Workflow API, draft persistence
-  and OpenAPI tests passed (62 passed, 22 skipped); PostgreSQL/Keycloak
-  verification remains blocked by Windows Application Control preventing
-  psycopg from loading. No PR was created because the GitHub integration is
-  read-only. Keep unchecked and create its PR from the
-  [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read).
-- P1-09g owner-only mutable draft write is pushed on
-  `task/p1-09g-workflow-draft-write` at `b989872` (implementation commit
-  `f0d21a7`), stacked on P1-09f. Focused workflow API, persistence and OpenAPI
-  tests passed (76 passed, 22 skipped); Ruff and strict Linux-target mypy for
-  all 45 application modules passed. PostgreSQL/Keycloak verification is
-  blocked by the same psycopg restriction. No PR was created through the
-  read-only integration; keep unchecked and target P1-09f on the
+- [#75](https://github.com/yanxel18/animetron/pull/75) merged at `b3cf537`;
+  its branch includes the P0-08a recovery harness from #76. P0-07c remains
+  unchecked because the required owned PostgreSQL harness could not run on the
+  Windows host.
+- [#78](https://github.com/yanxel18/animetron/pull/78) merged at `5638739`;
+  focused bearer-token redaction tests passed.
+- [#79](https://github.com/yanxel18/animetron/pull/79) merged at `53ae073`;
+  its branch includes #80's OIDC token-redaction tests and P1-09e1's migration
+  test correction.
+- [#81](https://github.com/yanxel18/animetron/pull/81) merged at `181bf6c`;
+  the PostgreSQL transaction-recovery test and its owned harness passed.
+- #77 was merged into the stacked #76 branch, not into `master`; P0-07d's
+  owner-only metadata-read code is therefore not credited as merged.
+- P1-09f is implemented on
+  `task/p1-09f-workflow-draft-read` at `4aca101`; its branch includes master
+  `181bf6c`. Six focused tests passed; Ruff and mypy passed. The
+  PostgreSQL/Keycloak harness is blocked by Windows Application Control.
+  No PR exists; keep unchecked.
+- P1-09g is pushed on `task/p1-09g-workflow-draft-write` through `429e1a7`,
+  stacked on P1-09f. Focused workflow API, persistence and OpenAPI tests passed
+  (76 passed, 22 skipped); Ruff and Linux-target mypy passed across 45 files.
+  Its PostgreSQL/Keycloak harness is blocked by Windows Application Control.
+  No PR exists; keep unchecked and target P1-09f using the
   [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1).
-- P1-09h owner-only mutable draft validation is pushed on
-  `task/p1-09h-workflow-draft-validation` at `c6de17a` (implementation commit
-  `2ceb73b`), based on P1-09g. The focused workflow/API/OpenAPI suite passed
-  (119 passed, 20 skipped); Ruff, strict Linux-target mypy, and a stale-version
-  mutation check passed. PostgreSQL/Keycloak verification remains blocked by
-  Windows Application Control preventing psycopg from loading. No PR or review
-  comment can be created through the read-only integration; keep unchecked
-  and target P1-09g on the
+- P1-09h is pushed on `task/p1-09h-workflow-draft-validation` through
+  `3e5c52a`, based on P1-09g. Focused tests passed (124 passed, 22 skipped);
+  Ruff and Linux-target mypy passed. The full backend run had 408 passed,
+  341 skipped, 3 failures and 48 errors, all auth/database cases blocked by
+  missing `ANIMETRON_TEST_DATABASE_URL`. Its PostgreSQL/Keycloak harness is
+  blocked by Windows Application Control. No PR exists; keep unchecked and
+  target P1-09g using the
   [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
-- P1-09i owner-only idempotent run creation is implemented on
-  `task/p1-09i-workflow-run-create`, based directly on `master` at `df80d91`;
-  it remains unchecked pending PR review and merge.
-  The approved API specification defines a revision-only request, canonical
-  UUID4 `Idempotency-Key`, `202` run ID and status `Location`; it reuses the
-  internal request transaction and does not execute or dispatch work.
-- P1-09i is implemented in commit `abbb12b`. The focused workflow API and
-  OpenAPI tests passed (65 passed, 20 skipped); Ruff, strict Linux-target
-  mypy, and `git diff --check` passed. A deliberate mutation of the key-header
-  guard was caught by the run-creation success test and restored. A prior full
-  backend run was blocked by missing `ANIMETRON_TEST_DATABASE_URL` and OIDC
-  test configuration (379 passed, 335 skipped, 3 failed, 48 errors; failures
-  were environment-dependent). The GitHub integration is read-only, so no PR
-  or review can be created; keep unchecked and use the
+- P1-09i owner-only idempotent run creation is implemented in `abbb12b` on
+  `task/p1-09i-workflow-run-create`, independently based on `master`. The
+  approved contract accepts only an existing immutable revision and canonical
+  lowercase UUID4 `Idempotency-Key`, returning `202`, `runId` and a relative
+  status `Location`; it does not dispatch or execute handlers.
+  After integrating master `181bf6c`, focused API, persistence and OpenAPI
+  tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy passed, and
+  `git diff --check` passed. The PostgreSQL-backed persistence tests were
+  skipped because `ANIMETRON_TEST_DATABASE_URL` is unavailable; the host's
+  PostgreSQL/Keycloak harness is also blocked by Windows Application Control.
+  Separate latest-master artifact and migration tests passed (36 passed, 55
+  skipped); the auth API tests could not set up without the database URL
+  (34 errors). GitHub search found no PR for this branch, and the integration
+  is read-only. Keep unchecked and use the
   [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-09i-workflow-run-create?expand=1).
-- Reconciled with remote `master` at `df80d91` on 2026-11-18. Open PRs to
-  master are #74, #75, #78, #79 and #81. No PRs #76, #77 or #80 targeting
-  master were returned, and no additional master merges were found.
-  Recounting remains 18/57 (31.6%), P0 4/9 and P1 7/12. P1-09f/g/h are
-  pushed but unmerged, and P1-09i is implemented but unmerged, so none changes
-  the counts.
+- Reconciled with `181bf6c` on 2026-11-18. Progress remains 18/57 (31.6%),
+  P0 4/9 and P1 7/12. P1-09e remains unchecked because its review/check gates
+  are missing; P1-09f/g/h/i remain unmerged, so none changes the counts.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -245,8 +253,42 @@ have the security and recovery guarantees below.
     with no-replace publication ([#23](https://github.com/yanxel18/animetron/pull/23);
     no HTTP, media probing, authorization,
     byte/metadata atomicity or automatic orphan recovery).
+  - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
+    byte inventories without changing either store.
+    Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
+    `task/p0-07c-artifact-reconciliation`; open draft
+    [#75](https://github.com/yanxel18/animetron/pull/75). GitGuardian passed,
+    but the combined status is pending and no GitHub review is recorded. Keep
+    unchecked pending required checks, independent review and merge. Its branch
+    includes master commit `8d10be9` to resolve the checklist conflict.
+    Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
+    byte-store tests (26 passed), backend suite outside owner-gated auth tests
+    (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The owned
+    PostgreSQL harness could not start because Windows Application Control
+    blocked the installed psycopg DLL. The audit requires all metadata and byte
+    writers to be stopped; it does not repair or adopt files.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
+  - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
+    metadata and artifact bytes. Verify restored metadata matches restored bytes
+    by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
+    loopback. The harness must use uniquely labeled resources and clean up only
+    resources it created. This does not select production networking, a
+    persistent backup target or encryption, retention duration, or deletion
+    behavior. The task branch depends on draft PR #75 and must remain unchecked
+    until its checks pass, independent review is recorded, and it is merged.
+    Implemented in commit `3fde341` on
+    `task/p0-08-local-recovery-test`; open draft
+    [#76](https://github.com/yanxel18/animetron/pull/76), based on #75.
+    No independent review is recorded; keep unchecked and do not merge until
+    required checks and review pass. The disposable Docker test restored a synthetic
+    metadata row and artifact into fresh resources with a matching SHA-256,
+    verified private PostgreSQL networking and a loopback-only test endpoint,
+    and left no labeled resources. Ruff and Python compilation passed; the
+    backend suite outside owner-gated auth files passed (352 passed, 340
+    skipped). Reversing the restored-hash assertion failed as expected, then
+    the restored check passed. This does not prove a production backup
+    procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
@@ -255,6 +297,27 @@ have the security and recovery guarantees below.
     [#39](https://github.com/yanxel18/animetron/pull/39); this is not a fix
     for or clearance of the blocked auth scanner.
     [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
+  - [ ] P0-09b Assert that authentication failure responses never reflect a
+    supplied bearer token. Implemented in commit `c8ab7a2` on
+    `task/p0-09b-auth-error-secret-redaction`; open draft
+    [#78](https://github.com/yanxel18/animetron/pull/78). Five parameterized
+    route cases passed; a disposable mutation reflecting the Authorization
+    header made all five fail, then was restored. Ruff and `git diff --check`
+    passed. GitGuardian passed, but combined status is pending and no GitHub
+    review is recorded. Keep unchecked until required checks, independent
+    review and merge. This slice does not cover malformed uploads, transaction
+    recovery or backup/restore.
+  - [ ] P0-09c Assert that OIDC callback failure responses never reflect
+    provider-returned access or ID tokens. Implemented in commit `2c8af75` on
+    `task/p0-09c-oidc-token-redaction`; open draft
+    [#80](https://github.com/yanxel18/animetron/pull/80), stacked on #79.
+    The owned auth/integration harness passed 733 tests with 20 skips; Ruff,
+    Linux-target mypy and Alembic upgrade/check passed. Inverting the assertion
+    made all 12 invalid-claim/signature variants fail, then the correct
+    assertion was restored. GitGuardian passed; combined status is pending and
+    no GitHub review is recorded. Keep unchecked until #79 merges and required
+    review/check gates pass. This does not resolve upload or production backup
+    policy.
 
 ## Phase 1 - Workflow runtime
 
@@ -317,51 +380,51 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09e Internal mutable-draft persistence merged in
+  - [ ] P1-09e Internal mutable draft persistence merged in
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is
     pending.
-    - [ ] P1-09e1 Correct migration downgrade test expectations for the
-      `workflow_drafts` table. Implemented in `efe330c` on
+    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
+      `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
       `task/p1-09e-migration-downgrade-tests`; open draft
-      [#79](https://github.com/yanxel18/animetron/pull/79). Migration and
-      backend auth/integration tests, Alembic upgrade/check, Ruff and
+      [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
+      harness passed all 5 migration tests; the full backend auth/integration
+      harness passed 733 tests with 20 skips. Alembic upgrade/check, Ruff and
       Linux-target mypy passed. No migration or production behavior changed.
-      GitHub currently has no review, the combined status is pending, and the
-      only check run (GitGuardian) passed. Keep unchecked until required gates
-      pass and it merges.
+      GitGuardian passed; combined status is pending and no GitHub review is
+      recorded. Keep unchecked until the required gates and merge.
   - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
     preserving its stored UTF-8 text and version. Implemented on
-    `task/p1-09f-workflow-draft-read` at `0afb79f`; pushed but no PR was created
-    through the read-only GitHub integration. Keep unchecked pending review
-    and merge; use the [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read).
+    `task/p1-09f-workflow-draft-read` at `4aca101`, including master `181bf6c`.
+    Six focused tests passed; Ruff and mypy passed. PostgreSQL/Keycloak
+    verification is blocked by Windows Application Control. No PR exists; keep
+    unchecked pending review and merge.
   - [ ] P1-09g Add an owner-only version-checked write for an existing mutable
-    workflow draft. Implemented at `b989872` on
-    `task/p1-09g-workflow-draft-write`, stacked on P1-09f. Focused workflow
-    API, persistence and OpenAPI tests passed (76 passed, 22 skipped); Ruff and
-    strict Linux-target mypy passed. PostgreSQL/Keycloak verification is blocked
-    by Windows Application Control preventing psycopg from loading. No PR was
-    created through the read-only integration; target P1-09f on the
-    [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1).
+    workflow draft. Implemented on `task/p1-09g-workflow-draft-write` through
+    `429e1a7`, stacked on P1-09f. Focused tests passed (76 passed, 22 skipped);
+    Ruff and Linux-target mypy passed. PostgreSQL/Keycloak verification is
+    blocked by Windows Application Control. No PR exists; keep unchecked and
+    target P1-09f with the compare link above.
   - [ ] P1-09h Add owner-only, version-checked validation of a mutable workflow
-    draft. Implemented at `2ceb73b` on
-    `task/p1-09h-workflow-draft-validation`, based on P1-09g. The focused
-    workflow/API/OpenAPI suite passed (119 passed, 20 skipped); Ruff and strict
-    Linux-target mypy passed, and the stale-version mutation was caught and
-    restored. PostgreSQL/Keycloak verification is blocked by Windows
-    Application Control preventing psycopg from loading. No PR or review
-    comment can be created through the read-only integration; target P1-09g on
-    the [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
+    draft. Implemented on `task/p1-09h-workflow-draft-validation` through
+    `3e5c52a`, based on P1-09g. Focused tests passed (124 passed, 22 skipped);
+    Ruff and Linux-target mypy passed. The full backend-suite limitation
+    (missing `ANIMETRON_TEST_DATABASE_URL`) is recorded above. PostgreSQL/
+    Keycloak verification is blocked by Windows Application Control. No PR
+    exists; keep unchecked and target P1-09g with the compare link above.
   - [ ] P1-09i Expose owner-only idempotent run creation for an existing
     immutable workflow revision. Implemented in `abbb12b` on
-    `task/p1-09i-workflow-run-create`, based directly on `master` at `df80d91`.
-    Contract: strict `{ "revision": "..." }` JSON plus one canonical lowercase
-    UUID4 `Idempotency-Key`; `202` returns only `runId` with a relative status
-    `Location`. Reuses the internal transaction; no handlers execute.
-    Focused API/OpenAPI tests passed (65 passed, 20 skipped); Ruff and
-    strict Linux-target mypy passed. The full backend run needs database and
-    OIDC test configuration. No PR or review could be created through the
-    read-only GitHub integration; keep unchecked and use the
+    `task/p1-09i-workflow-run-create`, independently based on `master`.
+    Contract: strict revision-only JSON and a canonical lowercase UUID4
+    `Idempotency-Key`; `202` returns `runId` and a relative status `Location`.
+    It reuses the internal request transaction and does not dispatch or execute.
+    After integrating master `181bf6c`, focused API, persistence and OpenAPI
+    tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy passed.
+    PostgreSQL-backed persistence tests were skipped because
+    `ANIMETRON_TEST_DATABASE_URL` is unavailable; the PostgreSQL/Keycloak
+    harness is blocked by Windows Application Control. GitHub search found no
+    PR for this branch, and the integration is read-only; keep unchecked and
+    target master with the
     [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-09i-workflow-run-create?expand=1).
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
