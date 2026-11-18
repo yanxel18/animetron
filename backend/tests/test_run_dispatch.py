@@ -5,9 +5,14 @@ from test_execution_readiness import _binding, _manifest
 from app.core.outbox import metadata as outbox_metadata
 from app.core.outbox import outbox
 from app.services.models.manifest import ModelManifest
-from app.services.workflows import execution_readiness, run_dispatch
+from app.services.workflows import execution_readiness, run_cancellations, run_dispatch
 from app.services.workflows.execution_readiness import ReadyModel, ResolvedHandler
-from app.services.workflows.runs import RunState, get_run_status
+from app.services.workflows.runs import (
+    RunConflict,
+    RunState,
+    get_run_status,
+    list_events,
+)
 from app.services.workflows.validation import GraphLimits
 
 pytest_plugins = ("test_execution_readiness",)
@@ -194,6 +199,54 @@ def test_outer_rollback_removes_node_intents_and_dispatch_outbox(
     with engine.begin() as connection:
         assert _counts(connection, run_id) == (0, 0)
         assert get_run_status(connection, run_id).state is RunState.QUEUED
+
+
+def test_committed_cancellation_prevents_later_dispatch_preparation(
+    dispatchable_run, monkeypatch
+):
+    engine, run_id, workflow_id, revision = dispatchable_run
+    binding = _binding(workflow_id, revision, _manifest())
+    monkeypatch.setattr(
+        execution_readiness,
+        "get_execution_binding",
+        lambda *_args: binding,
+    )
+    handlers = AllHandlers()
+
+    with engine.begin() as connection:
+        cancellation = run_cancellations.request_run_cancellation(connection, run_id)
+
+    with pytest.raises(RunConflict), engine.begin() as connection:
+        run_dispatch.prepare_run_dispatch(
+            connection,
+            run_id,
+            handlers,
+            ReadyModels(),
+            GraphLimits(max_nodes=8, max_edges=8),
+            max_bytes=4096,
+        )
+
+    with engine.begin() as connection:
+        retry = run_cancellations.request_run_cancellation(connection, run_id)
+        status = get_run_status(connection, run_id)
+        events = list_events(connection, run_id, 0)
+        topics = connection.execute(
+            select(outbox.c.topic).where(outbox.c.resource_id == run_id)
+        ).scalars().all()
+        node_count = connection.scalar(
+            select(func.count()).select_from(run_dispatch.node_intents).where(
+                run_dispatch.node_intents.c.run_id == run_id
+            )
+        )
+
+    assert cancellation.outcome is run_cancellations.CancellationOutcome.REQUESTED
+    assert retry.outcome is run_cancellations.CancellationOutcome.ALREADY_REQUESTED
+    assert status.state is RunState.CANCELLING
+    assert status.last_sequence == 2
+    assert [event.state for event in events] == [RunState.QUEUED, RunState.CANCELLING]
+    assert topics == [run_cancellations.CANCELLATION_TOPIC]
+    assert node_count == 0
+    assert handlers.calls == []
 
 
 def test_dispatch_topic_is_distinct_from_non_executable_run_request():
