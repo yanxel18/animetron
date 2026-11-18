@@ -86,6 +86,7 @@ routes are disabled. No control data is available through public schema routes.
 | `GET /api/v1/auth/callback` | Browser-bound single-use state plus validated code; 303 to fixed session endpoint |
 | `GET /api/v1/auth/session` | Any explicitly granted principal; principalId, role, csrfToken, expiresAt |
 | `POST /api/v1/auth/logout` | Same principal, exact Origin and X-CSRF-Token; local revocation, cookie clearing, 303 to Keycloak confirmation |
+| `GET /api/v1/artifacts/{id}` | Owner only; metadata fields only, no storage locator or artifact bytes |
 | `GET /api/v1/reviews` | Owner only; all stored review states, metadata only, keyset cursor, default limit 50 and maximum 100 |
 | `POST /api/v1/reviews/{id}/decisions` | Owner only; exact-scope `APPROVED`/`REJECTED`, current session plus exact Origin and X-CSRF-Token |
 | `GET /api/v1/readiness` | Owner/operator; real session/database and discovery/JWKS checks |
@@ -278,9 +279,11 @@ disable propagation; local grants/configuration and session expiry remain the
 authority until logout. No general perimeter/API rate limiter, scheduled audit
 retention, production backup/restore, TLS deployment, browser engine matrix or
 production SLO/load certification is claimed. A DB/provider outage denies
-protected readiness, not liveness. Artifact HTTP, workflow CRUD, model/media,
-review creation/delivery, review content bytes, Telegram, scheduling, frontend
-and publishing remain intentionally out of scope.
+protected readiness, not liveness. Artifact upload and content HTTP, workflow
+CRUD, model/media, review creation/delivery, review content bytes, Telegram,
+scheduling, frontend and publishing remain intentionally out of scope. The
+owner-only artifact metadata route returns the immutable record without its
+internal locator or bytes; it does not authorize content access.
 
 Required merge gates: the fixture-only repair still received GitGuardian failure
 (`132201491115`), naming `backend/tests/test_auth_api.py`, generic high-entropy
