@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `b92bcc6` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `5bce7b7` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,9 +27,11 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`b92bcc6`; #82, #83, #84, #86, #87, #88, #89 and #90 are merged but are not credited without
+`5bce7b7`; #82, #83, #84, #86, #87, #88, #89, #90 and #92 are merged but
+are not credited without
 independent review and required checks. #86 includes P1-08c and P1-10c;
-#87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d. P1-09f reached master via
+#87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #92 adds
+P1-12c. P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -184,8 +186,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `b92bcc6`. PRs #75, #78, #79, #81,
-  #82, #83, #84, #86, #87, #88, #89 and #90 merged. #75 includes the
+- Reconciled with verified `master` at `5bce7b7`. PRs #75, #78, #79, #81,
+  #82, #83, #84, #86, #87, #88, #89, #90 and #92 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked pending independent review and remaining
   integration verification. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
@@ -287,8 +289,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   uploads. GitGuardian passed; no independent review is recorded and the
   combined status is pending, so keep unchecked.
 - P0-07c PostgreSQL audit verification is in review in
-  [#91](https://github.com/yanxel18/animetron/pull/91); it has conflicts with
-  current master and remains unchecked.
+  [#91](https://github.com/yanxel18/animetron/pull/91). The owned harness
+  passed 61 artifact tests, migrations, Ruff and Linux-target mypy. A corrupt
+  classification mutation failed both SQLite and PostgreSQL regressions.
+  The new test uses a fake byte inventory and does not verify actual filesystem
+  integration; keep unchecked pending review, checks and merge.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
@@ -296,10 +301,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   a duplicate outbox key; the restored implementation passed. Related dispatch,
   readiness and OpenAPI tests passed (14). This does not test a worker,
   dispatch contention or cancellation of already-running external effects.
-  The slice is in [#92](https://github.com/yanxel18/animetron/pull/92),
-  pending independent review, required checks and merge.
+  The slice merged in [#92](https://github.com/yanxel18/animetron/pull/92)
+  at `5bce7b7`. GitGuardian passed, but no independent review is recorded and
+  combined status is pending; keep unchecked.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #90 and recording P1-12c. Nested slices do not change the project
+  reconciling #92 and recording P0-07c verification. Nested slices do not change the project
   counts.
 
 ## Phase 0 - Plan and shared foundations
@@ -370,11 +376,13 @@ have the security and recovery guarantees below.
     Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
     `task/p0-07c-artifact-reconciliation`; merged to master through
     [#75](https://github.com/yanxel18/animetron/pull/75) (PR head `f9d12df`).
-    GitGuardian passed, but the earlier PostgreSQL harness could not start
+    GitGuardian passed; the earlier PostgreSQL harness attempt could not start
     because Windows Application Control blocked the installed psycopg DLL.
-    Later PostgreSQL verification is in #91; no independent review record was
-    present at merge, so keep unchecked pending review and remaining
-    integration verification. Its branch included master commit
+    A later owned PostgreSQL harness passed 61 artifact tests, including a new
+    audit regression against migrated metadata with a fake byte inventory.
+    The new test is not a real filesystem integration test. No independent
+    review record was present at merge; keep unchecked pending review and
+    verification of remaining integration boundaries. Its branch included master commit
     `8d10be9` to resolve the checklist conflict.
     Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
     byte-store tests (26 passed), backend suite outside owner-gated auth tests
@@ -702,8 +710,10 @@ immutable workflow and recover its state without duplicate effects.
   - [ ] P1-12c Verify concurrent cancellation requests serialize and reuse one
     intent on PostgreSQL. The owned harness passed 13 cancellation tests, and
     a row-lock mutation failed the new regression. This does not verify worker
-    execution or dispatch contention; keep unchecked pending review and merge
-    of [#92](https://github.com/yanxel18/animetron/pull/92).
+    execution or dispatch contention. Merged in
+    [#92](https://github.com/yanxel18/animetron/pull/92) at `5bce7b7`;
+    GitGuardian passed, but independent review is not recorded and combined
+    status is pending, so keep unchecked.
 
 ## Phase 2 - Model registry and hardware readiness
 
