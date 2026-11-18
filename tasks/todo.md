@@ -262,9 +262,10 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   ordered events and single outbox intent survive engine disposal, and a retry
   after reconnect returns the existing intent. The focused run suite passed
   (19 passed, 40 auth/database cases skipped); Ruff passed. This does not
-  exercise a worker consumer or prove PostgreSQL locking behavior. The
-  implementation is on `task/p1-12a-cancellation-restart-verification` and
-  remains unchecked pending merge/review:
+  exercise a worker consumer or prove PostgreSQL locking behavior. Commit
+  `e8e0e28` is pushed on `task/p1-12a-cancellation-restart-verification`; no
+  PR was created through the read-only GitHub integration; keep the slice
+  unchecked pending merge/review:
   [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12a-cancellation-restart-verification?expand=1).
   Full P1-12 end-to-end verification still requires the workflow dispatch
   consumer/worker, which is not present in the current backend.
@@ -651,10 +652,11 @@ immutable workflow and recover its state without duplicate effects.
   end-to-end, including duplicate message handling.
   - [ ] P1-12a Verify a cancellation intent survives database reconnect and a
     retry reuses it without duplication. Implemented as a file-backed SQLite
-    regression on `task/p1-12a-cancellation-restart-verification`; focused
-    run/cancellation/API tests passed (19 passed, 40 database/auth cases
-    skipped) and Ruff passed. This does not verify PostgreSQL locking, worker
-    delivery, or handler execution. Keep unchecked pending merge and review.
+    regression in commit `e8e0e28` on
+    `task/p1-12a-cancellation-restart-verification`; focused run/cancellation/
+    API tests passed (19 passed, 40 database/auth cases skipped) and Ruff
+    passed. This does not verify PostgreSQL locking, worker delivery, or handler
+    execution. Keep unchecked pending merge and review.
     [Compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12a-cancellation-restart-verification?expand=1).
 
 ## Phase 2 - Model registry and hardware readiness
