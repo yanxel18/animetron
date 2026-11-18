@@ -314,7 +314,8 @@ immutable workflow and recover its state without duplicate effects.
     `task/p1-08c-runtime-readiness`, based on spec commit `6615b19`. Exact
     handler digest and full model-manifest matching, full-graph preflight,
     safe typed terminal failure events, and no partial handles on failure are
-    implemented. Focused readiness plus related binding/revision/run-request
+    implemented in `c231472`; this tracker reconciliation is `b066aa7`.
+    Focused readiness plus related binding/revision/run-request
     tests passed (75 passed, 68 skipped); Ruff and strict Linux-target mypy
     passed. A deliberate handler-digest comparison mutation was caught by its
     regression test and reverted. No downloads, model acquisition, artifact
