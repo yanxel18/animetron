@@ -287,7 +287,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   uploads. GitGuardian passed; no independent review is recorded and the
   combined status is pending, so keep unchecked.
 - P0-07c PostgreSQL audit verification is in review in
-  [#91](https://github.com/yanxel18/animetron/pull/91); it remains unchecked.
+  [#91](https://github.com/yanxel18/animetron/pull/91); it has conflicts with
+  current master and remains unchecked.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
