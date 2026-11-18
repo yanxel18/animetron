@@ -1,4 +1,4 @@
-"""Authenticated, read-only durable run status and event replay API."""
+"""Authenticated durable run status, event replay, and cancellation API."""
 
 import os
 import secrets
@@ -7,11 +7,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.api.auth import SESSION_COOKIE
 from app.core.auth import AuthConfig, AuthStore
 from app.core.database import create_database_engine
+from app.core.outbox import outbox
 from app.main import SecurityHeaders, create_api
 from app.services.workflows import runs as run_service
 
@@ -391,3 +392,61 @@ def test_disabled_api_fails_closed_without_database_for_both_reads():
         run_id = uuid4()
         assert_error(client.get(f"/api/v1/runs/{run_id}"), 503)
         assert_error(client.get(f"/api/v1/runs/{run_id}/events"), 503)
+        assert_error(
+            client.post(f"/api/v1/runs/{run_id}/cancellations"),
+            503,
+        )
+
+
+def test_owner_requests_cancellation_once(run_context):
+    client, _, engine, _, principal = run_context
+    run_id = uuid4()
+    with engine.begin() as connection:
+        run_service.create_run(connection, run_id)
+
+    path = f"/api/v1/runs/{run_id}/cancellations"
+    response = client.post(path, headers=owner_headers(principal))
+    assert_success(response, status=202)
+    assert response.json() == {
+        "runId": str(run_id),
+        "state": "CANCELLING",
+        "lastSequence": 2,
+        "outcome": "REQUESTED",
+    }
+
+    retry = client.post(path, headers=owner_headers(principal))
+    assert_success(retry, status=202)
+    assert retry.json() == {
+        "runId": str(run_id),
+        "state": "CANCELLING",
+        "lastSequence": 2,
+        "outcome": "ALREADY_REQUESTED",
+    }
+
+    with engine.begin() as connection:
+        assert run_service.get_run_status(connection, run_id).state is (
+            run_service.RunState.CANCELLING
+        )
+        assert connection.scalar(
+            select(func.count()).select_from(outbox).where(
+                outbox.c.resource_id == run_id,
+                outbox.c.topic
+                == "internal.workflow-run-cancellation-requested.v1",
+            )
+        ) == 1
+
+
+def test_cancellation_requires_csrf_before_run_lookup(run_context):
+    client, _, _, _, _ = run_context
+    response = client.post(
+        f"/api/v1/runs/{uuid4()}/cancellations",
+        headers={"Origin": "https://control.example"},
+    )
+    assert_error(response, 403)
+
+
+def test_cancellation_route_has_an_explicit_async_openapi_contract():
+    schema = create_api().openapi()
+    operation = schema["paths"]["/api/v1/runs/{id}/cancellations"]["post"]
+    assert operation["responses"]["202"]["description"] == "Successful Response"
+    assert operation["responses"]["409"]["description"] == "Request could not be completed"

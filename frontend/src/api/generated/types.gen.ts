@@ -49,6 +49,11 @@ export type AuditPageResponse = {
 };
 
 /**
+ * CancellationOutcome
+ */
+export type CancellationOutcome = 'REQUESTED' | 'ALREADY_REQUESTED' | 'ALREADY_CANCELLED';
+
+/**
  * DenialCounterResponse
  */
 export type DenialCounterResponse = {
@@ -471,6 +476,42 @@ export type RevisionSummaryOutput = {
 };
 
 /**
+ * RunCancellationOutput
+ */
+export type RunCancellationOutput = {
+    /**
+     * Lastsequence
+     */
+    lastSequence: number;
+    outcome: CancellationOutcome;
+    /**
+     * Runid
+     */
+    runId: string;
+    state: RunState;
+};
+
+/**
+ * RunCreateInput
+ */
+export type RunCreateInput = {
+    /**
+     * Revision
+     */
+    revision: string;
+};
+
+/**
+ * RunCreateOutput
+ */
+export type RunCreateOutput = {
+    /**
+     * Runid
+     */
+    runId: string;
+};
+
+/**
  * RunEventOutput
  */
 export type RunEventOutput = {
@@ -592,6 +633,38 @@ export type UpdateInput = {
 };
 
 /**
+ * WorkflowDraftInput
+ */
+export type WorkflowDraftInput = {
+    /**
+     * Document
+     */
+    document: string;
+    /**
+     * Expectedversion
+     */
+    expectedVersion: number | null;
+};
+
+/**
+ * WorkflowDraftOutput
+ */
+export type WorkflowDraftOutput = {
+    /**
+     * Document
+     */
+    document: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Workflowid
+     */
+    workflowId: string;
+};
+
+/**
  * WorkflowIdListOutput
  */
 export type WorkflowIdListOutput = {
@@ -609,6 +682,68 @@ export type WorkflowIdListOutput = {
  * WorkflowIdOutput
  */
 export type WorkflowIdOutput = {
+    /**
+     * Workflowid
+     */
+    workflowId: string;
+};
+
+/**
+ * WorkflowValidationInput
+ */
+export type WorkflowValidationInput = {
+    /**
+     * Expectedversion
+     */
+    expectedVersion: number;
+};
+
+/**
+ * WorkflowValidationIssueOutput
+ */
+export type WorkflowValidationIssueOutput = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Edgeid
+     */
+    edgeId?: string | null;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Nodeid
+     */
+    nodeId?: string | null;
+    /**
+     * Sourceport
+     */
+    sourcePort?: string | null;
+    /**
+     * Targetport
+     */
+    targetPort?: string | null;
+};
+
+/**
+ * WorkflowValidationOutput
+ */
+export type WorkflowValidationOutput = {
+    /**
+     * Draftversion
+     */
+    draftVersion: number;
+    /**
+     * Isvalid
+     */
+    isValid: boolean;
+    /**
+     * Issues
+     */
+    issues: Array<WorkflowValidationIssueOutput>;
     /**
      * Workflowid
      */
@@ -1033,6 +1168,56 @@ export type ReadStatusApiV1RunsIdGetResponses = {
 
 export type ReadStatusApiV1RunsIdGetResponse = ReadStatusApiV1RunsIdGetResponses[keyof ReadStatusApiV1RunsIdGetResponses];
 
+export type RequestCancellationApiV1RunsIdCancellationsPostData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/runs/{id}/cancellations';
+};
+
+export type RequestCancellationApiV1RunsIdCancellationsPostErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    409: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type RequestCancellationApiV1RunsIdCancellationsPostError = RequestCancellationApiV1RunsIdCancellationsPostErrors[keyof RequestCancellationApiV1RunsIdCancellationsPostErrors];
+
+export type RequestCancellationApiV1RunsIdCancellationsPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: RunCancellationOutput;
+};
+
+export type RequestCancellationApiV1RunsIdCancellationsPostResponse = RequestCancellationApiV1RunsIdCancellationsPostResponses[keyof RequestCancellationApiV1RunsIdCancellationsPostResponses];
+
 export type ReadEventsApiV1RunsIdEventsGetData = {
     body?: never;
     path: {
@@ -1378,6 +1563,102 @@ export type DiscoverWorkflowsApiV1WorkflowsGetResponses = {
 
 export type DiscoverWorkflowsApiV1WorkflowsGetResponse = DiscoverWorkflowsApiV1WorkflowsGetResponses[keyof DiscoverWorkflowsApiV1WorkflowsGetResponses];
 
+export type ReadWorkflowDraftApiV1WorkflowsIdDraftGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/draft';
+};
+
+export type ReadWorkflowDraftApiV1WorkflowsIdDraftGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ReadWorkflowDraftApiV1WorkflowsIdDraftGetError = ReadWorkflowDraftApiV1WorkflowsIdDraftGetErrors[keyof ReadWorkflowDraftApiV1WorkflowsIdDraftGetErrors];
+
+export type ReadWorkflowDraftApiV1WorkflowsIdDraftGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkflowDraftOutput;
+};
+
+export type ReadWorkflowDraftApiV1WorkflowsIdDraftGetResponse = ReadWorkflowDraftApiV1WorkflowsIdDraftGetResponses[keyof ReadWorkflowDraftApiV1WorkflowsIdDraftGetResponses];
+
+export type WriteWorkflowDraftApiV1WorkflowsIdDraftPutData = {
+    body: WorkflowDraftInput;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/draft';
+};
+
+export type WriteWorkflowDraftApiV1WorkflowsIdDraftPutErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    409: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type WriteWorkflowDraftApiV1WorkflowsIdDraftPutError = WriteWorkflowDraftApiV1WorkflowsIdDraftPutErrors[keyof WriteWorkflowDraftApiV1WorkflowsIdDraftPutErrors];
+
+export type WriteWorkflowDraftApiV1WorkflowsIdDraftPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkflowDraftOutput;
+};
+
+export type WriteWorkflowDraftApiV1WorkflowsIdDraftPutResponse = WriteWorkflowDraftApiV1WorkflowsIdDraftPutResponses[keyof WriteWorkflowDraftApiV1WorkflowsIdDraftPutResponses];
+
 export type ReadRevisionByQueryApiV1WorkflowsIdRevisionGetData = {
     body?: never;
     path: {
@@ -1533,3 +1814,111 @@ export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses = {
 };
 
 export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponse = ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses[keyof ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses];
+
+export type CreateRunApiV1WorkflowsIdRunsPostData = {
+    body: RunCreateInput;
+    headers: {
+        /**
+         * Idempotency-Key
+         *
+         * Canonical lowercase RFC-variant UUID4, reused for retries of this run intent.
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/runs';
+};
+
+export type CreateRunApiV1WorkflowsIdRunsPostErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    409: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type CreateRunApiV1WorkflowsIdRunsPostError = CreateRunApiV1WorkflowsIdRunsPostErrors[keyof CreateRunApiV1WorkflowsIdRunsPostErrors];
+
+export type CreateRunApiV1WorkflowsIdRunsPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: RunCreateOutput;
+};
+
+export type CreateRunApiV1WorkflowsIdRunsPostResponse = CreateRunApiV1WorkflowsIdRunsPostResponses[keyof CreateRunApiV1WorkflowsIdRunsPostResponses];
+
+export type ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostData = {
+    body: WorkflowValidationInput;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/validations';
+};
+
+export type ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    409: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostError = ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostErrors[keyof ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostErrors];
+
+export type ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: WorkflowValidationOutput;
+};
+
+export type ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostResponse = ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostResponses[keyof ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostResponses];

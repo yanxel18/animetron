@@ -168,6 +168,91 @@ does not create or edit workflows or revisions, validate mutable drafts,
 execute handlers, dispatch an outbox message, or authorize model readiness or
 external effects.
 
+## Owner-only mutable workflow draft read (P1-09f)
+
+`GET /api/v1/workflows/{id}/draft` reads one stored draft and returns exactly
+`{ "workflowId": "<UUID>", "document": "<UTF-8 draft text>",
+"version": <positive integer> }`. `document` is the stored UTF-8 bytes decoded
+as text; it is not parsed, normalized, validated, or required to be complete.
+The version supports later compare-and-swap updates but this endpoint does not
+write drafts.
+
+The route accepts no query parameters and reuses the fresh-session,
+exact-origin owner dependency. A malformed workflow UUID or any query parameter
+returns the standard generic `422`; unauthenticated or stale sessions return
+`401`; non-owner roles return `403` before draft lookup; an absent draft returns
+`404`. Database failures or invalid stored draft metadata fail closed with the
+generic `503` envelope. Successful and error responses retain the shared
+security headers and `Cache-Control: no-store`.
+
+This endpoint exposes only an existing mutable draft. It adds no workflow
+creation, update, deletion, validation, immutable revision, execution,
+scheduling, publishing, or model-readiness behavior.
+
+## Owner-only mutable workflow draft write (P1-09g)
+
+`PUT /api/v1/workflows/{id}/draft` accepts exactly
+`{ "document": "<UTF-8 draft text>", "expectedVersion": null | <integer> }`
+and returns the same `{ "workflowId": "<UUID>", "document": "<UTF-8 draft
+text>", "version": <positive integer> }` shape as P1-09f. Extra fields are
+rejected. The document is stored as UTF-8 without parsing, normalization,
+validation, or a completeness requirement. Its encoded size is limited to
+32,768 bytes; the bounded outer JSON request is limited to 262,144 bytes.
+
+`expectedVersion: null` creates a draft at version 1 only when no draft exists.
+A positive expected version updates only a draft at that version and increments
+the version by one. A stale version, or a create for an existing draft, returns
+`409`; updating a missing draft returns `404`. The compare-and-swap is the
+retry-safety mechanism; clients that receive a conflict after an uncertain
+response must read the draft to reconcile state. The accepted expected-version
+range is 1 through 2,147,483,646.
+
+The route reuses the fresh-session, exact-origin owner dependency and requires
+the normal `Origin` and CSRF headers for `PUT`. It accepts no query parameters,
+requires JSON with identity content encoding, and retains shared security
+headers and `Cache-Control: no-store`. Malformed input, an oversized document
+or request, unsupported headers, invalid UTF-8 text, or an unknown query
+parameter returns generic `422`; unauthenticated or stale sessions return
+`401`; non-owner, origin or CSRF failures return `403`; database failures or
+invalid stored draft metadata fail closed with generic `503`.
+
+This endpoint writes only the mutable draft row within one database
+transaction. It does not create an immutable revision or workflow entity, and
+adds no workflow validation, deletion, execution, scheduling, publishing, or
+model-readiness behavior.
+
+## Owner-only mutable workflow draft validation (P1-09h)
+
+`POST /api/v1/workflows/{id}/validations` accepts exactly
+`{ "expectedVersion": <positive integer> }` and validates the stored draft only
+when its version matches. The accepted version range is 1 through
+2,147,483,646. A stale version returns `409`; a missing draft returns `404`.
+The response is
+`{ "workflowId": "<UUID>", "draftVersion": <positive integer>,
+"isValid": <boolean>, "issues": [...] }`.
+
+The current backend-owned catalog is the fixed text-only sample catalog from
+P1-10b, bounded to 32 nodes, 48 edges and 32 KiB of draft UTF-8 text. Validation
+does not execute sample handlers. Each issue returns a stable `code`,
+human-readable `message`, and only the applicable identifiers among `nodeId`,
+`edgeId`, `sourcePort` and `targetPort`. A well-formed graph with validation
+issues returns `200` with `isValid: false`; a valid graph returns `200` with
+`isValid: true` and an empty issue list. Invalid JSON, unsupported document
+shape, or other parse failures return one generic `INVALID_DOCUMENT` issue
+without echoing draft content.
+
+The request uses the fresh-session, exact-origin owner dependency and requires
+JSON, identity content encoding, `Origin` and CSRF headers. The bounded request
+is limited to 256 KiB; unknown fields or query parameters return generic
+`422`. Unauthenticated or stale sessions return `401`; non-owner, origin or
+CSRF failures return `403`. Corrupt stored draft metadata or database failures
+fail closed with generic `503`. Responses retain the shared security headers
+and `Cache-Control: no-store`.
+
+Validation is read-only and applies to one observed draft version. No
+validation result is persisted; this endpoint creates no immutable revision,
+workflow entity, run, or external effect.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run
@@ -208,6 +293,31 @@ update its last-seen timestamp. Reads do not require model readiness, dispatch,
 or execution claims and do not start, cancel, recover, or report simulated
 execution progress. They return only the durable state and event rows already
 stored. This contract does not add node state, a journal, or WebSockets.
+
+## Cooperative cancellation intent (P1-11b)
+
+`POST /api/v1/runs/{id}/cancellations` is an owner-only, CSRF-protected
+request with no body or query parameters. For `QUEUED`, `RUNNING`, or
+`WAITING_REVIEW` runs, it atomically transitions the run to `CANCELLING` and
+enqueues one stable `internal.workflow-run-cancellation-requested.v1` outbox
+intent in the caller-owned transaction. The `202` response contains exactly
+`{ "runId": "<UUID>", "state": "CANCELLING", "lastSequence": <integer>,
+"outcome": "REQUESTED" }`.
+
+Retries while already `CANCELLING` return the same state and sequence with
+`outcome: "ALREADY_REQUESTED"` and do not enqueue a duplicate. A previously
+`CANCELLED` run returns `outcome: "ALREADY_CANCELLED"` without another intent.
+Successful cancellation requests use `202`; missing runs return `404`, terminal
+non-cancelled runs return generic `409`, invalid identifiers or query
+parameters return generic `422`, and inconsistent persisted intent state or
+unavailable dependencies fail closed with generic `503`. The route reuses the
+fresh-session, exact-origin, owner and CSRF dependencies and standard security
+headers.
+
+`CANCELLING` records an accepted cooperative request, not worker termination.
+This slice does not interrupt a handler, mark a run `CANCELLED`, or reconcile
+unknown external effects; a future worker must confirm termination and record
+the terminal state.
 
 ## Bounded internal P1-08a value contract
 
@@ -294,6 +404,60 @@ outbox effects are created. P1-08 remains incomplete until runtime enforcement.
 Downgrading a populated binding table destroys replay evidence and requires
 explicit authorization and a recovery plan. Destructive migration tests run
 only against the harness-owned disposable database.
+
+## P1-08c pre-execution readiness gate (approved 2026-11-18)
+
+This slice enforces the installed-code and model pins retained by a
+checked execution binding before any workflow node handler starts. It does not
+acquire models or execute handlers.
+
+The owner confirmed on 2026-11-18 that handler resolution uses a trusted
+server-owned catalog and readiness failures persist a terminal `FAILED` run
+before node dispatch.
+
+The trusted runtime loads the stored binding through
+`get_execution_binding` and verifies the source revision association and both
+digests. Before starting any node, it preflights every node in the immutable
+execution snapshot:
+
+- Resolve each `artifactId` through a server-owned handler catalog. The
+  installed artifact digest must exactly match the node's pinned lowercase
+  SHA-256. The resolver returns an opaque handle bound to that verified
+  artifact; workflow data cannot provide a path, module name, URL or import
+  instruction.
+- Resolve each pinned model using its full immutable provider, repository and
+  revision identity. The registry must report `READY` and the resolved
+  manifest (engine, license identifier and complete file path/size/digest set)
+  must exactly match the snapshot. An Ollama engine or matching model tag alone
+  does not establish readiness; the exact pinned local model and file
+  integrity must be verified by the registry.
+- Complete the whole-graph preflight before invoking any handler. If any pin is
+  missing, mismatched or not ready, invoke no handlers and create no node
+  intents or execution outbox work. The existing run-request notification
+  remains non-executable.
+
+On failure, persist the run as `FAILED` with a typed, non-sensitive readiness
+reason before node dispatch. Do not repair or repin the binding, choose a
+fallback handler/model, or infer readiness from a directory, Ollama
+availability, or a model tag. This guard never pulls models, fetches artifacts,
+accepts licenses, or uses credentials. If acquisition is later needed, it is a
+separate model-registry task subject to its license, access and resource gates.
+A fully ready preflight returns the verified opaque handles to the dispatcher;
+dispatch and handler execution remain separate work.
+
+The trusted handler catalog is an injected server-side dependency. This slice
+consumes only verified digest-bound handles; artifact installation, packaging
+and filesystem layout are outside its scope. Workflow data must never select
+those locations or load executable code.
+
+Focused tests must prove exact handler/model matches pass, missing or changed
+pins fail closed, and one unready node prevents every handler from starting.
+Tests use fake trusted catalogs and readiness results; they perform no model
+downloads or external requests.
+
+This contract was approved by the owner on 2026-11-18. Implement the gate
+before enabling node dispatch; this approval does not authorize model downloads,
+artifact fetching or external effects.
 
 ## Bounded internal P1-09a contract
 

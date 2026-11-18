@@ -7,12 +7,24 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.auth import ErrorResponse
 from app.api.dependencies import auth_dependencies
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
+from app.services.workflows import run_cancellations
 from app.services.workflows import runs as run_store
-from app.services.workflows.runs import RunEvent, RunNotFound, RunState, RunStatus
+from app.services.workflows.run_cancellations import (
+    CancellationOutcome,
+    RunCancellationCorrupt,
+)
+from app.services.workflows.runs import (
+    RunConflict,
+    RunEvent,
+    RunNotFound,
+    RunState,
+    RunStatus,
+)
 
 _ASCII_DECIMAL = re.compile(r"[0-9]+\Z")
 _MAX_SEQUENCE = 2_147_483_647
@@ -42,6 +54,13 @@ class RunEventPageOutput(Output):
     data: list[RunEventOutput]
     next_after_sequence: int = Field(alias="nextAfterSequence")
     has_more: bool = Field(alias="hasMore")
+
+
+class RunCancellationOutput(Output):
+    run_id: UUID = Field(alias="runId")
+    state: RunState
+    last_sequence: int = Field(alias="lastSequence")
+    outcome: CancellationOutcome
 
 
 def _validate_query_parameters(request: Request, allowed: set[str]) -> None:
@@ -151,6 +170,39 @@ def runs_router(config: AuthConfig | None, store: AuthStore | None) -> APIRouter
             data=[_event_output(event) for event in page],
             nextAfterSequence=page[-1].sequence if page else after_sequence,
             hasMore=len(events) > limit,
+        )
+
+    @router.post(
+        "/{id}/cancellations",
+        response_model=RunCancellationOutput,
+        status_code=202,
+        responses={
+            409: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            }
+        },
+    )
+    def request_cancellation(
+        id: UUID,
+        request: Request,
+        _: Annotated[Principal, Depends(owner)],
+    ) -> RunCancellationOutput:
+        _validate_query_parameters(request, set())
+        try:
+            with persistence().transaction() as connection:
+                result = run_cancellations.request_run_cancellation(connection, id)
+        except RunNotFound:
+            raise AuthDenied("RUN_NOT_FOUND", 404) from None
+        except RunConflict:
+            raise AuthDenied("RUN_CANCELLATION_CONFLICT", 409) from None
+        except (RunCancellationCorrupt, RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+        return RunCancellationOutput(
+            runId=result.run_id,
+            state=result.state,
+            lastSequence=result.last_sequence,
+            outcome=result.outcome,
         )
 
     return router
