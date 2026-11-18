@@ -44,6 +44,7 @@ def test_run_request_downgrade_reupgrade_preserves_existing_tables(migration_con
         with engine.connect() as conn:
             assert set(inspect(conn).get_table_names()) == before - {
                 "workflow_run_requests", "workflow_execution_bindings", "schedule_due_slots",
+                "workflow_drafts",
             }
             assert conn.scalar(text("SELECT to_regprocedure('guard_workflow_run_request()')")) is None
             assert any(
@@ -72,7 +73,7 @@ def test_execution_binding_downgrade_removes_only_own_table_and_guard(migration_
         command.downgrade(migration_config, "p1_09a_run_requests")
         with engine.connect() as conn:
             assert set(inspect(conn).get_table_names()) == before - {
-                "workflow_execution_bindings", "schedule_due_slots",
+                "workflow_execution_bindings", "schedule_due_slots", "workflow_drafts",
             }
             assert conn.scalar(text("SELECT to_regprocedure('guard_workflow_execution_binding()')")) is None
         command.upgrade(migration_config, "head")
@@ -95,7 +96,9 @@ def test_due_slot_downgrade_removes_only_own_table_and_guard(migration_config, m
             assert conn.scalar(text("SELECT to_regprocedure('guard_schedule_due_slot()')")) is not None
         command.downgrade(migration_config, "p1_09c_workflow_revision_list")
         with engine.connect() as conn:
-            assert set(inspect(conn).get_table_names()) == before - {"schedule_due_slots"}
+            assert set(inspect(conn).get_table_names()) == before - {
+                "schedule_due_slots", "workflow_drafts",
+            }
             assert conn.scalar(text("SELECT to_regprocedure('guard_schedule_due_slot()')")) is None
         command.upgrade(migration_config, "head")
         command.check(migration_config)
