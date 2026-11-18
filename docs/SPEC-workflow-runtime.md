@@ -255,10 +255,10 @@ workflow entity, run, or external effect.
 
 ## Proposed P1-09j owner-only draft-to-revision creation
 
-**Status: owner approval expressed; implementation remains blocked.**
-The owner approved the current proposal on 2026-11-18. Three adversarial
-review cycles identified substantive issues; the latest amendments require
-further independent review. Owner approval does not waive that review.
+**Status: implementation in review.** The owner approved the proposal on
+2026-11-18 and stated on 2026-11-19 that it was reviewed and approved, directing
+development to proceed. Three adversarial review cycles identified substantive
+issues; no independent GitHub review of the final amendments is recorded.
 The existing draft write and validation APIs cannot create the immutable
 revision required by run creation. This slice would let the owner save one
 validated draft version as a revision; it does not create an execution binding

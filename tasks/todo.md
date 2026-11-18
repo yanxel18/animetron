@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `2cbd198` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `5f4ce66` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -18,7 +18,7 @@ The owner approved the
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
 
-## Overall progress snapshot - 2026-11-18
+## Overall progress snapshot - 2026-11-19
 
 **31.6%: 18 of 57 top-level P0-P9 checklist tasks are complete.** This is an
 unweighted task count, not a measure of effort, functionality or production
@@ -27,7 +27,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`2cbd198`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`5f4ce66`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -54,10 +54,12 @@ GitHub review is recorded and combined status is pending.
 independent GitHub review is recorded and combined status is pending.
 #110 merged the P1-09j proposal at `2cbd198`; GitGuardian passed, no
 independent GitHub review is recorded and combined status is pending. The
-owner approved the current proposal on 2026-11-18; independent review of its
-final amendments remains required before implementation.
+owner approved the current proposal on 2026-11-18 and stated it was reviewed
+and approved on 2026-11-19. No independent GitHub review of its final
+amendments is recorded.
 Approval reconciliation [#111](https://github.com/yanxel18/animetron/pull/111)
-is **in review**.
+merged at `5f4ce66`; GitGuardian passed, no independent GitHub review is
+recorded and combined status is pending.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -790,14 +792,19 @@ immutable workflow and recover its state without duplicate effects.
     [#110](https://github.com/yanxel18/animetron/pull/110) merged at `2cbd198`.
     The
     [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-09j-owner-only-draft-to-revision-creation)
-    received owner approval on 2026-11-18. Three adversarial review cycles found
-    substantive issues; the latest changes need further independent review
-    before implementation. GitGuardian passed; no independent GitHub review is
-    recorded and combined status is pending. An existing sample draft of
-    16,125 bytes validated
-    without issues but produced 48,112 canonical bytes, supporting the
-    proposed separate 32-KiB canonical bound. No endpoint is implemented.
-    It does not create runs, execution bindings or authorize handler execution.
+    received owner approval on 2026-11-18. On 2026-11-19 the owner stated it
+    was reviewed and approved and directed development to proceed. No
+    independent GitHub review of the final amendments is recorded. An existing
+    sample draft of 16,125 bytes validated without issues but produced 48,112
+    canonical bytes, supporting the separate 32-KiB canonical bound.
+    Implementation adds the owner-only endpoint, locked draft validation,
+    immutable replay and conflict handling; it does not create runs, execution
+    bindings or authorize handler execution. The isolated PostgreSQL suite
+    passed 204 tests including both update/create lock orderings, duplicate
+    creation, lock timeout, lost-acknowledgement replay, size and version
+    boundaries; migrations, Ruff, Linux-target mypy, generated API type drift
+    check and frontend typecheck passed. Live OIDC and execution were not
+    tested. Keep unchecked until the implementation is merged and reviewed.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow

@@ -1841,6 +1841,56 @@ export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponses = {
 
 export type ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponse = ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponses[keyof ListWorkflowRevisionsApiV1WorkflowsIdRevisionsGetResponses];
 
+export type CreateRevisionApiV1WorkflowsIdRevisionsPostData = {
+    body: WorkflowValidationInput;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/revisions';
+};
+
+export type CreateRevisionApiV1WorkflowsIdRevisionsPostErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    409: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type CreateRevisionApiV1WorkflowsIdRevisionsPostError = CreateRevisionApiV1WorkflowsIdRevisionsPostErrors[keyof CreateRevisionApiV1WorkflowsIdRevisionsPostErrors];
+
+export type CreateRevisionApiV1WorkflowsIdRevisionsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: RevisionOutput;
+};
+
+export type CreateRevisionApiV1WorkflowsIdRevisionsPostResponse = CreateRevisionApiV1WorkflowsIdRevisionsPostResponses[keyof CreateRevisionApiV1WorkflowsIdRevisionsPostResponses];
+
 export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetData = {
     body?: never;
     path: {
