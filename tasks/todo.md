@@ -399,6 +399,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   that application code has no concrete trusted handler catalog, and the sample
   catalog does not bind handler artifacts. Deployment and artifact installation
   remain unauthorized. No execution or start-record implementation is claimed.
+  Approval and blocker reconciliation is in review in
+  [#105](https://github.com/yanxel18/animetron/pull/105).
   #104's GitGuardian check passed; no independent GitHub review is recorded
   and combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
