@@ -31,6 +31,8 @@ unmerged, so the overall percentage and phase counts remain unchanged.
 Recounted again after P1-09g integration commit `429e1a7`; its branch is pushed
 but still has no PR, so no task completion is credited.
 P1-09h remains unmerged; the 18/57 count and phase counts are unchanged.
+Recounted after P1-09h integration commit `76c7640`; its branch is pushed but
+has no PR, so it remains unchecked.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -192,8 +194,8 @@ verification. This checklist remains the only current progress source.
   harness remains blocked by Windows Application Control. The full backend
   suite produced 408 passed, 341 skipped, 3 failed and 48 errors; all 51
   auth/database cases were blocked by missing `ANIMETRON_TEST_DATABASE_URL`.
-  The read-only GitHub integration cannot create a PR or post a review comment;
-  keep this slice
+  Integration commit `76c7640` is pushed. No PR exists; the read-only GitHub
+  integration cannot create one or post a review comment. Keep this slice
   unchecked and create its PR against P1-09g from the
   [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
 - Reconciled with `181bf6c` on 2026-11-18. The top-level recount remains 18/57
@@ -434,9 +436,9 @@ immutable workflow and recover its state without duplicate effects.
     check mutation was caught by the regression test and restored.
     PostgreSQL/Keycloak verification is blocked by Windows Application Control.
     The full backend-suite limitation (missing test database URL) is recorded
-    above.
-    The read-only GitHub integration cannot create a PR or post a review
-    comment; keep unchecked and target P1-09g using the compare link above.
+    above. Integration commit `76c7640` is pushed; no PR exists, so keep
+    unchecked pending independent review and merge. Use the compare link above
+    to target P1-09g.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
