@@ -290,6 +290,91 @@ def _fail(
     return ExecutionReadiness(False, code)
 
 
+def _load_run_pins(
+    connection: Connection,
+    run_id: UUID,
+    limits: GraphLimits,
+    *,
+    max_bytes: int,
+) -> tuple[_NodePins, ...] | ReadinessFailureCode:
+    request = connection.execute(
+        select(
+            run_requests.c.workflow_id,
+            run_requests.c.revision,
+            run_requests.c.sha256,
+        ).where(run_requests.c.run_id == run_id)
+    ).one_or_none()
+    run_revision = connection.execute(
+        select(run_revisions.c.workflow_id, run_revisions.c.revision).where(
+            run_revisions.c.run_id == run_id
+        )
+    ).one_or_none()
+    if (
+        request is None
+        or run_revision is None
+        or tuple(request[:2]) != tuple(run_revision)
+        or type(request.sha256) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", request.sha256) is None
+    ):
+        return ReadinessFailureCode.RUN_BINDING_INVALID
+
+    try:
+        binding = get_execution_binding(
+            connection, request.workflow_id, request.revision
+        )
+    except ExecutionBindingNotFound:
+        return ReadinessFailureCode.EXECUTION_BINDING_NOT_FOUND
+    except ExecutionBindingCorrupt:
+        return ReadinessFailureCode.EXECUTION_BINDING_CORRUPT
+    if (
+        binding.workflow_id != request.workflow_id
+        or binding.revision != request.revision
+        or binding.source_sha256 != request.sha256
+    ):
+        return ReadinessFailureCode.RUN_BINDING_INVALID
+    try:
+        return _decode_pins(binding, limits, max_bytes)
+    except _InvalidExecutionDocument:
+        return ReadinessFailureCode.EXECUTION_DOCUMENT_INVALID
+
+
+def _resolve_pins(
+    pins: tuple[_NodePins, ...],
+    handler_catalog: HandlerCatalog,
+    model_registry: ModelRegistry,
+) -> ExecutionReadiness:
+    resolved_handlers: list[tuple[str, ResolvedHandler]] = []
+    resolved_models: list[tuple[str, int, ReadyModel]] = []
+    for node in pins:
+        handler = handler_catalog.resolve(node.handler.artifact_id)
+        if handler is None:
+            return ExecutionReadiness(False, ReadinessFailureCode.HANDLER_NOT_READY)
+        if (
+            not isinstance(handler, ResolvedHandler)
+            or handler.artifact_id != node.handler.artifact_id
+            or handler.sha256 != node.handler.sha256
+        ):
+            return ExecutionReadiness(False, ReadinessFailureCode.HANDLER_PIN_MISMATCH)
+        resolved_handlers.append((node.node_id, handler))
+
+        for index, manifest in enumerate(node.models):
+            model = model_registry.resolve(manifest)
+            if model is None:
+                return ExecutionReadiness(False, ReadinessFailureCode.MODEL_NOT_READY)
+            if not isinstance(model, ReadyModel) or model.manifest != manifest:
+                return ExecutionReadiness(False, ReadinessFailureCode.MODEL_PIN_MISMATCH)
+            resolved_models.append((node.node_id, index, model))
+
+    return ExecutionReadiness(
+        True,
+        handlers=tuple(resolved_handlers),
+        models=tuple(resolved_models),
+        node_dependencies=tuple(
+            (node.node_id, node.dependencies) for node in pins
+        ),
+    )
+
+
 def preflight_run(
     connection: Connection,
     run_id: UUID,
@@ -313,118 +398,10 @@ def preflight_run(
     if status.state is not RunState.QUEUED:
         raise RunConflict("Only queued runs can be preflighted")
 
-    request = connection.execute(
-        select(
-            run_requests.c.workflow_id,
-            run_requests.c.revision,
-            run_requests.c.sha256,
-        ).where(run_requests.c.run_id == run_id)
-    ).one_or_none()
-    run_revision = connection.execute(
-        select(run_revisions.c.workflow_id, run_revisions.c.revision).where(
-            run_revisions.c.run_id == run_id
-        )
-    ).one_or_none()
-    if (
-        request is None
-        or run_revision is None
-        or tuple(request[:2]) != tuple(run_revision)
-        or type(request.sha256) is not str
-        or re.fullmatch(r"[0-9a-f]{64}", request.sha256) is None
-    ):
-        return _fail(
-            connection,
-            run_id,
-            status.last_sequence,
-            ReadinessFailureCode.RUN_BINDING_INVALID,
-        )
-
-    try:
-        binding = get_execution_binding(
-            connection, request.workflow_id, request.revision
-        )
-    except ExecutionBindingNotFound:
-        return _fail(
-            connection,
-            run_id,
-            status.last_sequence,
-            ReadinessFailureCode.EXECUTION_BINDING_NOT_FOUND,
-        )
-    except ExecutionBindingCorrupt:
-        return _fail(
-            connection,
-            run_id,
-            status.last_sequence,
-            ReadinessFailureCode.EXECUTION_BINDING_CORRUPT,
-        )
-    if (
-        binding.workflow_id != request.workflow_id
-        or binding.revision != request.revision
-        or binding.source_sha256 != request.sha256
-    ):
-        return _fail(
-            connection,
-            run_id,
-            status.last_sequence,
-            ReadinessFailureCode.RUN_BINDING_INVALID,
-        )
-    try:
-        pins = _decode_pins(binding, limits, max_bytes)
-    except _InvalidExecutionDocument:
-        return _fail(
-            connection,
-            run_id,
-            status.last_sequence,
-            ReadinessFailureCode.EXECUTION_DOCUMENT_INVALID,
-        )
-
-    resolved_handlers: list[tuple[str, ResolvedHandler]] = []
-    resolved_models: list[tuple[str, int, ReadyModel]] = []
-    for node in pins:
-        handler = handler_catalog.resolve(node.handler.artifact_id)
-        if handler is None:
-            return _fail(
-                connection,
-                run_id,
-                status.last_sequence,
-                ReadinessFailureCode.HANDLER_NOT_READY,
-            )
-        if (
-            not isinstance(handler, ResolvedHandler)
-            or handler.artifact_id != node.handler.artifact_id
-            or handler.sha256 != node.handler.sha256
-        ):
-            return _fail(
-                connection,
-                run_id,
-                status.last_sequence,
-                ReadinessFailureCode.HANDLER_PIN_MISMATCH,
-            )
-        resolved_handlers.append((node.node_id, handler))
-
-        for index, manifest in enumerate(node.models):
-            model = model_registry.resolve(manifest)
-            if model is None:
-                return _fail(
-                    connection,
-                    run_id,
-                    status.last_sequence,
-                    ReadinessFailureCode.MODEL_NOT_READY,
-                )
-            if not isinstance(model, ReadyModel) or model.manifest != manifest:
-                return _fail(
-                    connection,
-                    run_id,
-                    status.last_sequence,
-                    ReadinessFailureCode.MODEL_PIN_MISMATCH,
-                )
-            resolved_models.append((node.node_id, index, model))
-
-    return ExecutionReadiness(
-        True,
-        handlers=tuple(resolved_handlers),
-        models=tuple(resolved_models),
-        node_dependencies=tuple(
-            (node.node_id, node.dependencies) for node in pins
-        ),
-    )
+    pins = _load_run_pins(connection, run_id, limits, max_bytes=max_bytes)
+    if isinstance(pins, ReadinessFailureCode):
+        return _fail(connection, run_id, status.last_sequence, pins)
+    readiness = _resolve_pins(pins, handler_catalog, model_registry)
+    if readiness.failure_code is not None:
+        return _fail(connection, run_id, status.last_sequence, readiness.failure_code)
+    return readiness

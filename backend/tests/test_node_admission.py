@@ -8,16 +8,21 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import delete, event, func, insert, select, text
 from sqlalchemy.exc import DBAPIError
-from test_execution_readiness import _binding, _manifest
+from test_execution_bindings import bind
+from test_execution_bindings import save as save_execution
+from test_execution_readiness import HandlerCatalog, ModelRegistry, _binding, _manifest
+from test_execution_snapshot import LIMITS, MANIFEST
 from test_run_dispatch import AllHandlers, ReadyModels
 from test_run_revisions import save
 
 from app.core.database import create_database_engine
 from app.core.outbox import enqueue, outbox
 from app.services.workflows import (
+    execution_bindings,
     execution_readiness,
     node_admission,
     node_outcomes,
+    node_revalidation,
     run_cancellations,
     run_dispatch,
     run_requests,
@@ -27,6 +32,7 @@ from app.services.workflows.runs import (
     RunState,
     create_run,
     get_run_status,
+    list_events,
     transition_run,
 )
 from app.services.workflows.validation import GraphLimits
@@ -524,3 +530,271 @@ def test_outcome_database_rejects_mutation_and_invalid_codes(prepared_run):
         assert connection.scalar(
             select(node_outcomes.outcomes.c.status).where(node_outcomes.outcomes.c.claim_id == claim_id)
         ) == "SUCCEEDED"
+
+
+def revalidate(connection, claim_id, run_id, handlers=None, models=None):
+    return node_revalidation.revalidate_admitted_node(
+        connection, claim_id, run_id, "node-1",
+        handlers if handlers is not None else AllHandlers(),
+        models if models is not None else ReadyModels(),
+        GraphLimits(max_nodes=8, max_edges=8), max_bytes=4096,
+    )
+
+
+def test_revalidation_uses_persisted_execution_binding():
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Use the owned disposable PostgreSQL harness")
+    engine = create_database_engine(url)
+    workflow_id, claim_id = uuid4(), uuid4()
+    handler_handle, model_handle = object(), object()
+    handlers = HandlerCatalog(execution_readiness.ResolvedHandler("story-handler", "c" * 64, handler_handle))
+    models = ModelRegistry(execution_readiness.ReadyModel(MANIFEST, model_handle))
+    try:
+        with engine.begin() as connection:
+            snapshot = save_execution(connection, workflow_id)
+            bind(execution_bindings, connection, workflow_id, snapshot.sha256)
+            request = run_requests.request_run(connection, uuid4(), workflow_id, "r1", snapshot.sha256)
+            run_dispatch.prepare_run_dispatch(
+                connection, request.run_id, handlers, models, LIMITS, max_bytes=100_000,
+            )
+            claim(connection, claim_id, request.run_id, "a")
+        with engine.begin() as connection:
+            result = node_revalidation.revalidate_admitted_node(
+                connection, claim_id, request.run_id, "a", handlers, models, LIMITS,
+                max_bytes=100_000,
+            )
+            assert result.ready
+            assert result.handlers[0][1].handle is handler_handle
+            assert result.models[0][2].handle is model_handle
+    finally:
+        engine.dispose()
+
+
+def test_revalidation_is_read_only_and_returns_verified_whole_graph(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        before = (
+            get_run_status(connection, run_id), list_events(connection, run_id, 0),
+            connection.execute(select(outbox).where(outbox.c.resource_id == run_id)).all(),
+            connection.execute(select(run_dispatch.node_intents).where(
+                run_dispatch.node_intents.c.run_id == run_id,
+            )).all(),
+        )
+        result = revalidate(connection, claim_id, run_id)
+        assert result.ready
+        assert [node_id for node_id, _ in result.handlers] == ["node-1", "node-2"]
+        assert len(result.models) == 2
+        assert (
+            get_run_status(connection, run_id), list_events(connection, run_id, 0),
+            connection.execute(select(outbox).where(outbox.c.resource_id == run_id)).all(),
+            connection.execute(select(run_dispatch.node_intents).where(
+                run_dispatch.node_intents.c.run_id == run_id,
+            )).all(),
+        ) == before
+        assert connection.scalar(
+            select(func.count()).select_from(node_outcomes.outcomes)
+            .where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ) == 0
+
+
+@pytest.mark.parametrize("damage", ["missing", "extra", "altered"])
+def test_revalidation_rejects_corrupted_persisted_plan(prepared_run, damage):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        if damage == "missing":
+            connection.execute(delete(run_dispatch.node_intents).where(
+                run_dispatch.node_intents.c.run_id == run_id,
+                run_dispatch.node_intents.c.node_id == "node-2",
+            ))
+        elif damage == "extra":
+            connection.execute(insert(run_dispatch.node_intents).values(
+                run_id=run_id, node_id="extra", dependencies=[],
+            ))
+        else:
+            connection.execute(run_dispatch.node_intents.update().where(
+                run_dispatch.node_intents.c.run_id == run_id,
+                run_dispatch.node_intents.c.node_id == "node-2",
+            ).values(dependencies=[]))
+        with pytest.raises(node_revalidation.RevalidationConflict):
+            revalidate(connection, claim_id, run_id)
+        assert get_run_status(connection, run_id).state is RunState.RUNNING
+
+
+def test_revalidation_rejects_missing_mismatched_and_completed_claims(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        with pytest.raises(node_revalidation.RevalidationConflict):
+            revalidate(connection, uuid4(), run_id)
+        with pytest.raises(node_revalidation.RevalidationConflict):
+            node_revalidation.revalidate_admitted_node(
+                connection, claim_id, run_id, "node-2", AllHandlers(), ReadyModels(),
+                GraphLimits(max_nodes=8, max_edges=8), max_bytes=4096,
+            )
+        node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+        with pytest.raises(node_revalidation.RevalidationConflict):
+            revalidate(connection, claim_id, run_id)
+
+
+@pytest.mark.parametrize("bad_resource", ["handler", "model"])
+def test_revalidation_unready_pin_does_not_transition_run(prepared_run, bad_resource):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+
+    class Missing:
+        def resolve(self, _):
+            return None
+
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        before = get_run_status(connection, run_id), list_events(connection, run_id, 0)
+        result = revalidate(
+            connection, claim_id, run_id,
+            handlers=Missing() if bad_resource == "handler" else AllHandlers(),
+            models=Missing() if bad_resource == "model" else ReadyModels(),
+        )
+        assert not result.ready
+        assert result.failure_code is (
+            execution_readiness.ReadinessFailureCode.HANDLER_NOT_READY
+            if bad_resource == "handler" else execution_readiness.ReadinessFailureCode.MODEL_NOT_READY
+        )
+        assert (get_run_status(connection, run_id), list_events(connection, run_id, 0)) == before
+
+
+@pytest.mark.parametrize(
+    ("damage", "expected"),
+    [
+        ("missing", execution_readiness.ReadinessFailureCode.EXECUTION_BINDING_NOT_FOUND),
+        ("corrupt", execution_readiness.ReadinessFailureCode.EXECUTION_BINDING_CORRUPT),
+        ("source", execution_readiness.ReadinessFailureCode.RUN_BINDING_INVALID),
+        ("document", execution_readiness.ReadinessFailureCode.EXECUTION_DOCUMENT_INVALID),
+    ],
+)
+def test_revalidation_binding_failures_do_not_transition_run(prepared_run, monkeypatch, damage, expected):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    original = execution_readiness.get_execution_binding
+
+    def broken_binding(*args):
+        if damage == "missing":
+            raise execution_bindings.ExecutionBindingNotFound()
+        if damage == "corrupt":
+            raise execution_bindings.ExecutionBindingCorrupt()
+        binding = original(*args)
+        if damage == "source":
+            return replace(binding, source_sha256="e" * 64)
+        return replace(binding, execution_bytes=b"{}")
+
+    monkeypatch.setattr(execution_readiness, "get_execution_binding", broken_binding)
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        before = get_run_status(connection, run_id), list_events(connection, run_id, 0)
+        result = revalidate(connection, claim_id, run_id)
+        assert result.failure_code is expected
+        assert not result.ready
+        assert (get_run_status(connection, run_id), list_events(connection, run_id, 0)) == before
+
+
+@pytest.mark.parametrize("bad_resource", ["handler", "model"])
+def test_revalidation_rejects_mismatched_pin(prepared_run, bad_resource):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+
+    class WrongHandler:
+        def resolve(self, artifact_id):
+            return execution_readiness.ResolvedHandler(artifact_id, "a" * 64, object())
+
+    class WrongModel:
+        def resolve(self, manifest):
+            return execution_readiness.ReadyModel(replace(manifest, estimated_bytes=5), object())
+
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        result = revalidate(
+            connection, claim_id, run_id,
+            handlers=WrongHandler() if bad_resource == "handler" else AllHandlers(),
+            models=WrongModel() if bad_resource == "model" else ReadyModels(),
+        )
+        assert not result.ready
+        assert result.failure_code is (
+            execution_readiness.ReadinessFailureCode.HANDLER_PIN_MISMATCH
+            if bad_resource == "handler" else execution_readiness.ReadinessFailureCode.MODEL_PIN_MISMATCH
+        )
+        assert get_run_status(connection, run_id).state is RunState.RUNNING
+
+
+def test_revalidation_requires_transaction_and_run_ready_evidence(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.connect() as connection, pytest.raises(RuntimeError, match="transaction"):
+        revalidate(connection, claim_id, run_id)
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        connection.execute(delete(outbox).where(outbox.c.id == run_dispatch._outbox_id(run_id)))
+        with pytest.raises(run_dispatch.RunDispatchCorrupt):
+            revalidate(connection, claim_id, run_id)
+        assert connection.scalar(text("SELECT 1")) == 1
+
+
+@pytest.mark.parametrize("first_operation", ["cancel", "revalidate"])
+def test_revalidation_and_cancellation_lock_order(prepared_run, first_operation):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+    contender_pid = Queue()
+
+    def execute(connection, operation):
+        if operation == "cancel":
+            return run_cancellations.request_run_cancellation(connection, run_id)
+        return revalidate(connection, claim_id, run_id)
+
+    def contender():
+        with engine.begin() as connection:
+            connection.execute(text("SET LOCAL lock_timeout = '10s'"))
+            contender_pid.put(connection.scalar(text("SELECT pg_backend_pid()")))
+            try:
+                return execute(connection, "revalidate" if first_operation == "cancel" else "cancel")
+            except RunConflict:
+                return "conflict"
+
+    with ThreadPoolExecutor(max_workers=1) as pool, engine.connect() as winner:
+        transaction = winner.begin()
+        try:
+            winner_pid = winner.scalar(text("SELECT pg_backend_pid()"))
+            first = execute(winner, first_operation)
+            future = pool.submit(contender)
+            pid = contender_pid.get(timeout=5)
+            deadline = time.monotonic() + 5
+            with engine.connect() as observer:
+                while time.monotonic() < deadline:
+                    if winner_pid in observer.scalar(
+                        text("SELECT pg_blocking_pids(:pid)"), {"pid": pid},
+                    ):
+                        break
+                    time.sleep(0.02)
+                else:
+                    pytest.fail("Revalidation contender never waited on the first transaction")
+            transaction.commit()
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+        second = future.result(timeout=10)
+
+    if first_operation == "cancel":
+        assert second == "conflict"
+    else:
+        assert first.ready
+        assert second.outcome is run_cancellations.CancellationOutcome.REQUESTED
+    with engine.begin() as connection:
+        assert get_run_status(connection, run_id).state is RunState.CANCELLING
+        with pytest.raises(RunConflict):
+            revalidate(connection, claim_id, run_id)
