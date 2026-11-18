@@ -261,6 +261,31 @@ or execution claims and do not start, cancel, recover, or report simulated
 execution progress. They return only the durable state and event rows already
 stored. This contract does not add node state, a journal, or WebSockets.
 
+## Cooperative cancellation intent (P1-11b)
+
+`POST /api/v1/runs/{id}/cancellations` is an owner-only, CSRF-protected
+request with no body or query parameters. For `QUEUED`, `RUNNING`, or
+`WAITING_REVIEW` runs, it atomically transitions the run to `CANCELLING` and
+enqueues one stable `internal.workflow-run-cancellation-requested.v1` outbox
+intent in the caller-owned transaction. The `202` response contains exactly
+`{ "runId": "<UUID>", "state": "CANCELLING", "lastSequence": <integer>,
+"outcome": "REQUESTED" }`.
+
+Retries while already `CANCELLING` return the same state and sequence with
+`outcome: "ALREADY_REQUESTED"` and do not enqueue a duplicate. A previously
+`CANCELLED` run returns `outcome: "ALREADY_CANCELLED"` without another intent.
+Successful cancellation requests use `202`; missing runs return `404`, terminal
+non-cancelled runs return generic `409`, invalid identifiers or query
+parameters return generic `422`, and inconsistent persisted intent state or
+unavailable dependencies fail closed with generic `503`. The route reuses the
+fresh-session, exact-origin, owner and CSRF dependencies and standard security
+headers.
+
+`CANCELLING` records an accepted cooperative request, not worker termination.
+This slice does not interrupt a handler, mark a run `CANCELLED`, or reconcile
+unknown external effects; a future worker must confirm termination and record
+the terminal state.
+
 ## Bounded internal P1-08a value contract
 
 `app.services.workflows.execution_snapshot.create_execution_snapshot(data,
