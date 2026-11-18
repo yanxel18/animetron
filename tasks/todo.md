@@ -28,8 +28,11 @@ merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after master commit `181bf6c`: merged
 subtask slices do not complete their parent tasks, and P1-09f/P1-09g remain
 unmerged, so the overall percentage and phase counts remain unchanged.
-Recounted again after P1-09g integration commit `5ecd362`; its branch is pushed
+Recounted again after P1-09g integration commit `429e1a7`; its branch is pushed
 but still has no PR, so no task completion is credited.
+P1-09h remains unmerged; the 18/57 count and phase counts are unchanged.
+Recounted after P1-09h integration commit `76c7640`; its branch is pushed but
+has no PR, so it remains unchecked.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -173,9 +176,28 @@ verification. This checklist remains the only current progress source.
   Self-review found no actionable issues; a deliberate CAS-predicate mutation
   made the versioned-write regression test fail as expected. The
   PostgreSQL/Keycloak harness remains blocked by Windows Application Control.
-  Integrated branch head `5ecd362` is pushed. No PR exists; GitHub tools expose
+  Integrated branch head `429e1a7` is pushed. No PR exists; GitHub tools expose
   no write actions and `gh` is unavailable. Compare:
   https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1
+- P1-09h owner-only mutable draft validation is implemented on
+  `task/p1-09h-workflow-draft-validation` at `2ceb73b`, now integrated with
+  P1-09g at `429e1a7` (which includes master `181bf6c`).
+  `POST /api/v1/workflows/{id}/validations` validates only the persisted draft
+  version supplied by the owner, returns structured graph issues, and never
+  executes sample handlers or persists validation output. It is intentionally
+  limited to the fixed sample catalog, 32 nodes, 48 edges and 32 KiB of draft
+  text; malformed documents return a generic issue without echoing content.
+  After integration, the focused workflow/API/persistence/runtime/OpenAPI suite
+  passed (124 passed, 22 skipped); Ruff and Linux-target mypy passed. Self-review
+  found no actionable issues; a deliberately inverted version check made its
+  regression test fail as expected, then was restored. The PostgreSQL/Keycloak
+  harness remains blocked by Windows Application Control. The full backend
+  suite produced 408 passed, 341 skipped, 3 failed and 48 errors; all 51
+  auth/database cases were blocked by missing `ANIMETRON_TEST_DATABASE_URL`.
+  Integration commit `76c7640` is pushed. No PR exists; the read-only GitHub
+  integration cannot create one or post a review comment. Keep this slice
+  unchecked and create its PR against P1-09g from the
+  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
 - Reconciled with `181bf6c` on 2026-11-18. The top-level recount remains 18/57
   (31.6%), P0 4/9 and P1 7/12; no parent task or phase is complete from these
   merged slices. P1-09e remains unchecked because its required review/check
@@ -400,8 +422,23 @@ immutable workflow and recover its state without duplicate effects.
     Ruff and Linux-target mypy passed. Self-review found no actionable issues,
     and CAS mutation was caught by its regression test. PostgreSQL/Keycloak
     verification is blocked by Windows Application Control. Integration commit
-    `5ecd362` is pushed, but no PR exists; keep unchecked pending independent
+    `429e1a7` is pushed, but no PR exists; keep unchecked pending independent
     review and merge. Compare link and branch/PR blocker are recorded above.
+  - [ ] P1-09h Add owner-only, version-checked validation of a mutable workflow
+    draft. Implemented in `2ceb73b` on
+    `task/p1-09h-workflow-draft-validation`, now based on P1-09g at `429e1a7`.
+    The endpoint validates only the persisted draft and returns structured
+    issues; it does not execute handlers, save results or create immutable
+    revisions. Validation is bounded to the fixed sample catalog, 32 nodes,
+    48 edges and 32 KiB of draft text. Focused workflow/API/persistence/runtime/
+    OpenAPI tests passed (124 passed, 22 skipped); Ruff and Linux-target mypy
+    passed. Self-review found no actionable issues, and the inverted-version-
+    check mutation was caught by the regression test and restored.
+    PostgreSQL/Keycloak verification is blocked by Windows Application Control.
+    The full backend-suite limitation (missing test database URL) is recorded
+    above. Integration commit `76c7640` is pushed; no PR exists, so keep
+    unchecked pending independent review and merge. Use the compare link above
+    to target P1-09g.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.

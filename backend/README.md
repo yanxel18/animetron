@@ -143,10 +143,13 @@ creates a draft when `expected_version` is `None`, or replaces it only when the
 supplied version matches; every update increments that version. `get_draft`
 returns the stored bytes and version. The persistence operations themselves add
 no HTTP or authorization. Owner-only `GET` and version-checked `PUT`
-`/api/v1/workflows/{id}/draft` routes expose this store; see the
-[read contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-read-p1-09f)
-and [write contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-write-p1-09g).
-Draft text remains unparsed and unvalidated, with a 32 KiB UTF-8 limit. Writes
+`/api/v1/workflows/{id}/draft` routes expose this store; owner-only
+`POST /api/v1/workflows/{id}/validations` validates a matching stored draft
+against the current fixed sample-node catalog without executing it. See the
+[read contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-read-p1-09f),
+[write contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-write-p1-09g)
+and [validation contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-validation-p1-09h).
+Draft text remains unparsed when saved and has a 32 KiB UTF-8 limit. Writes
 through the persistence helper require a caller-owned transaction; the HTTP
 route wraps them in one transaction. The migration downgrade removes all draft
 data and requires authorization/recovery planning for populated databases.

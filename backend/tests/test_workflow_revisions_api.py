@@ -1217,3 +1217,358 @@ def test_workflow_draft_write_database_failure_is_generic(offline_context):
 
     assert_error(response, 503)
     assert "private connection information" not in response.text
+
+
+def sample_workflow_document(nodes=None, edges=None):
+    return json.dumps(
+        {
+            "schemaVersion": 1,
+            "revision": "sample-r1",
+            "nodes": nodes
+            if nodes is not None
+            else [{"id": "source", "type": "sample.constant", "config": {"text": "hi"}}],
+            "edges": edges or [],
+        }
+    ).encode()
+
+
+def save_workflow_draft(engine, workflow_id, document):
+    with engine.begin() as connection:
+        return save_draft(
+            connection,
+            workflow_id,
+            document,
+            expected_version=None,
+            max_bytes=32_768,
+        )
+
+
+def test_workflow_draft_validation_returns_validity_and_version(
+    offline_draft_context,
+):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "workflowId": str(workflow_id),
+        "draftVersion": 1,
+        "isValid": True,
+        "issues": [],
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert client.get(f"/api/v1/workflows/{workflow_id}/draft").json()["version"] == 1
+
+
+def test_workflow_draft_validation_returns_structured_node_and_port_issues(
+    offline_draft_context,
+):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    save_workflow_draft(
+        engine,
+        workflow_id,
+        sample_workflow_document(
+            nodes=[{"id": "prefix", "type": "sample.prefix", "config": {"prefix": "x"}}]
+        ),
+    )
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["isValid"] is False
+    assert response.json()["issues"] == [
+        {
+            "code": "MISSING_REQUIRED_INPUT",
+            "message": "Required input text is unconnected",
+            "nodeId": "prefix",
+            "targetPort": "text",
+        }
+    ]
+
+
+def test_workflow_draft_validation_identifies_bad_edge_ports(offline_draft_context):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    save_workflow_draft(
+        engine,
+        workflow_id,
+        sample_workflow_document(
+            nodes=[
+                {"id": "source", "type": "sample.constant", "config": {"text": "hi"}},
+                {"id": "target", "type": "sample.prefix", "config": {"prefix": "x"}},
+            ],
+            edges=[
+                {
+                    "id": "edge",
+                    "source": "source",
+                    "sourcePort": "missing",
+                    "target": "target",
+                    "targetPort": "bad",
+                }
+            ],
+        ),
+    )
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    issues = response.json()["issues"]
+    assert {
+        (
+            issue["code"],
+            issue.get("edgeId"),
+            issue.get("sourcePort"),
+            issue.get("targetPort"),
+        )
+        for issue in issues
+    } >= {
+        ("INVALID_SOURCE_PORT", "edge", "missing", None),
+        ("INVALID_TARGET_PORT", "edge", None, "bad"),
+    }
+
+
+def test_workflow_draft_validation_reports_invalid_document_without_echo(
+    offline_draft_context,
+):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, b'{"private":"not a workflow"}')
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["isValid"] is False
+    assert response.json()["issues"] == [
+        {"code": "INVALID_DOCUMENT", "message": "Workflow document is invalid"}
+    ]
+    assert "private" not in response.text
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"expectedVersion": "1"},
+        {"expectedVersion": True},
+        {"expectedVersion": 1, "unexpected": True},
+    ],
+)
+def test_workflow_draft_validation_rejects_invalid_requests(
+    offline_draft_context,
+    body,
+):
+    client, _, _ = offline_draft_context
+
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/validations",
+        json=body,
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert_error(response, 422)
+
+
+def test_workflow_draft_validation_rejects_stale_version_and_query_parameters(
+    offline_draft_context,
+):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+    }
+
+    stale = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 2},
+        headers=headers,
+    )
+    assert_error(stale, 409)
+
+    query = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations?unexpected=1",
+        json={"expectedVersion": 1},
+        headers=headers,
+    )
+    assert_error(query, 422)
+
+
+def test_workflow_draft_validation_missing_draft(offline_draft_context):
+    client, _, _ = offline_draft_context
+    path = f"/api/v1/workflows/{uuid4()}/validations"
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+    }
+
+    assert_error(
+        client.post(path, json={"expectedVersion": 1}, headers=headers),
+        404,
+    )
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+        {
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Content-Type": "application/json",
+            "Content-Encoding": "gzip",
+        },
+    ],
+)
+def test_workflow_draft_validation_rejects_unsupported_json_headers(
+    offline_draft_context,
+    headers,
+):
+    client, _, _ = offline_draft_context
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/validations",
+        content=b'{"expectedVersion":1}',
+        headers=headers,
+    )
+    assert_error(response, 422)
+
+
+def test_workflow_draft_validation_bounds_request_body(offline_draft_context):
+    client, _, _ = offline_draft_context
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/validations",
+        content=b'{"expectedVersion":1,"padding":"' + b"x" * 262_144 + b'"}',
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Content-Type": "application/json",
+        },
+    )
+    assert_error(response, 422)
+
+
+def test_workflow_draft_validation_database_failure_is_generic(offline_context):
+    client, store = offline_context
+    store.transaction_error = RuntimeError("private connection information")
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/validations",
+        json={"expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+    assert_error(response, 503)
+    assert "private connection information" not in response.text
+
+
+def test_workflow_draft_validation_rejects_corrupt_stored_utf8(
+    offline_draft_context,
+):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    with engine.begin() as connection:
+        connection.execute(
+            update(mutable_drafts)
+            .where(mutable_drafts.c.workflow_id == workflow_id)
+            .values(document=b"\xff")
+        )
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert_error(response, 503)
+    assert "\ufffd" not in response.text
+
+
+def test_workflow_draft_validation_authorization_precedes_draft_read(
+    offline_context,
+    monkeypatch,
+):
+    client, _ = offline_context
+
+    def fail_read(*_args, **_kwargs):
+        pytest.fail("unauthorized draft validation")
+
+    monkeypatch.setattr("app.api.workflows.get_draft", fail_read)
+    path = f"/api/v1/workflows/{uuid4()}/validations"
+    body = {"expectedVersion": 1}
+
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+    assert_error(
+        client.post(
+            path,
+            json=body,
+            headers={
+                "Origin": "https://control.example",
+                "X-CSRF-Token": "operator-csrf",
+            },
+        ),
+        403,
+    )
+    client.cookies.set(SESSION_COOKIE, "owner-session")
+    assert_error(
+        client.post(
+            path,
+            json=body,
+            headers={"Origin": "https://control.example"},
+        ),
+        403,
+    )
+    client.cookies.clear()
+    assert_error(
+        client.post(
+            path,
+            json=body,
+            headers={
+                "Origin": "https://control.example",
+                "X-CSRF-Token": "owner-csrf",
+            },
+        ),
+        401,
+    )
