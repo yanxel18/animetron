@@ -3,6 +3,7 @@
 import heapq
 from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -27,7 +28,7 @@ MAX_SAMPLE_DOCUMENT_BYTES = 32_768
 MAX_SAMPLE_OUTPUT_VALUE_BYTES = 8_192
 MAX_SAMPLE_TOTAL_OUTPUT_BYTES = 16_384
 
-_GRAPH_LIMITS = GraphLimits(MAX_SAMPLE_NODES, MAX_SAMPLE_EDGES)
+SAMPLE_GRAPH_LIMITS = GraphLimits(MAX_SAMPLE_NODES, MAX_SAMPLE_EDGES)
 
 
 class _SampleConfig(BaseModel):
@@ -97,7 +98,7 @@ def _fail(config: BaseModel | None, inputs: Mapping[str, str]) -> Mapping[str, s
     raise _SampleNodeFailure("SAMPLE_FAILURE")
 
 
-_DEFINITIONS: dict[str, NodeDefinition] = {
+SAMPLE_DEFINITIONS: Mapping[str, NodeDefinition] = MappingProxyType({
     "sample.constant": NodeDefinition(
         outputs={"text": Port("text")},
         config_model=_ConstantConfig,
@@ -119,7 +120,7 @@ _DEFINITIONS: dict[str, NodeDefinition] = {
         inputs={"text": Port("text", required=True)},
         outputs={"text": Port("text")},
     ),
-}
+})
 
 _HANDLERS: dict[str, _SampleHandler] = {
     "sample.constant": _constant,
@@ -133,8 +134,8 @@ def validate_sample_document(data: bytes) -> ParsedWorkflowDocument:
     """Validate against the fixed sample catalog without running its handlers."""
     return parse_workflow_document(
         data,
-        _DEFINITIONS,
-        _GRAPH_LIMITS,
+        SAMPLE_DEFINITIONS,
+        SAMPLE_GRAPH_LIMITS,
         max_bytes=MAX_SAMPLE_DOCUMENT_BYTES,
     )
 
@@ -173,7 +174,7 @@ def _topological_order(
 
 
 def _validated_config(node: Node) -> BaseModel | None:
-    model = _DEFINITIONS[node.type].config_model
+    model = SAMPLE_DEFINITIONS[node.type].config_model
     if model is None:
         return None
     try:
@@ -187,7 +188,7 @@ def _validated_config(node: Node) -> BaseModel | None:
 def _validate_outputs(
     node: Node, outputs: Mapping[str, str], total_output_bytes: int
 ) -> tuple[tuple[tuple[str, str], ...], int] | str:
-    expected = _DEFINITIONS[node.type].outputs
+    expected = SAMPLE_DEFINITIONS[node.type].outputs
     if set(outputs) != set(expected) or any(
         port.type != "text" for port in expected.values()
     ):
@@ -220,8 +221,8 @@ def evaluate_sample_graph(data: bytes) -> SampleEvaluation:
     """
     plan = create_dependency_plan(
         data,
-        _DEFINITIONS,
-        _GRAPH_LIMITS,
+        SAMPLE_DEFINITIONS,
+        SAMPLE_GRAPH_LIMITS,
         max_bytes=MAX_SAMPLE_DOCUMENT_BYTES,
     )
     parsed = validate_sample_document(data)

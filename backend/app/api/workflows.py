@@ -28,6 +28,7 @@ from app.services.workflows.drafts import (
     save_draft,
 )
 from app.services.workflows.revisions import (
+    RevisionConflict,
     RevisionCorrupt,
     RevisionCursor,
     RevisionNotFound,
@@ -41,6 +42,11 @@ from app.services.workflows.run_requests import (
     request_run,
 )
 from app.services.workflows.sample_evaluator import validate_sample_document
+from app.services.workflows.sample_revisions import (
+    RevisionCanonicalTooLarge,
+    create_sample_revision,
+)
+from app.services.workflows.snapshot import InvalidWorkflowGraph
 
 _ASCII_DECIMAL = re.compile(r"[0-9]+\Z")
 _CURSOR_CHARS = re.compile(r"[A-Za-z0-9_-]+\Z")
@@ -382,6 +388,44 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
 
         response.headers["Location"] = f"/api/v1/runs/{run_request.run_id}"
         return RunCreateOutput(runId=run_request.run_id)
+
+    @run_router.post(
+        "/{id}/revisions",
+        response_model=RevisionOutput,
+        responses={
+            404: {"model": ErrorResponse, "description": "Request could not be completed"},
+            409: {"model": ErrorResponse, "description": "Request could not be completed"},
+        },
+    )
+    def create_revision(
+        id: UUID,
+        request: Request,
+        body: WorkflowValidationInput,
+        _: Annotated[Principal, Depends(owner)],
+    ) -> RevisionOutput:
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        try:
+            with persistence().transaction() as connection:
+                snapshot = create_sample_revision(connection, id, body.expected_version)
+        except WorkflowDraftNotFound:
+            raise AuthDenied("WORKFLOW_DRAFT_NOT_FOUND", 404) from None
+        except WorkflowDraftConflict:
+            raise AuthDenied("WORKFLOW_DRAFT_CONFLICT", 409) from None
+        except RevisionConflict:
+            raise AuthDenied("WORKFLOW_REVISION_CONFLICT", 409) from None
+        except RevisionCanonicalTooLarge:
+            raise AuthDenied("REVISION_CANONICAL_TOO_LARGE", 422) from None
+        except (InvalidWorkflowDocument, InvalidWorkflowGraph):
+            raise AuthDenied("INVALID_REQUEST", 422) from None
+        except (WorkflowDraftCorrupt, RevisionCorrupt, RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+        return RevisionOutput(
+            workflowId=id,
+            revision=snapshot.revision,
+            canonicalJson=snapshot.canonical_json.decode("ascii"),
+            sha256=snapshot.sha256,
+        )
 
     router.include_router(run_router)
 

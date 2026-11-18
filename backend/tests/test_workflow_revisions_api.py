@@ -5,8 +5,11 @@ import hashlib
 import json
 import os
 import secrets
+import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from queue import Queue
 from uuid import UUID, uuid4
 
 import pytest
@@ -19,8 +22,13 @@ from app.api.auth import SESSION_COOKIE
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 from app.core.database import create_database_engine
 from app.main import SecurityHeaders, create_api
+from app.services.workflows.drafts import (
+    WorkflowDraftConflict,
+    WorkflowDraftNotFound,
+    get_draft,
+    save_draft,
+)
 from app.services.workflows.drafts import drafts as mutable_drafts
-from app.services.workflows.drafts import save_draft
 from app.services.workflows.revisions import (
     RevisionCorrupt,
     RevisionNotFound,
@@ -33,6 +41,7 @@ from app.services.workflows.run_requests import (
     RunRequestConflict,
     RunRequestCorrupt,
 )
+from app.services.workflows.sample_revisions import create_sample_revision
 from app.services.workflows.snapshot import WorkflowSnapshot, create_snapshot
 from app.services.workflows.validation import GraphLimits, NodeDefinition
 
@@ -138,6 +147,24 @@ def offline_draft_context(offline_context, monkeypatch):
         poolclass=StaticPool,
     )
     mutable_drafts.metadata.create_all(engine)
+
+    @contextmanager
+    def transaction():
+        with engine.begin() as connection:
+            yield connection
+
+    monkeypatch.setattr(store, "transaction", transaction)
+    yield client, store, engine
+    engine.dispose()
+
+
+@pytest.fixture
+def revision_context(offline_context, monkeypatch):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
+    client, store = offline_context
+    engine = create_database_engine(url)
 
     @contextmanager
     def transaction():
@@ -1803,3 +1830,430 @@ def test_workflow_draft_validation_authorization_precedes_draft_read(
         ),
         401,
     )
+
+
+def test_create_revision_from_draft_and_replay(revision_context):
+    client, _, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    document = sample_workflow_document()
+    save_workflow_draft(engine, workflow_id, document)
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+
+    created = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    replay = client.post(path, json={"expectedVersion": 1}, headers=headers)
+
+    assert created.status_code == 200, created.text
+    assert replay.status_code == 200, replay.text
+    assert created.json() == replay.json()
+    assert created.json()["workflowId"] == str(workflow_id)
+    assert created.json()["revision"] == "sample-r1"
+    canonical = created.json()["canonicalJson"].encode("ascii")
+    assert created.json()["sha256"] == hashlib.sha256(canonical).hexdigest()
+    assert client.get(f"/api/v1/workflows/{workflow_id}/draft").json()["version"] == 1
+
+
+def test_create_revision_rejects_stale_draft_and_invalid_graph(revision_context):
+    client, _, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    save_workflow_draft(
+        engine,
+        workflow_id,
+        sample_workflow_document(
+            nodes=[{"id": "prefix", "type": "sample.prefix", "config": {"prefix": "x"}}]
+        ),
+    )
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+
+    stale = client.post(path, json={"expectedVersion": 2}, headers=headers)
+    assert_error(stale, 409)
+    assert stale.json()["error"]["code"] == "WORKFLOW_DRAFT_CONFLICT"
+    assert_error(client.post(path, json={"expectedVersion": 1}, headers=headers), 422)
+    with engine.connect() as connection:
+        assert connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all() == []
+
+
+def test_create_revision_rejects_collision_and_preserves_original(revision_context):
+    client, _, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+    first = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    assert first.status_code == 200
+    with engine.begin() as connection:
+        save_draft(
+            connection, workflow_id,
+            sample_workflow_document(nodes=[
+                {"id": "source", "type": "sample.constant", "config": {"text": "changed"}}
+            ]),
+            expected_version=1, max_bytes=32_768,
+        )
+    conflict = client.post(path, json={"expectedVersion": 2}, headers=headers)
+    assert_error(conflict, 409)
+    assert conflict.json()["error"]["code"] == "WORKFLOW_REVISION_CONFLICT"
+    read = client.get(
+        f"/api/v1/workflows/{workflow_id}/revision", params={"revision": "sample-r1"}
+    )
+    assert read.json() == first.json()
+    assert client.get(f"/api/v1/workflows/{workflow_id}/draft").json()["version"] == 2
+
+
+def test_create_revision_enforces_canonical_size_after_validation(revision_context):
+    client, _, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    document = json.dumps({
+        "schemaVersion": 1, "revision": "large",
+        "nodes": [{"id": "source", "type": "sample.constant", "config": {"text": "界" * 8000}}],
+        "edges": [],
+    }, ensure_ascii=False).encode("utf-8")
+    assert len(document) < 32_768
+    save_workflow_draft(engine, workflow_id, document)
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+    validation = client.post(
+        f"/api/v1/workflows/{workflow_id}/validations",
+        json={"expectedVersion": 1}, headers=headers,
+    )
+    assert validation.json()["isValid"] is True
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/revisions",
+        json={"expectedVersion": 1}, headers=headers,
+    )
+    assert_error(response, 422)
+    assert response.json()["error"]["code"] == "REVISION_CANONICAL_TOO_LARGE"
+    with engine.connect() as connection:
+        assert connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all() == []
+
+
+@pytest.mark.parametrize("body", [
+    {}, {"expectedVersion": 0}, {"expectedVersion": True},
+    {"expectedVersion": "1"}, {"expectedVersion": 2_147_483_647},
+    {"expectedVersion": 1, "extra": 1},
+])
+def test_create_revision_rejects_invalid_input(offline_context, body):
+    client, _ = offline_context
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/revisions", json=body,
+        headers={"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"},
+    )
+    assert_error(response, 422)
+
+
+def test_create_revision_missing_query_and_access_controls(offline_context, monkeypatch):
+    client, _ = offline_context
+    path = f"/api/v1/workflows/{uuid4()}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+    monkeypatch.setattr(
+        "app.api.workflows.create_sample_revision",
+        lambda *_args: pytest.fail("unexpected persistence"),
+    )
+    assert_error(client.post(path + "?extra=1", json={"expectedVersion": 1}, headers=headers), 422)
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+    assert_error(client.post(path, json={"expectedVersion": 1}, headers={
+        "Origin": "https://control.example", "X-CSRF-Token": "operator-csrf",
+    }), 403)
+    client.cookies.set(SESSION_COOKIE, "owner-session")
+    assert_error(client.post(path, json={"expectedVersion": 1}, headers={
+        "Origin": "https://control.example",
+    }), 403)
+    client.cookies.clear()
+    assert_error(client.post(path, json={"expectedVersion": 1}, headers=headers), 401)
+
+
+def test_create_revision_missing_corrupt_and_commit_failure(revision_context, monkeypatch):
+    client, store, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+    assert_error(client.post(path, json={"expectedVersion": 1}, headers=headers), 404)
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    with engine.begin() as connection:
+        connection.execute(
+            update(mutable_drafts).where(mutable_drafts.c.workflow_id == workflow_id)
+            .values(document=b"\xff")
+        )
+    assert_error(client.post(path, json={"expectedVersion": 1}, headers=headers), 503)
+    with engine.begin() as connection:
+        connection.execute(
+            update(mutable_drafts).where(mutable_drafts.c.workflow_id == workflow_id)
+            .values(document=sample_workflow_document(), version=2_147_483_646)
+        )
+
+    @contextmanager
+    def failing_commit():
+        with engine.begin() as connection:
+            yield connection
+            raise RuntimeError("private commit failure")
+
+    monkeypatch.setattr(store, "transaction", failing_commit)
+    response = client.post(path, json={"expectedVersion": 2_147_483_646}, headers=headers)
+    assert_error(response, 503)
+    assert "private commit failure" not in response.text
+    with engine.connect() as connection:
+        assert connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all() == []
+
+
+def test_create_revision_uncertain_commit_is_recoverable(revision_context, monkeypatch):
+    client, store, engine = revision_context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+    original_transaction = store.transaction
+
+    @contextmanager
+    def lost_commit_acknowledgement():
+        with engine.begin() as connection:
+            yield connection
+        raise RuntimeError("private acknowledgement failure")
+
+    monkeypatch.setattr(store, "transaction", lost_commit_acknowledgement)
+    uncertain = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    assert_error(uncertain, 503)
+    monkeypatch.setattr(store, "transaction", original_transaction)
+    replay = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    assert replay.status_code == 200, replay.text
+    with engine.connect() as connection:
+        rows = connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all()
+        assert len(rows) == 1
+        assert rows[0].sha256 == replay.json()["sha256"]
+
+
+def test_create_revision_accepts_maximum_version_and_canonical_boundary(revision_context):
+    client, _, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    payload = {
+        "schemaVersion": 1, "revision": "boundary",
+        "nodes": [{"id": "source", "type": "sample.constant", "config": {"text": ""}}],
+        "edges": [],
+    }
+    empty = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("ascii")
+    payload["nodes"][0]["config"]["text"] = "x" * (32_768 - len(empty))
+    document = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("ascii")
+    assert len(document) == 32_768
+    save_workflow_draft(engine, workflow_id, document)
+    with engine.begin() as connection:
+        connection.execute(
+            update(mutable_drafts).where(mutable_drafts.c.workflow_id == workflow_id)
+            .values(version=2_147_483_646)
+        )
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/revisions",
+        json={"expectedVersion": 2_147_483_646},
+        headers={"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["canonicalJson"].encode("ascii") == document
+
+
+def test_create_revision_rejects_bad_document_and_corrupt_existing_revision(revision_context):
+    client, _, engine = revision_context
+    revisions.metadata.create_all(engine)
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, b'{"private":')
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"}
+    invalid = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    assert_error(invalid, 422)
+    assert "private" not in invalid.text
+    with engine.begin() as connection:
+        save_draft(
+            connection, workflow_id, sample_workflow_document(),
+            expected_version=1, max_bytes=32_768,
+        )
+    assert client.post(path, json={"expectedVersion": 2}, headers=headers).status_code == 200
+    with engine.begin() as connection:
+        connection.execute(
+            update(revisions).where(revisions.c.workflow_id == workflow_id)
+            .values(sha256="0" * 64)
+        )
+    assert_error(client.post(path, json={"expectedVersion": 2}, headers=headers), 503)
+    with engine.connect() as connection:
+        assert get_draft(connection, workflow_id).version == 2
+        assert connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).one().sha256 == "0" * 64
+
+
+@pytest.mark.parametrize("headers,content", [
+    ({"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"},
+     b'{"expectedVersion":1}'),
+    ({"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf",
+      "Content-Type": "application/json", "Content-Encoding": "gzip"},
+     b'{"expectedVersion":1}'),
+    ({"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf",
+      "Content-Type": "application/json"},
+     b'{"expectedVersion":1,"padding":"' + b"x" * 4096 + b'"}'),
+])
+def test_create_revision_rejects_invalid_headers_and_oversized_body(
+    offline_context, headers, content,
+):
+    client, _ = offline_context
+    assert_error(client.post(
+        f"/api/v1/workflows/{uuid4()}/revisions", content=content, headers=headers,
+    ), 422)
+
+
+def test_create_revision_real_postgresql_api(context):
+    client, _, engine, _, principal = context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    path = f"/api/v1/workflows/{workflow_id}/revisions"
+    headers = {"Origin": "https://control.example", "X-CSRF-Token": principal.csrf}
+    first = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    retry = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    assert first.status_code == retry.status_code == 200
+    assert first.json() == retry.json()
+    read = client.get(
+        f"/api/v1/workflows/{workflow_id}/revision", params={"revision": "sample-r1"}
+    )
+    assert read.json() == first.json()
+    with engine.connect() as connection:
+        assert get_draft(connection, workflow_id).version == 1
+        assert len(connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all()) == 1
+
+
+def test_create_revision_requires_postgresql_transaction(offline_draft_context):
+    _, _, engine = offline_draft_context
+    with engine.begin() as connection, pytest.raises(
+        RuntimeError, match="non-autocommit psycopg transaction"
+    ):
+        create_sample_revision(connection, uuid4(), 1)
+
+
+def test_create_revision_rejects_autocommit_postgresql(context):
+    _, _, engine, _, _ = context
+    with (
+        engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection,
+        connection.begin(),
+        pytest.raises(RuntimeError, match="non-autocommit psycopg transaction"),
+    ):
+        create_sample_revision(connection, uuid4(), 1)
+
+
+@pytest.mark.parametrize("first_operation", ["create", "update", "duplicate"])
+def test_create_revision_serializes_postgresql_races(context, first_operation):
+    _, _, engine, _, _ = context
+    workflow_id = uuid4()
+    original = sample_workflow_document()
+    changed = sample_workflow_document(nodes=[
+        {"id": "source", "type": "sample.constant", "config": {"text": "later"}}
+    ])
+    save_workflow_draft(engine, workflow_id, original)
+    contender_pid = Queue()
+
+    def operation(connection, name):
+        if name == "update":
+            return save_draft(
+                connection, workflow_id, changed, expected_version=1, max_bytes=32_768
+            )
+        return create_sample_revision(connection, workflow_id, 1)
+
+    def contend(name):
+        try:
+            with engine.begin() as connection:
+                connection.execute(text("SET LOCAL lock_timeout = '10s'"))
+                contender_pid.put(connection.scalar(text("SELECT pg_backend_pid()")))
+                return operation(connection, name)
+        except WorkflowDraftConflict:
+            return "conflict"
+
+    second_operation = "create" if first_operation in ("update", "duplicate") else "update"
+    winner_operation = "create" if first_operation == "duplicate" else first_operation
+    with ThreadPoolExecutor(max_workers=1) as pool, engine.connect() as winner:
+        transaction = winner.begin()
+        try:
+            winner_pid = winner.scalar(text("SELECT pg_backend_pid()"))
+            first = operation(winner, winner_operation)
+            future = pool.submit(contend, second_operation)
+            pid = contender_pid.get(timeout=5)
+            deadline = time.monotonic() + 5
+            with engine.connect() as observer:
+                while time.monotonic() < deadline:
+                    if winner_pid in observer.scalar(
+                        text("SELECT pg_blocking_pids(:pid)"), {"pid": pid}
+                    ):
+                        break
+                    time.sleep(0.02)
+                else:
+                    pytest.fail("contender did not wait for locked draft")
+            transaction.commit()
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+        second = future.result(timeout=10)
+
+    with engine.connect() as connection:
+        draft = get_draft(connection, workflow_id)
+        rows = connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all()
+    if first_operation == "update":
+        assert second == "conflict"
+        assert draft.document == changed and draft.version == 2
+        assert rows == []
+    elif first_operation == "duplicate":
+        assert first == second
+        assert draft.document == original and draft.version == 1
+        assert len(rows) == 1 and rows[0].document == first.canonical_json
+    else:
+        assert second.version == 2 and draft.document == changed
+        assert len(rows) == 1 and rows[0].document == first.canonical_json
+
+
+def test_create_revision_missing_draft_does_not_wait_for_uncommitted_insert(context):
+    _, _, engine, _, _ = context
+    workflow_id = uuid4()
+    with engine.connect() as writer:
+        transaction = writer.begin()
+        try:
+            save_draft(
+                writer, workflow_id, sample_workflow_document(),
+                expected_version=None, max_bytes=32_768,
+            )
+            with engine.begin() as reader, pytest.raises(WorkflowDraftNotFound):
+                create_sample_revision(reader, workflow_id, 1)
+            transaction.commit()
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+    with engine.connect() as connection:
+        assert get_draft(connection, workflow_id).version == 1
+        assert connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all() == []
+
+
+def test_create_revision_lock_timeout_returns_503(context):
+    client, _, engine, _, principal = context
+    workflow_id = uuid4()
+    save_workflow_draft(engine, workflow_id, sample_workflow_document())
+    with engine.begin() as connection:
+        get_draft(connection, workflow_id, for_update=True)
+        response = client.post(
+            f"/api/v1/workflows/{workflow_id}/revisions",
+            json={"expectedVersion": 1},
+            headers={"Origin": "https://control.example", "X-CSRF-Token": principal.csrf},
+        )
+        assert_error(response, 503)
+    with engine.connect() as connection:
+        assert connection.execute(
+            revisions.select().where(revisions.c.workflow_id == workflow_id)
+        ).all() == []

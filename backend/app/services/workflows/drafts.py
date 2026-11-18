@@ -68,11 +68,16 @@ def _draft(row: RowMapping) -> WorkflowDraft:
     return WorkflowDraft(row["workflow_id"], row["document"], row["version"])
 
 
-def get_draft(connection: Connection, workflow_id: UUID) -> WorkflowDraft:
+def get_draft(
+    connection: Connection, workflow_id: UUID, *, for_update: bool = False
+) -> WorkflowDraft:
     _workflow_id(workflow_id)
-    row = connection.execute(
-        select(drafts).where(drafts.c.workflow_id == workflow_id)
-    ).one_or_none()
+    if for_update and not connection.in_transaction():
+        raise RuntimeError("An explicit transaction is required")
+    statement = select(drafts).where(drafts.c.workflow_id == workflow_id)
+    if for_update:
+        statement = statement.with_for_update()
+    row = connection.execute(statement).one_or_none()
     if row is None:
         raise WorkflowDraftNotFound("Workflow draft not found")
     return _draft(row._mapping)
