@@ -246,6 +246,7 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
     client, store = context
     key = RSAKey.generate_key(parameters={"kid": "test"})
     nonce = ""
+    provider_tokens: list[str] = []
     base = store.config.issuer + "/protocol/openid-connect/"
 
     async def response(_transport, request):
@@ -291,7 +292,9 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
                 token = jwt.encode({"alg": "HS256"}, claims, OctKey.generate_key(256))
             elif attack == "unknown_key":
                 token = jwt.encode({"alg": "RS256", "kid": "unknown"}, claims, key)
-            payload = {"access_token": secrets.token_urlsafe(32), "token_type": "Bearer",
+            access_token = secrets.token_urlsafe(32)
+            provider_tokens.extend((access_token, token))
+            payload = {"access_token": access_token, "token_type": "Bearer",
                        "id_token": token}
         return httpx.Response(200, json=payload, request=request)
 
@@ -303,6 +306,8 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
     callback = "/api/v1/auth/callback?state=" + query["state"][0] + "&code=test-code"
     rejected = client.get(callback, follow_redirects=False)
     assert rejected.status_code == 400
+    assert rejected.json()["error"]["code"] == "IDENTITY_REJECTED"
+    assert all(token not in rejected.text for token in provider_tokens)
     assert "__Host-animetron_session" not in client.cookies
     assert client.get(callback, follow_redirects=False).status_code == 400
     with store.engine.connect() as conn:
