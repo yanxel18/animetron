@@ -25,9 +25,9 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after P1-09f was prepared on a task
-branch; P1-09g is also prepared on its dependent task branch, and neither
-slice is merged, so progress and per-phase counts remain unchanged.
+percentage is unchanged. Recalculated after P1-09h was prepared on its
+dependent task branch. P1-09f, P1-09g and P1-09h are unmerged, so progress and
+per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -201,10 +201,29 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   and relies on compare-and-swap to avoid lost updates; focused tests cover
   auth, input validation, size-limit rejection, conflicts, missing rows and
   generic database errors. No self-approval or merge was performed.
+- P1-09h owner-only mutable draft validation is implemented on
+  `task/p1-09h-workflow-draft-validation` at `2ceb73b`, based on P1-09g at
+  `b989872`.
+  `POST /api/v1/workflows/{id}/validations` validates only the persisted draft
+  version supplied by the owner, returns structured graph issues, and never
+  executes sample handlers or persists validation output. It is intentionally
+  limited to the fixed sample catalog, 32 nodes, 48 edges and 32 KiB of draft
+  text; malformed documents return a generic issue without echoing content.
+  The focused workflow/API/OpenAPI suite passed (119 passed, 20 skipped);
+  Ruff and strict Linux-target mypy passed. Inverting the stale-version
+  comparison made its regression test fail as expected, then the correct
+  comparison was restored. Internal self-review found no actionable
+  correctness, security, architecture or performance issues; the
+  sample-catalog boundary is documented. PostgreSQL/Keycloak verification
+  remains blocked by Windows Application Control preventing psycopg from
+  loading. The read-only GitHub integration cannot create a PR or post a review
+  comment; keep this slice unchecked and create its PR against P1-09g from the
+  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
 - Reconciled with `df80d91` on 2026-11-18. Open PRs are not credited:
-  progress remains 18/57 (31.6%), P0 4/9 and P1 7/12. The pushed P1-09f
-  and P1-09g branches are unmerged and do not change those counts. PRs #74-#81
-  remain open; no new reviews or merges were performed.
+ progress remains 18/57 (31.6%), P0 4/9 and P1 7/12. The pushed P1-09f,
+ P1-09g and P1-09h branches are unmerged and do
+ not change those counts. PRs #74-#81 remain open; no new reviews or merges
+ were performed.
 P0-P9 and owner-involved P9 acceptance remain incomplete. No external
 publishing was done.
 
@@ -379,6 +398,21 @@ immutable workflow and recover its state without duplicate effects.
     Pushed but no PR was created because GitHub write actions are unavailable;
     keep unchecked and target P1-09f as its PR base. Use the
     [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1).
+  - [ ] P1-09h Add owner-only, version-checked validation of a mutable workflow
+    draft. Implemented in `2ceb73b` on
+    `task/p1-09h-workflow-draft-validation`, based on P1-09g at `b989872`.
+    The endpoint validates only the persisted draft and returns structured
+    issues; it does not execute handlers, save results or
+    create immutable revisions. Validation is bounded to the fixed sample
+    catalog, 32 nodes, 48 edges and 32 KiB of draft text. The focused
+    workflow/API/OpenAPI suite passed (119 passed, 20 skipped); Ruff and strict
+    Linux-target mypy passed, and the stale-version mutation was caught and
+    restored. PostgreSQL/Keycloak verification is blocked by Windows
+    Application Control preventing psycopg from loading. The read-only GitHub
+    integration cannot create a PR or post a review comment; the internal
+    self-review is recorded above. Keep unchecked and base its PR on P1-09g
+    using the
+    [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09g-workflow-draft-write...task/p1-09h-workflow-draft-validation?expand=1).
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
