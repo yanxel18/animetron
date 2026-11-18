@@ -273,9 +273,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   and preflight state guards caused the new regression to fail, and restoring
   them passed. This test is sequential and SQLite-based; it does not prove a
   PostgreSQL race, stop an already-prepared run, or test a worker consumer.
-  The slice is on `task/p1-12b-cancellation-dispatch-order`; keep unchecked
-  pending PR review and checks:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12b-cancellation-dispatch-order?expand=1).
+  The slice is in review in
+  [#89](https://github.com/yanxel18/animetron/pull/89); keep unchecked pending
+  independent review, required checks and merge.
   Full P1-12 end-to-end verification still requires the workflow dispatch
   consumer/worker, which is not present in the current backend.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
@@ -669,7 +669,7 @@ immutable workflow and recover its state without duplicate effects.
     is recorded and the combined status is pending. Keep unchecked.
   - [ ] P1-12b Verify a committed cancellation blocks subsequent dispatch
     preparation without creating node or run-ready intents. Implemented on
-    `task/p1-12b-cancellation-dispatch-order`; focused workflow/API tests
+    [#89](https://github.com/yanxel18/animetron/pull/89); focused workflow/API tests
     passed (28 passed, 40 skipped) and Ruff passed. This does not verify a
     concurrent PostgreSQL race or stop previously prepared work. Keep
     unchecked pending PR review and checks.
