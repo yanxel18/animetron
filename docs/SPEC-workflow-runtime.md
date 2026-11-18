@@ -188,6 +188,38 @@ transaction. It does not create an immutable revision or workflow entity, and
 adds no workflow validation, deletion, execution, scheduling, publishing, or
 model-readiness behavior.
 
+## Owner-only mutable workflow draft validation (P1-09h)
+
+`POST /api/v1/workflows/{id}/validations` accepts exactly
+`{ "expectedVersion": <positive integer> }` and validates the stored draft only
+when its version matches. The accepted version range is 1 through
+2,147,483,646. A stale version returns `409`; a missing draft returns `404`.
+The response is
+`{ "workflowId": "<UUID>", "draftVersion": <positive integer>,
+"isValid": <boolean>, "issues": [...] }`.
+
+The current backend-owned catalog is the fixed text-only sample catalog from
+P1-10b, bounded to 32 nodes, 48 edges and 32 KiB of draft UTF-8 text. Validation
+does not execute sample handlers. Each issue returns a stable `code`,
+human-readable `message`, and only the applicable identifiers among `nodeId`,
+`edgeId`, `sourcePort` and `targetPort`. A well-formed graph with validation
+issues returns `200` with `isValid: false`; a valid graph returns `200` with
+`isValid: true` and an empty issue list. Invalid JSON, unsupported document
+shape, or other parse failures return one generic `INVALID_DOCUMENT` issue
+without echoing draft content.
+
+The request uses the fresh-session, exact-origin owner dependency and requires
+JSON, identity content encoding, `Origin` and CSRF headers. The bounded request
+is limited to 256 KiB; unknown fields or query parameters return generic
+`422`. Unauthenticated or stale sessions return `401`; non-owner, origin or
+CSRF failures return `403`. Corrupt stored draft metadata or database failures
+fail closed with generic `503`. Responses retain the shared security headers
+and `Cache-Control: no-store`.
+
+Validation is read-only and applies to one observed draft version. No
+validation result is persisted; this endpoint creates no immutable revision,
+workflow entity, run, or external effect.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run

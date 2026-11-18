@@ -7,7 +7,10 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from app.services.workflows.document import parse_workflow_document
+from app.services.workflows.document import (
+    ParsedWorkflowDocument,
+    parse_workflow_document,
+)
 from app.services.workflows.plan import create_dependency_plan
 from app.services.workflows.snapshot import InvalidWorkflowGraph
 from app.services.workflows.validation import (
@@ -126,6 +129,16 @@ _HANDLERS: dict[str, _SampleHandler] = {
 }
 
 
+def validate_sample_document(data: bytes) -> ParsedWorkflowDocument:
+    """Validate against the fixed sample catalog without running its handlers."""
+    return parse_workflow_document(
+        data,
+        _DEFINITIONS,
+        _GRAPH_LIMITS,
+        max_bytes=MAX_SAMPLE_DOCUMENT_BYTES,
+    )
+
+
 def _topological_order(
     plan_nodes: tuple[tuple[str, tuple[str, ...]], ...],
 ) -> tuple[str, ...]:
@@ -211,12 +224,7 @@ def evaluate_sample_graph(data: bytes) -> SampleEvaluation:
         _GRAPH_LIMITS,
         max_bytes=MAX_SAMPLE_DOCUMENT_BYTES,
     )
-    parsed = parse_workflow_document(
-        data,
-        _DEFINITIONS,
-        _GRAPH_LIMITS,
-        max_bytes=MAX_SAMPLE_DOCUMENT_BYTES,
-    )
+    parsed = validate_sample_document(data)
     if parsed.issues:
         raise InvalidWorkflowGraph(parsed.issues)
 

@@ -56,6 +56,8 @@ class ValidationIssue:
     message: str
     node_id: str | None = None
     edge_id: str | None = None
+    source_port: str | None = None
+    target_port: str | None = None
 
 
 def validate_graph(
@@ -168,6 +170,7 @@ def validate_graph(
                     "INVALID_SOURCE_PORT",
                     "Source output port is absent",
                     edge_id=edge.id,
+                    source_port=edge.source_port,
                 )
             )
         if input_port is None:
@@ -176,6 +179,7 @@ def validate_graph(
                     "INVALID_TARGET_PORT",
                     "Target input port is absent",
                     edge_id=edge.id,
+                    target_port=edge.target_port,
                 )
             )
         if output is None or input_port is None:
@@ -183,7 +187,11 @@ def validate_graph(
         if output.type != input_port.type:
             issues.append(
                 ValidationIssue(
-                    "INCOMPATIBLE_PORTS", "Port types are incompatible", edge_id=edge.id
+                    "INCOMPATIBLE_PORTS",
+                    "Port types are incompatible",
+                    edge_id=edge.id,
+                    source_port=edge.source_port,
+                    target_port=edge.target_port,
                 )
             )
             continue
@@ -201,6 +209,7 @@ def validate_graph(
                         "MISSING_REQUIRED_INPUT",
                         f"Required input {port_name} is unconnected",
                         node.id,
+                        target_port=port_name,
                     )
                 )
             if count > 1:
@@ -209,6 +218,7 @@ def validate_graph(
                         "MULTIPLE_INPUT_EDGES",
                         f"Input {port_name} has multiple connections",
                         node.id,
+                        target_port=port_name,
                     )
                 )
 

@@ -1,4 +1,4 @@
-"""Authenticated, owner-only reads of persisted immutable workflow revisions."""
+"""Owner-authorized workflow discovery, draft access and validation APIs."""
 
 import base64
 import binascii
@@ -16,7 +16,10 @@ from app.api.auth import ErrorResponse
 from app.api.bounded_json import BoundedJSONRoute
 from app.api.dependencies import auth_dependencies
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
-from app.services.workflows.document import validate_revision_identifier
+from app.services.workflows.document import (
+    InvalidWorkflowDocument,
+    validate_revision_identifier,
+)
 from app.services.workflows.drafts import (
     WorkflowDraftConflict,
     WorkflowDraftCorrupt,
@@ -32,6 +35,7 @@ from app.services.workflows.revisions import (
     list_revisions,
     list_workflow_ids,
 )
+from app.services.workflows.sample_evaluator import validate_sample_document
 
 _ASCII_DECIMAL = re.compile(r"[0-9]+\Z")
 _CURSOR_CHARS = re.compile(r"[A-Za-z0-9_-]+\Z")
@@ -43,14 +47,14 @@ _MAX_REVISION_LIMIT = 100
 _MAX_CURSOR_LENGTH = 2304
 _MAX_WORKFLOW_CURSOR_LENGTH = 128
 _MAX_DRAFT_DOCUMENT_BYTES = 32_768
-_MAX_DRAFT_BODY_BYTES = 262_144
+_MAX_WORKFLOW_BODY_BYTES = 262_144
 
 
 class WorkflowJSONRoute(BoundedJSONRoute):
-    max_body_bytes = _MAX_DRAFT_BODY_BYTES
-    methods_with_body = frozenset({"PUT"})
+    max_body_bytes = _MAX_WORKFLOW_BODY_BYTES
+    methods_with_body = frozenset({"POST", "PUT"})
     invalid_headers_code = "INVALID_WORKFLOW_HEADERS"
-    too_large_code = "WORKFLOW_DRAFT_BODY_TOO_LARGE"
+    too_large_code = "WORKFLOW_BODY_TOO_LARGE"
 
 
 class RevisionOutput(BaseModel):
@@ -107,6 +111,36 @@ class WorkflowDraftInput(BaseModel):
         ge=1,
         lt=2_147_483_647,
     )
+
+
+class WorkflowValidationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    expected_version: int = Field(
+        alias="expectedVersion",
+        ge=1,
+        lt=2_147_483_647,
+    )
+
+
+class WorkflowValidationIssueOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    code: str
+    message: str
+    node_id: str | None = Field(default=None, alias="nodeId")
+    edge_id: str | None = Field(default=None, alias="edgeId")
+    source_port: str | None = Field(default=None, alias="sourcePort")
+    target_port: str | None = Field(default=None, alias="targetPort")
+
+
+class WorkflowValidationOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    workflow_id: UUID = Field(alias="workflowId")
+    draft_version: int = Field(alias="draftVersion", ge=1)
+    is_valid: bool = Field(alias="isValid")
+    issues: list[WorkflowValidationIssueOutput]
 
 
 def _encode_workflow_cursor(workflow_id: UUID) -> str:
@@ -354,6 +388,67 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
             workflowId=draft.workflow_id,
             document=draft.document.decode("utf-8"),
             version=draft.version,
+        )
+
+    @router.post(
+        "/{id}/validations",
+        response_model=WorkflowValidationOutput,
+        response_model_exclude_none=True,
+        responses={
+            404: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            },
+            409: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            },
+        },
+    )
+    def validate_workflow_draft(
+        id: UUID,
+        request: Request,
+        body: WorkflowValidationInput,
+        _: Annotated[Principal, Depends(owner)],
+    ) -> WorkflowValidationOutput:
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        try:
+            with persistence().transaction() as connection:
+                draft = get_draft(connection, id)
+        except WorkflowDraftNotFound:
+            raise AuthDenied("WORKFLOW_DRAFT_NOT_FOUND", 404) from None
+        except (WorkflowDraftCorrupt, RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+        if draft.version != body.expected_version:
+            raise AuthDenied("WORKFLOW_DRAFT_CONFLICT", 409)
+
+        try:
+            parsed = validate_sample_document(draft.document)
+        except InvalidWorkflowDocument:
+            issues = [
+                WorkflowValidationIssueOutput(
+                    code="INVALID_DOCUMENT",
+                    message="Workflow document is invalid",
+                )
+            ]
+        else:
+            issues = [
+                WorkflowValidationIssueOutput(
+                    code=issue.code,
+                    message=issue.message,
+                    nodeId=issue.node_id,
+                    edgeId=issue.edge_id,
+                    sourcePort=issue.source_port,
+                    targetPort=issue.target_port,
+                )
+                for issue in parsed.issues
+            ]
+        return WorkflowValidationOutput(
+            workflowId=id,
+            draftVersion=draft.version,
+            isValid=not issues,
+            issues=issues,
         )
 
     @router.get("/{id}/revisions", response_model=RevisionListOutput)
