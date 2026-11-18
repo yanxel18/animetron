@@ -320,9 +320,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   cancellation-first resolve a handler before cancellation committed, failing
   the regression; restored locks passed. If dispatch wins, its run-ready and
   node intents remain after cancellation. No worker or suppression of such
-  previously prepared work is tested. This slice is in review on
-  `task/p1-12d-postgres-dispatch-cancellation`:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12d-postgres-dispatch-cancellation?expand=1).
+  previously prepared work is tested. This slice is in review in
+  [#94](https://github.com/yanxel18/animetron/pull/94).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #93 and recording P1-12d. Nested slices do not change the project
   counts.
@@ -739,7 +738,8 @@ immutable workflow and recover its state without duplicate effects.
     PostgreSQL in both lock orderings. Eight dispatch and 13 cancellation
     tests passed in the owned harness. Uses a fake execution binding and does
     not verify a worker or suppression of already-prepared run-ready intents;
-    keep unchecked pending review, required checks and merge.
+    keep unchecked pending review, required checks and merge of
+    [#94](https://github.com/yanxel18/animetron/pull/94).
 
 ## Phase 2 - Model registry and hardware readiness
 
