@@ -182,3 +182,37 @@ it("clears a previously displayed revision on 401 for another selection", async 
   expect(screen.queryByText(id)).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
 });
+
+it("clears loaded draft data when discovery loses authorization", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => {
+    if (url.endsWith("/draft")) return Promise.resolve(new Response(JSON.stringify({
+      workflowId: id, version: 1, document: '{"private":"draft"}',
+    })));
+    if (url.includes("/revisions")) return Promise.resolve(new Response("", { status: 403 }));
+    return Promise.resolve(new Response(JSON.stringify({ data: [{ workflowId: id }], nextCursor: null })));
+  }));
+  render(<WorkflowDiscovery />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  expect(await screen.findByText('{"private":"draft"}')).toBeInTheDocument();
+  await user.click(await screen.findByRole("button", { name: id }));
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/access/i));
+  expect(screen.queryByText('{"private":"draft"}')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Workflow ID")).not.toBeInTheDocument();
+});
+
+it("clears discovery data when a draft request loses authorization", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(
+    url.endsWith("/draft") ? new Response("", { status: 401 }) :
+      new Response(JSON.stringify({ data: [{ workflowId: id }], nextCursor: null })),
+  )));
+  render(<WorkflowDiscovery />);
+  const user = userEvent.setup();
+  await screen.findByRole("button", { name: id });
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/access/i));
+  expect(screen.queryByRole("button", { name: id })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Workflow ID")).not.toBeInTheDocument();
+});
