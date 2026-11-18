@@ -297,16 +297,28 @@ A process crash before linking leaves an unused pending file; a crash between
 linking and unlinking leaves two names for one inode, which reads reject. After
 unlinking, a complete file can be read using trusted expectations. No pending
 files are swept at startup, and no published files are deleted on failure.
-Offline, explicitly authorized reconciliation must identify exact pending names,
-verify UID/mode and inode/link relationships plus trusted hashes, and stop writers
-before cleanup; it is **not implemented** here. Process-crash tests do not certify
-power-loss durability; durability depends on local filesystem/device sync behavior.
+`audit_artifacts(connection, store, max_total_bytes=..., max_entries=...)` provides
+a bounded, report-only offline comparison. It reports consistent, missing,
+orphaned, corrupt, unsafe and invalid metadata IDs, exact safe/unsafe pending
+names, and a count of unexpected directory entries. It checks private file
+ownership/mode and single-link status, hashes valid artifact files, and returns
+no content or storage paths. Entry/byte limit exhaustion fails without a partial
+report; at most `max_entries + 1` names are enumerated to detect entry overflow.
+Stop **all** metadata and byte writers before calling it: the database
+transaction cannot make filesystem and metadata reads atomic. The audit never
+changes either store, deletes or repairs files, authorizes access, or makes an
+artifact usable. Pending bytes have no trusted digest and must not be adopted.
+It is not a cleanup or recovery operation. Focused metadata checks:
+`python -m pytest tests/test_artifacts.py -q -p no:cacheprovider`.
+Process-crash tests do not certify power-loss durability; durability depends on
+local filesystem/device sync behavior.
 
 Byte publication and metadata commit are **not atomic**: DB rollback/crash can
-leave orphan bytes. No recovery/retention, coordinated backup, encryption, media
-signature/probing validation or readiness certification is supplied. Hashes detect
-corruption, not malicious edits to both bytes and metadata. Callers must validate
-media and enforce access policy before making artifacts usable.
+leave orphan bytes. This report does not supply automatic recovery, retention,
+coordinated backup, encryption, media signature/probing validation or readiness
+certification. Hashes detect corruption, not malicious edits to both bytes and
+metadata. Callers must validate media and enforce access policy before making
+artifacts usable.
 
 Dependency-free Linux tests use the existing `python:3.12-slim` image, read-only
 code, no network, a fresh private named volume and service UID 10001. From this
@@ -334,6 +346,23 @@ are skipped on Windows; Windows refusal still runs. Runtime and tests add no dep
 Syscall references: [linkat](https://man7.org/linux/man-pages/man2/link.2.html),
 [flock](https://man7.org/linux/man-pages/man2/flock.2.html),
 [fsync](https://man7.org/linux/man-pages/man2/fsync.2.html).
+
+## Disposable local backup/restore check
+
+Run `python tests/run_platform_recovery_checks.py` from `backend` with Docker
+and the cached `postgres:18` and `python:3.12-slim` images. The check creates
+synthetic metadata and artifact bytes, backs them up, restores them into fresh
+database and byte-store resources, and verifies the restored SHA-256 and
+metadata match. It also checks that PostgreSQL has no published host port and
+that a minimal test-only gateway is reachable only through a loopback binding.
+
+Explicitly created Docker containers, named volumes and networks carry unique
+owner labels; cleanup verifies those labels before removing them. The database's
+anonymous volume is removed only with its verified test container. Backup files
+live in a temporary directory created by the check. No existing project files
+or application data are modified. This proves only a local test arrangement; it
+does not configure or deploy product services, select a persistent or encrypted
+backup target, define retention, or implement preview/confirmed deletion.
 
 `GET /api/v1/health` returns `{"status":"ok"}` when the process responds.
 It is a liveness check, not a readiness or security check. Interactive API

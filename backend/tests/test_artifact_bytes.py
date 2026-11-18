@@ -16,6 +16,7 @@ from unittest.mock import patch
 from uuid import UUID, uuid4
 
 from app.core.artifact_bytes import (
+    ArtifactAuditLimitExceeded,
     ArtifactByteStore,
     ByteIntegrityError,
     StoredBytes,
@@ -89,6 +90,104 @@ class ArtifactByteTests(unittest.TestCase):
                 target = self.root / result.storage_locator
                 self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
                 self.assertEqual(target.stat().st_nlink, 1)
+
+    def test_audit_reports_private_files_and_metadata_only_counts_without_mutation(self):
+        with self.store() as store:
+            expected = store.put(uuid4(), io.BytesIO(b"complete"), max_bytes=8)
+            pending = self.root / "artifacts" / f".pending-{uuid4().hex}"
+            pending.write_bytes(b"unfinished")
+            pending.chmod(0o600)
+            unexpected = self.root / "artifacts" / "not-an-artifact"
+            unexpected.write_bytes(b"leave alone")
+            before = {
+                path.name: (path.stat().st_ino, path.stat().st_size, path.read_bytes())
+                for path in (self.root / "artifacts").iterdir()
+            }
+
+            inventory = store.audit(max_total_bytes=64, max_entries=10)
+
+            self.assertEqual(inventory.files, (expected,))
+            self.assertEqual(inventory.unsafe_ids, ())
+            self.assertEqual(inventory.pending_names, (pending.name,))
+            self.assertEqual(inventory.unsafe_pending_names, ())
+            self.assertEqual(inventory.unexpected_count, 1)
+            after = {
+                path.name: (path.stat().st_ino, path.stat().st_size, path.read_bytes())
+                for path in (self.root / "artifacts").iterdir()
+            }
+            self.assertEqual(after, before)
+
+    def test_audit_reports_pending_entries_with_unsafe_permissions(self):
+        with self.store() as store:
+            pending = self.root / "artifacts" / f".pending-{uuid4().hex}"
+            pending.write_bytes(b"unfinished")
+
+            inventory = store.audit(max_total_bytes=64, max_entries=1)
+
+            self.assertEqual(inventory.pending_names, ())
+            self.assertEqual(inventory.unsafe_pending_names, (pending.name,))
+
+    def test_audit_enforces_total_bytes_before_hashing(self):
+        with self.store() as store:
+            expected = store.put(uuid4(), io.BytesIO(b"complete"), max_bytes=8)
+
+            with self.assertRaises(ArtifactAuditLimitExceeded):
+                store.audit(max_total_bytes=7, max_entries=10)
+
+            self.assertEqual(store.read_verified(expected, max_bytes=8), b"complete")
+
+    def test_audit_enforces_entry_limit_without_mutation(self):
+        with self.store() as store:
+            expected = store.put(uuid4(), io.BytesIO(b"complete"), max_bytes=8)
+            unexpected = self.root / "artifacts" / "unknown"
+            unexpected.write_bytes(b"leave alone")
+            before = {path.name for path in unexpected.parent.iterdir()}
+            scanned = []
+            original_scandir = os.scandir
+
+            class CountingScandir:
+                def __init__(self, iterator):
+                    self.iterator = iterator
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, exc_type, exc_value, traceback):
+                    self.iterator.close()
+
+                def __iter__(self):
+                    return self
+
+                def __next__(self):
+                    entry = next(self.iterator)
+                    scanned.append(entry.name)
+                    return entry
+
+            def scandir(fd):
+                return CountingScandir(original_scandir(fd))
+
+            with (
+                patch("app.core.artifact_bytes.os.scandir", side_effect=scandir),
+                self.assertRaises(ArtifactAuditLimitExceeded),
+            ):
+                store.audit(max_total_bytes=64, max_entries=1)
+
+            self.assertEqual({path.name for path in unexpected.parent.iterdir()}, before)
+            self.assertEqual(store.read_verified(expected, max_bytes=8), b"complete")
+            self.assertEqual(len(scanned), 2)
+
+    def test_audit_reports_unsafe_files_without_following_them(self):
+        with self.store() as store:
+            identifier = uuid4()
+            outside = self.root / "outside"
+            outside.write_bytes(b"must not be read")
+            (self.root / "artifacts" / identifier.hex).symlink_to(outside)
+
+            inventory = store.audit(max_total_bytes=64, max_entries=10)
+
+            self.assertEqual(inventory.files, ())
+            self.assertEqual(inventory.unsafe_ids, (identifier,))
+            self.assertEqual(outside.read_bytes(), b"must not be read")
 
     def test_existing_target_is_never_overwritten_even_identical(self):
         with self.store() as store:
