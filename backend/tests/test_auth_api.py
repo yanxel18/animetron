@@ -57,14 +57,16 @@ def context():
     "/api/v1/audit-events", "/api/v1/auth/callback?state=fake&code=fake",
 ])
 def test_no_configuration_fails_closed_without_header_bypass(path):
+    bearer_token = secrets.token_urlsafe(32)
     with TestClient(SecurityHeaders(create_api()), base_url="https://control.example") as client:
         response = client.get(path, headers={
             "X-User": "owner", "X-Principal": "owner", "X-Role": "owner",
-            "Authorization": "Bearer " + secrets.token_urlsafe(32),
+            "Authorization": "Bearer " + bearer_token,
         })
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "AUTH_UNAVAILABLE"
     assert "requestId" in response.json()["error"]
+    assert bearer_token not in response.text
 
 
 def test_malformed_database_configuration_preserves_only_public_liveness(monkeypatch):
