@@ -13,13 +13,16 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.auth import ErrorResponse
+from app.api.bounded_json import BoundedJSONRoute
 from app.api.dependencies import auth_dependencies
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 from app.services.workflows.document import validate_revision_identifier
 from app.services.workflows.drafts import (
+    WorkflowDraftConflict,
     WorkflowDraftCorrupt,
     WorkflowDraftNotFound,
     get_draft,
+    save_draft,
 )
 from app.services.workflows.revisions import (
     RevisionCorrupt,
@@ -39,6 +42,15 @@ _DEFAULT_REVISION_LIMIT = 50
 _MAX_REVISION_LIMIT = 100
 _MAX_CURSOR_LENGTH = 2304
 _MAX_WORKFLOW_CURSOR_LENGTH = 128
+_MAX_DRAFT_DOCUMENT_BYTES = 32_768
+_MAX_DRAFT_BODY_BYTES = 262_144
+
+
+class WorkflowJSONRoute(BoundedJSONRoute):
+    max_body_bytes = _MAX_DRAFT_BODY_BYTES
+    methods_with_body = frozenset({"PUT"})
+    invalid_headers_code = "INVALID_WORKFLOW_HEADERS"
+    too_large_code = "WORKFLOW_DRAFT_BODY_TOO_LARGE"
 
 
 class RevisionOutput(BaseModel):
@@ -84,6 +96,17 @@ class WorkflowDraftOutput(BaseModel):
     workflow_id: UUID = Field(alias="workflowId")
     document: str
     version: int = Field(ge=1)
+
+
+class WorkflowDraftInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    document: str
+    expected_version: int | None = Field(
+        alias="expectedVersion",
+        ge=1,
+        lt=2_147_483_647,
+    )
 
 
 def _encode_workflow_cursor(workflow_id: UUID) -> str:
@@ -199,6 +222,7 @@ def _parse_revision_cursor(value: str | None, workflow_id: UUID) -> RevisionCurs
 def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIRouter:
     router = APIRouter(
         prefix="/api/v1/workflows",
+        route_class=WorkflowJSONRoute,
         responses={
             status: {
                 "model": ErrorResponse,
@@ -275,6 +299,55 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
                 draft = get_draft(connection, id)
         except WorkflowDraftNotFound:
             raise AuthDenied("WORKFLOW_DRAFT_NOT_FOUND", 404) from None
+        except (WorkflowDraftCorrupt, RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+        return WorkflowDraftOutput(
+            workflowId=draft.workflow_id,
+            document=draft.document.decode("utf-8"),
+            version=draft.version,
+        )
+
+    @router.put(
+        "/{id}/draft",
+        response_model=WorkflowDraftOutput,
+        responses={
+            404: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            },
+            409: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            },
+        },
+    )
+    def write_workflow_draft(
+        id: UUID,
+        request: Request,
+        body: WorkflowDraftInput,
+        _: Annotated[Principal, Depends(owner)],
+    ) -> WorkflowDraftOutput:
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        try:
+            document = body.document.encode("utf-8")
+        except UnicodeEncodeError:
+            raise AuthDenied("INVALID_REQUEST", 422) from None
+        try:
+            with persistence().transaction() as connection:
+                draft = save_draft(
+                    connection,
+                    id,
+                    document,
+                    expected_version=body.expected_version,
+                    max_bytes=_MAX_DRAFT_DOCUMENT_BYTES,
+                )
+        except WorkflowDraftNotFound:
+            raise AuthDenied("WORKFLOW_DRAFT_NOT_FOUND", 404) from None
+        except WorkflowDraftConflict:
+            raise AuthDenied("WORKFLOW_DRAFT_CONFLICT", 409) from None
+        except ValueError:
+            raise AuthDenied("INVALID_REQUEST", 422) from None
         except (WorkflowDraftCorrupt, RuntimeError, SQLAlchemyError):
             raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
         return WorkflowDraftOutput(

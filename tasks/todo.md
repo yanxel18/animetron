@@ -26,7 +26,8 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after P1-09f was prepared on a task
-branch; it is not merged, so progress and per-phase counts remain unchanged.
+branch; P1-09g is also prepared on its dependent task branch, and neither
+slice is merged, so progress and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -170,19 +171,33 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   `master` at `df80d91`. GitGuardian passed; combined status is pending and no
   GitHub review is recorded.
 - P1-09f owner-only mutable draft read is pushed on
-  `task/p1-09f-workflow-draft-read` at `4b6ff05`, based on `master` at
-  `df80d91`. The route returns the stored text/version, rejects non-owner and
-  malformed requests, and fails closed on missing/corrupt/database errors;
-  it adds no write or validation behavior. Workflow API, draft persistence and
-  OpenAPI tests passed (62 passed, 22 skipped); Ruff and Linux-target mypy
-  passed. The PostgreSQL/Keycloak harness could not start because the available
-  psycopg binary is blocked by Windows Application Control. No PR was created:
-  the current GitHub integration has no write action. Create it from the
+  `task/p1-09f-workflow-draft-read` at `0afb79f` (implementation commit
+  `4b6ff05`), based on `master` at `df80d91`. The route returns the stored
+  text/version, rejects non-owner and malformed requests, and fails closed on
+  missing/corrupt/database errors; it adds no write or validation behavior.
+  Workflow API, draft persistence and OpenAPI tests passed (62 passed,
+  22 skipped); Ruff and Linux-target mypy passed. The PostgreSQL/Keycloak
+  harness could not start because the available psycopg binary is blocked by
+  Windows Application Control. No PR was created: the current GitHub
+  integration has no write action. Create it from the
   [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read);
   keep this slice unchecked and do not treat it as reviewed.
+- P1-09g owner-only mutable draft write is implemented on
+  `task/p1-09g-workflow-draft-write`, stacked on P1-09f. The strict JSON `PUT`
+  uses compare-and-swap versions, rejects stale/duplicate creates, bounds the
+  request and UTF-8 document, and adds no parsing or validation behavior.
+  Focused workflow API, persistence and OpenAPI tests passed (76 passed,
+  22 skipped); Ruff and strict Linux-target mypy for all 45 application
+  modules passed. An owner-guard mutation was detected by its regression test
+  and restored. The PostgreSQL/Keycloak harness remains blocked because
+  Windows Application Control blocks the available psycopg binary. This
+  dependent branch is not in a PR because the current GitHub integration has
+  no write action; keep it unchecked and create its PR against the P1-09f
+  branch after the P1-09f PR exists.
 - Reconciled with `df80d91` on 2026-11-18. Open PRs are not credited:
   progress remains 18/57 (31.6%), P0 4/9 and P1 7/12. The pushed P1-09f
-  branch is unmerged and does not change those counts.
+  and P1-09g branches are unmerged and do not change those counts. PRs #74-#81
+  remain open; no new reviews or merges were performed.
 P0-P9 and owner-involved P9 acceptance remain incomplete. No external
 publishing was done.
 
@@ -336,11 +351,25 @@ immutable workflow and recover its state without duplicate effects.
       recorded. Keep unchecked until the required gates and merge.
   - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
     preserving its stored UTF-8 text and version. Implemented on
-    `task/p1-09f-workflow-draft-read` at `4b6ff05`; pushed but not in a PR
+    `task/p1-09f-workflow-draft-read` at `0afb79f`; pushed but not in a PR
     because this session has no GitHub write action. The PR can be created from
     the [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read).
     Keep unchecked pending review and merge. It adds no draft write, validation
     or execution capability.
+  - [ ] P1-09g Add an owner-only version-checked write for an existing mutable
+    workflow draft. Implemented on `task/p1-09g-workflow-draft-write`, stacked
+    on P1-09f. `PUT /api/v1/workflows/{id}/draft` creates at version 1 only
+    when absent, or updates exactly the supplied version; stale/duplicate
+    writes conflict, and missing updates return 404. Rejects extra fields,
+    invalid UTF-8, unknown query parameters, unsupported JSON headers, bodies
+    over 256 KiB and encoded draft text over 32 KiB. No workflow parsing,
+    validation, immutable revision, execution, or publishing is added.
+    Workflow API, draft persistence and OpenAPI tests passed (76 passed,
+    22 skipped); Ruff and strict Linux-target mypy passed. The owner-guard
+    mutation was caught and restored. PostgreSQL/Keycloak verification is
+    blocked by Windows Application Control preventing psycopg from loading.
+    No PR was created because GitHub write actions are unavailable; keep
+    unchecked and make the PR depend on P1-09f.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.

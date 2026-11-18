@@ -142,12 +142,14 @@ preserving exact bytes without parsing or validating the document. `save_draft`
 creates a draft when `expected_version` is `None`, or replaces it only when the
 supplied version matches; every update increments that version. `get_draft`
 returns the stored bytes and version. The persistence operations themselves add
-no HTTP or authorization. The owner-only
-`GET /api/v1/workflows/{id}/draft` read is documented in the
-[workflow-runtime contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-read-p1-09f);
-HTTP draft writes and workflow validation remain unimplemented. Writes require
-a caller-owned transaction. The migration downgrade removes all draft data and
-requires authorization/recovery planning for populated databases.
+no HTTP or authorization. Owner-only `GET` and version-checked `PUT`
+`/api/v1/workflows/{id}/draft` routes expose this store; see the
+[read contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-read-p1-09f)
+and [write contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-write-p1-09g).
+Draft text remains unparsed and unvalidated, with a 32 KiB UTF-8 limit. Writes
+through the persistence helper require a caller-owned transaction; the HTTP
+route wraps them in one transaction. The migration downgrade removes all draft
+data and requires authorization/recovery planning for populated databases.
 
 The internal transactional outbox stores intent IDs, topics, and resource IDs
 in a caller-managed transaction. Claims use expiring database leases and a
