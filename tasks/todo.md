@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `22e516f` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `baeb6c7` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,8 +27,8 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`22e516f`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
-#94, #95, #96, #99 and #101 are merged but are not credited without a passing independent
+`baeb6c7`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+#94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
@@ -38,7 +38,7 @@ verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 2026-11-18. The implementation merged in #99 and does not change these counts.
 The owner approved the P1-10e outcome contract for implementation on
 2026-11-18; #100 and #101 are merged. The owner approved P1-10f implementation
-on 2026-11-18; its specification #102 remains open.
+on 2026-11-18; #102 and #103 are merged. P1-10g is proposed for approval.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -374,18 +374,24 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   combined status is pending; keep the slice unchecked.
 - P1-10f implements read-only, whole-graph pin and plan revalidation for an
   existing root-node claim. The owner approved the contract on 2026-11-18;
-  its proposal is in review in
-  [#102](https://github.com/yanxel18/animetron/pull/102). Implementation
-  [#103](https://github.com/yanxel18/animetron/pull/103) is in review and
-  depends on #102. It does not authorize execution; a future
+  its proposal merged in
+  [#102](https://github.com/yanxel18/animetron/pull/102) at `a9e7508`.
+  Implementation [#103](https://github.com/yanxel18/animetron/pull/103)
+  merged at `baeb6c7`. It does not authorize execution; a future
   executor needs separate cancellation, fencing and unknown-effect contracts.
   The owned PostgreSQL harness passed 41 admission/outcome/revalidation tests,
   including a persisted execution binding, nine queued-preflight tests and
   nine dispatch tests. Alembic drift check, Ruff and Linux-target mypy passed.
   Inverting the persisted-plan comparison failed eight cases; restoring it
   passed. Independent static review reported no significant issues.
+  GitGuardian passed; no independent GitHub review is recorded and combined
+  status is pending, so keep this slice unchecked.
+- P1-10g proposes one actual, bounded `sample.constant` invocation with
+  durable start evidence and no automatic retry. Owner approval is required
+  before implementation; trusted binding of the pinned digest to the actual
+  built-in implementation is a prerequisite, not an existing guarantee.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #100 and #101 and recording the approved P1-10f slice. Nested slices do
+  reconciling #102 and #103 and recording the P1-10g proposal. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -765,11 +771,14 @@ immutable workflow and recover its state without duplicate effects.
     dependent nodes.
   - [ ] P1-10f Implement admitted-node revalidation under the
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10f-admitted-node-revalidation-contract).
-    The owner approved implementation on 2026-11-18; the specification remains
-    in review in [#102](https://github.com/yanxel18/animetron/pull/102).
-    Implementation is in review in
-    [#103](https://github.com/yanxel18/animetron/pull/103) and remains
-    read-only; it does not authorize execution.
+    The owner approved implementation on 2026-11-18; specification
+    [#102](https://github.com/yanxel18/animetron/pull/102) and implementation
+    [#103](https://github.com/yanxel18/animetron/pull/103) merged. Independent
+    GitHub review is not recorded and combined status is pending; keep
+    unchecked. It remains read-only and does not authorize execution.
+  - [ ] P1-10g Implement one-shot bounded sample execution only after owner
+    approval of the [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10g-one-shot-sample-execution-contract-not-approved).
+    No worker, model invocation, external effect or automatic retry is authorized.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in

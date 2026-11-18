@@ -651,6 +651,73 @@ transmission or deployment are authorized.
 The internal `revalidate_admitted_node` service implements this point-in-time
 check; it is not an execution permit or a worker.
 
+## Proposed P1-10g one-shot sample execution contract (not approved)
+
+This proposal advances from stored claims to an actual local handler call,
+but only for the existing deterministic `sample.constant` root node. It is
+an internal one-shot operation, not a worker or production model execution.
+Owner approval is required before implementation. No arbitrary handler,
+model, filesystem, network or external effect is authorized.
+
+The trusted server owns the database transactions and selects the handler;
+the caller supplies only the exact existing run, node and claim identifiers.
+The workflow must have a prepared run, an admitted root node, no outcome,
+and an execution snapshot whose selected node is `sample.constant`, has no
+model pins and has valid bounded text configuration. The service must verify
+the entire persisted plan and all pins under P1-10f before starting. Do not
+accept an arbitrary caller-supplied callable, path, digest, registry, or code.
+
+The sole callable must be the fixed built-in implementation bound by a
+trusted deployment-owned immutable handler artifact identity and digest.
+Both identity and digest must exactly match the persisted node pin, and the
+verified implementation used for the call must be the one bound to that
+identity. A digest asserted by workflow data or a caller is not proof; hashing
+a file after a different callable was loaded is not proof either. If the
+running build cannot establish this binding, fail closed without invoking.
+Do not install artifacts, load plugins or fetch models to satisfy it.
+
+Before calling the handler, atomically insert one durable start record per
+claim in a server-owned PostgreSQL transaction. Lock the run first and perform
+revalidation while holding the same transaction's locks. Cancellation that
+commits first prevents a start; a committed start that wins first may continue
+even if cancellation is subsequently requested. The start record is not proof
+that the call began or stopped. Commit must return success before invocation;
+an ambiguous or failed commit never permits a call. Exact replay, a competing
+caller or restart observing a start record must not invoke again. There is no
+expiry, takeover or automatic retry, even for this pure sample.
+
+Only the process that inserted and successfully committed the new start may
+invoke the fixed built-in once. The sample input comes from the verified
+snapshot, not mutable caller data. Validate the returned text port and the
+existing sample byte limits; do not persist or expose the output. After a
+confirmed valid return, record `SUCCEEDED` for the same claim in a separate
+transaction using P1-10e. Only a specifically defined confirmed sample failure
+may produce `FAILED` with its existing server-defined code. Unexpected
+exceptions, process loss, indeterminate commit, or inability to persist a
+confirmed result leave execution or recording uncertain; an outcome commit may
+itself have succeeded despite an error. Reconcile retained evidence without
+assuming failure or triggering another invocation. A late confirmed outcome
+after cancellation must not change the run state.
+
+Use an additive migration with immutable start evidence; downgrade on a
+populated database requires separate authorization and recovery planning.
+No dependent node is admitted, no output or artifact reference is recorded,
+and the run is not completed. This proposal does not solve general executor
+fencing, recovery, delivery, pin installation, or real model readiness.
+
+Acceptance requires isolated PostgreSQL tests for exact pin and configuration
+verification, missing/mismatched trusted artifact binding, no model pins,
+one winner among concurrent starts, replay/restart refusal, both cancellation
+lock orderings, failed and ambiguous commit, a real process termination after
+the start commit, and confirmed outcome recording. Prove the fixed handler is
+actually invoked once, not a mock-only proxy; use synthetic data and no
+external effects. Test unexpected handler or result-storage failure leaves an
+unknown result or commit state with no retry. Preserve P1-10e and P1-10f
+behavior.
+
+**Approval needed:** Confirm this bounded sample execution contract before
+implementation, including the trusted artifact-binding prerequisite.
+
 ## Bounded internal P1-10b sample evaluator
 
 `app.services.workflows.sample_evaluator.evaluate_sample_graph(data)` is a
