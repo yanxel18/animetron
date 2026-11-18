@@ -36,7 +36,7 @@ verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 #94 and #95 verify P1-12d and P1-12e; #96 verifies persisted readiness.
 #97 merged the P1-10d contract; the owner approved implementation on
 2026-11-18. The implementation merged in #99 and does not change these counts.
-The P1-10e outcome contract is proposed, not approved.
+The P1-10e outcome contract is proposed in #100, not approved.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -358,8 +358,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   but independent review is not recorded and combined status is pending;
   keep unchecked.
 - P1-10e proposes recording confirmed node outcomes without unlocking
-  downstream work or retrying unknown effects. Owner approval is required
-  before implementation.
+  downstream work or retrying unknown effects. The contract is in review in
+  [#100](https://github.com/yanxel18/animetron/pull/100); owner approval is
+  required before implementation.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #98 and #99 and recording the P1-10e proposal. Nested slices do
   not change the project counts. The earlier reconciliation merged in
@@ -733,7 +734,8 @@ immutable workflow and recover its state without duplicate effects.
     review is not recorded and combined status is pending; keep unchecked.
   - [ ] P1-10e Implement confirmed node-outcome records after approval of the
     [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10e-node-outcome-contract-not-approved).
-    This does not execute handlers, store outputs, or unlock dependent nodes.
+    In review in [#100](https://github.com/yanxel18/animetron/pull/100). This
+    does not execute handlers, store outputs, or unlock dependent nodes.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
