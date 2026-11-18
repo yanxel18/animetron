@@ -417,6 +417,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   identified substantive issues; the latest amendments require further
   independent review before this proposal can be approved. GitGuardian passed;
   no independent GitHub review is recorded and combined status is pending.
+  Merge reconciliation is in review in
+  [#107](https://github.com/yanxel18/animetron/pull/107).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #106 and recording the proposed trust-root design. Nested slices do
   not change the project counts. The earlier reconciliation merged in
