@@ -255,9 +255,10 @@ workflow entity, run, or external effect.
 
 ## Proposed P1-09j owner-only draft-to-revision creation
 
-**Status: proposal; explicit owner approval is required before implementation.**
-Three adversarial review cycles identified substantive issues; the latest
-amendments require further independent review.
+**Status: owner approval expressed; implementation remains blocked.**
+The owner approved the current proposal on 2026-11-18. Three adversarial
+review cycles identified substantive issues; the latest amendments require
+further independent review. Owner approval does not waive that review.
 The existing draft write and validation APIs cannot create the immutable
 revision required by run creation. This slice would let the owner save one
 validated draft version as a revision; it does not create an execution binding
