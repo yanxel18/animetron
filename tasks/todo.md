@@ -34,7 +34,8 @@ review and required checks.
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 #94 and #95 verify P1-12d and P1-12e; #96 verifies persisted readiness.
-#97 merged a proposed P1-10d contract, not owner approval to implement it.
+#97 merged the P1-10d contract; the owner approved implementation on
+2026-11-18. The implementation is in review and does not change these counts.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -342,12 +343,18 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   execution. GitGuardian passed; no independent review is recorded and combined
   status is pending. Keep unchecked.
 - The proposed P1-10d node-admission contract merged in
-  [#97](https://github.com/yanxel18/animetron/pull/97) at `39aa8c0`. It remains
-  explicitly unapproved: owner approval is required before implementation.
+  [#97](https://github.com/yanxel18/animetron/pull/97) at `39aa8c0`. The owner
+  approved implementation on 2026-11-18.
   GitGuardian passed; no independent review is recorded and combined status is
-  pending. The proposal adds no worker, execution or external effects.
+  pending. The implementation adds durable root-node claims serialized with
+  cancellation, but no worker, execution or external effects. Sixteen owned
+  PostgreSQL admission tests, six migration tests, nine dispatch tests,
+  13 cancellation tests, migrations, Ruff and mypy passed; removing the run
+  lock failed both cancellation race cases. Combined no-database workflow
+  checks passed 25 tests with 22 database cases skipped.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #94 through #97. Nested slices do not change the project counts.
+  reconciling #94 through #97 and recording P1-10d. Nested slices do not change
+  the project counts.
   This reconciliation is in review in
   [#98](https://github.com/yanxel18/animetron/pull/98).
 
@@ -711,11 +718,12 @@ immutable workflow and recover its state without duplicate effects.
     [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`.
     #86 has no independent review record and only a GitGuardian check; keep
     unchecked pending the required review and verification gates.
-  - [ ] P1-10d Implement durable node admission after approval of the proposed
-    contract in [the workflow runtime spec](../docs/SPEC-workflow-runtime.md#proposed-p1-10d-node-admission-contract-not-approved).
-    The proposal merged in [#97](https://github.com/yanxel18/animetron/pull/97)
-    at `39aa8c0`, but still requires owner approval. It does not authorize
-    handler execution or automatic retries.
+  - [ ] P1-10d Implement durable node admission under the
+    [approved contract](../docs/SPEC-workflow-runtime.md#p1-10d-node-admission-contract-approved-2026-11-18).
+    The owner approved implementation on 2026-11-18. The implementation is in
+    review and depends on tracker reconciliation in #98. It does not authorize
+    handler execution or automatic retries. Keep unchecked pending review,
+    required checks and merge.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in

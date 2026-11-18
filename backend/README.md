@@ -76,6 +76,23 @@ readiness or execution. Downgrading a populated binding table destroys replay
 evidence and requires authorization and recovery planning.
 Focused owned check: `python tests/run_auth_checks.py --storage --pytest-file tests/test_execution_bindings.py`.
 
+### Durable node admission (P1-10d)
+
+`claim_node(connection, claim_id, run_id, node_id)` records one root-node claim
+for an already prepared running workflow. Claims serialize with cancellation;
+an exact retry returns `ALREADY_CLAIMED`, never permission to execute again.
+Different identities cannot claim the same node, and an identity cannot be
+reused for a different node or run. Use a caller-owned non-autocommit psycopg
+transaction and configure bounded lock/statement timeouts. Claims have no
+expiry or automatic reassignment, and dependent nodes remain blocked.
+
+This is not a worker or proof that a handler can execute: actual execution,
+pin revalidation, outcome recording, cancellation of in-flight work, and
+unknown-effect recovery require separate work. Downgrading the claim migration
+destroys evidence and requires authorization and recovery planning on populated
+databases. Focused owned check:
+`python tests/run_auth_checks.py --storage --pytest-file tests/test_node_admission.py`.
+
 An internal dependency plan derives each node's distinct predecessors from a
 validated workflow. It does not bind to a stored snapshot, schedule nodes,
 track outcomes, or execute work; document order is not execution order.

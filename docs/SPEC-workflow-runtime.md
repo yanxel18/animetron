@@ -501,10 +501,10 @@ intents, scheduler/due slots, relay/consumer, handlers, inference or external
 effects. P1-08 handler implementation, configuration-default and model-revision
 pinning remain prerequisites to EXECUTION; a stored request proves none of them.
 
-## Proposed P1-10d node admission contract (not approved)
+## P1-10d node admission contract (approved 2026-11-18)
 
-This proposal is for the first durable worker-facing building block, not a
-running worker. It requires owner approval before implementation. The existing
+The owner approved this contract for implementation on 2026-11-18. It is the
+first durable worker-facing building block, not a running worker. The existing
 run-request notification remains non-executable; this proposal does not add a
 consumer for it or change the meaning of any outbox topic.
 
@@ -534,6 +534,16 @@ checking cancellation. A future executor must revalidate exact pins and define
 how an already-admitted attempt is stopped or reconciled before it invokes
 handlers or effects.
 
+`claim_node(connection, claim_id, run_id, node_id)` returns `CLAIMED` for a new
+claim or `ALREADY_CLAIMED` for an exact replay. A different association or an
+ineligible node raises `AdmissionConflict`; a non-running run raises
+`RunConflict` for a new claim, and a missing run raises `RunNotFound`. A running
+run without its expected run-ready outbox record raises `RunDispatchCorrupt`.
+The function accepts an explicit non-autocommit psycopg transaction and checks
+the claim UUID4 and bounded node ID. Errors propagate rather than triggering
+retry. Its savepoint rolls back failed claim operations without committing the
+outer transaction.
+
 The implementation must use an additive migration, caller-owned transactions,
 parameterized queries and bounded lock/statement timeouts supplied by the
 caller. Failed operations must not leave partial claims, even if the caller
@@ -543,10 +553,10 @@ and both cancellation/admission lock orderings. No handler invocation, broker,
 model download, external transmission, retry or production deployment is
 authorized by this slice.
 
-**Approval needed:** Confirm this conservative no-automatic-retry admission
-contract before implementation. Completion, failure, skip propagation,
-fencing of actual execution, and recovery of unknown effects need separate
-contracts and are not solved by this proposal.
+Completion, failure, skip propagation, fencing of actual execution, and
+recovery of unknown effects need separate contracts and are not solved by this
+slice. Downgrading the claim migration destroys evidence and requires explicit
+authorization and recovery planning on populated databases.
 
 ## Bounded internal P1-10b sample evaluator
 
