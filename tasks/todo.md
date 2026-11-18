@@ -375,8 +375,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 - P1-10f implements read-only, whole-graph pin and plan revalidation for an
   existing root-node claim. The owner approved the contract on 2026-11-18;
   its proposal is in review in
-  [#102](https://github.com/yanxel18/animetron/pull/102). Implementation is
-  in review and depends on #102. It does not authorize execution; a future
+  [#102](https://github.com/yanxel18/animetron/pull/102). Implementation
+  [#103](https://github.com/yanxel18/animetron/pull/103) is in review and
+  depends on #102. It does not authorize execution; a future
   executor needs separate cancellation, fencing and unknown-effect contracts.
   The owned PostgreSQL harness passed 41 admission/outcome/revalidation tests,
   including a persisted execution binding, nine queued-preflight tests and
@@ -766,8 +767,9 @@ immutable workflow and recover its state without duplicate effects.
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10f-admitted-node-revalidation-contract).
     The owner approved implementation on 2026-11-18; the specification remains
     in review in [#102](https://github.com/yanxel18/animetron/pull/102).
-    The implementation is in review and remains read-only; it does not
-    authorize execution.
+    Implementation is in review in
+    [#103](https://github.com/yanxel18/animetron/pull/103) and remains
+    read-only; it does not authorize execution.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
