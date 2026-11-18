@@ -1,14 +1,30 @@
 import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "./generated";
 import { revisionValid } from "./workflows";
 
+export const PENDING_WORKFLOW_REVISION_KEY = "animetron.workflow-revision.pending.v1";
+const REVISION_LOCK_NAME = "animetron-workflow-revision-v1";
+
+export type PendingWorkflowRevision = {
+  workflowId: string;
+  expectedVersion: number;
+};
+export type PendingWorkflowRevisionState = PendingWorkflowRevision | null | "unavailable";
+
 export class WorkflowDraftError extends Error {
   readonly status: number | null;
   readonly uncertain: boolean;
-  constructor(message: string, status: number | null = null, uncertain = false) {
+  readonly requiresAcknowledgement: boolean;
+  constructor(
+    message: string,
+    status: number | null = null,
+    uncertain = false,
+    requiresAcknowledgement = false,
+  ) {
     super(message);
     this.name = "WorkflowDraftError";
     this.status = status;
     this.uncertain = uncertain;
+    this.requiresAcknowledgement = requiresAcknowledgement;
   }
 }
 
@@ -19,6 +35,45 @@ const uuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value);
 const version = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 2_147_483_647;
+
+export function readPendingWorkflowRevision(): PendingWorkflowRevisionState {
+  try {
+    const raw = window.localStorage.getItem(PENDING_WORKFLOW_REVISION_KEY);
+    if (raw === null) return null;
+    const value = record(JSON.parse(raw));
+    if (!value || typeof value.workflowId !== "string" || !uuid(value.workflowId) ||
+        !version(value.expectedVersion) || value.expectedVersion >= 2_147_483_647) {
+      return "unavailable";
+    }
+    return { workflowId: value.workflowId, expectedVersion: value.expectedVersion };
+  } catch {
+    return "unavailable";
+  }
+}
+
+function storePendingWorkflowRevision(attempt: PendingWorkflowRevision): void {
+  try {
+    window.localStorage.setItem(PENDING_WORKFLOW_REVISION_KEY, JSON.stringify(attempt));
+    const stored = readPendingWorkflowRevision();
+    if (stored === null || stored === "unavailable" ||
+        stored.workflowId !== attempt.workflowId || stored.expectedVersion !== attempt.expectedVersion) {
+      throw new Error("recovery marker read-back did not match");
+    }
+  } catch {
+    throw new WorkflowDraftError(
+      "Safe revision creation is unavailable because its recovery marker could not be saved; no request was sent.",
+    );
+  }
+}
+
+export function clearPendingWorkflowRevision(): boolean {
+  try {
+    window.localStorage.removeItem(PENDING_WORKFLOW_REVISION_KEY);
+    return window.localStorage.getItem(PENDING_WORKFLOW_REVISION_KEY) === null;
+  } catch {
+    return false;
+  }
+}
 
 async function request(path: string, options: RequestInit, mutation = false): Promise<unknown> {
   let response: Response;
@@ -105,13 +160,97 @@ export async function validateWorkflowDraft(id: string, expectedVersion: number)
   return result as WorkflowValidationOutput;
 }
 
-export async function createDraftRevision(id: string, expectedVersion: number): Promise<RevisionOutput> {
-  const result = record(await postVersion(id, "revisions", expectedVersion, true));
-  if (!result || result.workflowId !== id || typeof result.revision !== "string" ||
-      !revisionValid(result.revision) || typeof result.canonicalJson !== "string" ||
-      !/^[\x00-\x7f]*$/.test(result.canonicalJson) ||
-      typeof result.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(result.sha256)) {
-    throw new WorkflowDraftError("The revision response could not be verified.", 200, true);
+export async function createDraftRevision(
+  id: string,
+  expectedVersion: number,
+  options: { acknowledgeUncertain?: boolean } = {},
+): Promise<RevisionOutput> {
+  checkId(id);
+  if (!version(expectedVersion) || expectedVersion >= 2_147_483_647) {
+    throw new WorkflowDraftError("The draft version cannot be used.", 422);
   }
-  return result as RevisionOutput;
+  const locks = navigator.locks;
+  if (!locks || typeof locks.request !== "function") {
+    throw new WorkflowDraftError(
+      "Safe revision creation is unavailable because this browser cannot coordinate attempts; no request was sent.",
+    );
+  }
+
+  return locks.request(
+    REVISION_LOCK_NAME,
+    { mode: "exclusive", ifAvailable: true },
+    async (lock) => {
+      if (lock === null) {
+        throw new WorkflowDraftError(
+          "Another revision attempt is in progress in this browser. Wait for it to finish before starting another.",
+        );
+      }
+
+      const previous = readPendingWorkflowRevision();
+      if (previous === "unavailable") {
+        throw new WorkflowDraftError(
+          "Safe revision creation is unavailable because the previous attempt state cannot be read; no request was sent.",
+        );
+      }
+      if (previous && previous.workflowId !== id) {
+        throw new WorkflowDraftError(
+          `Resolve the uncertain revision attempt for workflow ${previous.workflowId} before creating a revision for another workflow.`,
+          null,
+          true,
+          true,
+        );
+      }
+      if (previous && !options.acknowledgeUncertain) {
+        throw new WorkflowDraftError(
+          "A previous revision attempt has an uncertain outcome. Inspect saved revisions before explicitly acknowledging a possible duplicate.",
+          null,
+          true,
+          true,
+        );
+      }
+
+      let token: string;
+      try {
+        token = await ownerCsrf();
+      } catch (error) {
+        if (error instanceof WorkflowDraftError && (error.status === 401 || error.status === 403)) {
+          clearPendingWorkflowRevision();
+        }
+        throw error;
+      }
+
+      const attempt = { workflowId: id, expectedVersion };
+      storePendingWorkflowRevision(attempt);
+      try {
+        const result = record(await request(`/api/v1/workflows/${id}/revisions`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": token,
+          },
+          body: JSON.stringify({ expectedVersion }),
+        }, true));
+        if (!result || result.workflowId !== id || typeof result.revision !== "string" ||
+            !revisionValid(result.revision) || typeof result.canonicalJson !== "string" ||
+            !/^[\x00-\x7f]*$/.test(result.canonicalJson) ||
+            typeof result.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(result.sha256)) {
+          throw new WorkflowDraftError("The revision response could not be verified.", 200, true);
+        }
+        clearPendingWorkflowRevision();
+        return result as RevisionOutput;
+      } catch (error) {
+        if (error instanceof WorkflowDraftError && !error.uncertain) {
+          if (error.status === 401 || error.status === 403) {
+            clearPendingWorkflowRevision();
+          } else if (previous) {
+            storePendingWorkflowRevision(previous);
+          } else {
+            clearPendingWorkflowRevision();
+          }
+        }
+        throw error;
+      }
+    },
+  );
 }

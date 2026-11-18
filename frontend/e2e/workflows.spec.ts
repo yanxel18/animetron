@@ -45,6 +45,45 @@ test("validates a saved draft and creates its revision with keyboard controls", 
   await page.screenshot({ path: testInfo.outputPath("draft-revision-320.png"), fullPage: true });
 });
 
+test("restores an uncertain revision attempt after reload without retrying it", async ({ page }) => {
+  let revisionAttempts = 0;
+  await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/v1/workflows") {
+      await route.fulfill({ json: { data: [], nextCursor: null } });
+    } else if (path === "/api/v1/auth/session") {
+      await route.fulfill({ json: { role: "owner", csrfToken: "fixture-csrf" } });
+    } else if (path.endsWith("/draft")) {
+      await route.fulfill({ json: { workflowId: id, version: 3, document: '{"revision":"saved-revision-1"}' } });
+    } else if (request.method() === "POST" && path.endsWith("/validations")) {
+      await route.fulfill({ json: { workflowId: id, draftVersion: 3, isValid: true, issues: [] } });
+    } else if (request.method() === "POST" && path.endsWith("/revisions")) {
+      revisionAttempts++;
+      await route.fulfill({ status: 503 });
+    } else await route.fulfill({ status: 404 });
+  });
+
+  await page.goto("/#workflows");
+  await page.getByRole("textbox", { name: "Workflow ID", exact: true }).fill(id);
+  await page.getByRole("button", { name: "Load draft" }).click();
+  await page.getByRole("button", { name: "Validate saved draft" }).click();
+  await page.getByRole("button", { name: "Create immutable revision" }).click();
+  await expect(page.getByRole("alert")).toContainText(/revision may have been created/i);
+  expect(revisionAttempts).toBe(1);
+
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "Workflow ID", exact: true })).toHaveValue(id);
+  await expect(page.getByRole("alert")).toContainText(/previous revision attempt/i);
+  await expect(page.getByRole("button", { name: "Load draft" })).toBeEnabled();
+  expect(revisionAttempts).toBe(1);
+
+  await page.getByRole("button", { name: "Load draft" }).click();
+  await expect(page.getByLabel("Saved draft document")).toContainText("saved-revision-1");
+  await expect(page.getByRole("button", { name: "Create immutable revision" })).toBeDisabled();
+  expect(revisionAttempts).toBe(1);
+});
+
 test("browses fixture metadata at each viewport using keyboard", async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
