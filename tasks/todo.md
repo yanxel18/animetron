@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `df80d91` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `8d10be9` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -9,9 +9,9 @@ and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #62 merged owner-only reads of known immutable workflow revisions.
 #63 merged bounded revision discovery for a known workflow ID.
 #64 merged owner-only discovery of workflow IDs with persisted revisions.
-#73 merged mutable workflow draft persistence; its completion gate remains
-unresolved as recorded below.
-The historical #33 scanner failure remains unresolved.
+The historical #33 scanner failure remains unresolved. #73 merged at
+`df80d91`, but is not credited until the missing GitHub review and check gates
+are satisfied.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -25,7 +25,10 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged.
+percentage is unchanged. Recalculated after master commit `8d10be9` and the
+P0-08a test slice: open work is not credited, and #73 remains unchecked
+pending its review/check gates, so the percentage and per-phase counts remain
+unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -112,16 +115,18 @@ verification. This checklist remains the only current progress source.
   schedule-slot observations, without scheduler dispatch or outcome decisions.
 - P1-10b merged in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
-- P1-09e mutable draft persistence merged in
+- P1-09e draft persistence had been investigated only before the 2026-11-15 stop.
+  The internal mutable-draft slice merged in
   [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. It stores
   bounded exact UTF-8 bytes separately from immutable revisions and uses
   caller-owned transactions with version-checked updates; it adds no API, UI,
-  validation, execution or external effects. The PR reports 7 focused tests,
-  Alembic upgrade/check, Ruff, Linux-target mypy, and 348 backend tests passed
-  with 335 skips outside owner-gated auth suites; its independent code review
-  found no actionable issues. The GitGuardian check passed. However, GitHub
-  records no review and the combined commit status is pending, so leave this
-  nested slice unchecked until its review/check gate is reconciled.
+  validation, execution or external effects. The PR reports 7 focused PostgreSQL
+  tests, Alembic upgrade/check, Ruff, Linux-target mypy, and a backend suite
+  outside owner-gated auth suites (348 passed, 335 skipped). The PR description
+  reports an independent review with no findings, and GitGuardian passed; GitHub
+  has no review record and the combined status is pending. It merged before
+  those required gates were recorded; keep this slice unchecked and do not infer
+  approval from the PR description or merge.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
@@ -132,10 +137,10 @@ verification. This checklist remains the only current progress source.
   records and the PR body said independent review was pending at merge. The
   exact-head GitGuardian check passed, but no other check runs or statuses were
   present. The merge did not satisfy the independent-review gate.
-- Reconciled with `df80d91` on 2026-11-18: the top-level recount remains 18 of
+- Reconciled with `8d10be9` on 2026-11-18: the top-level recount remains 18 of
   57 (31.6%), with the phase counts above unchanged. #71 is documentation-only
-  and completes no P0-P9 task. #73 is merged, but P1-09e remains unchecked
-  because its review/check gate is unresolved. No top-level task or phase was
+  and completes no P0-P9 task. #73 merged, but P1-09e remains unchecked because
+  required review/check gates are missing; no top-level task or phase was
   completed by #73.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
@@ -203,8 +208,42 @@ have the security and recovery guarantees below.
     with no-replace publication ([#23](https://github.com/yanxel18/animetron/pull/23);
     no HTTP, media probing, authorization,
     byte/metadata atomicity or automatic orphan recovery).
+  - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
+    byte inventories without changing either store.
+    Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
+    `task/p0-07c-artifact-reconciliation`; open draft
+    [#75](https://github.com/yanxel18/animetron/pull/75). GitGuardian passed,
+    but the combined status is pending and no GitHub review is recorded. Keep
+    unchecked pending required checks, independent review and merge. Its branch
+    includes master commit `8d10be9` to resolve the checklist conflict.
+    Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
+    byte-store tests (26 passed), backend suite outside owner-gated auth tests
+    (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The owned
+    PostgreSQL harness could not start because Windows Application Control
+    blocked the installed psycopg DLL. The audit requires all metadata and byte
+    writers to be stopped; it does not repair or adopt files.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
+  - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
+    metadata and artifact bytes. Verify restored metadata matches restored bytes
+    by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
+    loopback. The harness must use uniquely labeled resources and clean up only
+    resources it created. This does not select production networking, a
+    persistent backup target or encryption, retention duration, or deletion
+    behavior. The task branch depends on draft PR #75 and must remain unchecked
+    until its checks pass, independent review is recorded, and it is merged.
+    Implemented in commit `3fde341` on
+    `task/p0-08-local-recovery-test`; open draft
+    [#76](https://github.com/yanxel18/animetron/pull/76), based on #75.
+    No independent review is recorded; keep unchecked and do not merge until
+    required checks and review pass. The disposable Docker test restored a synthetic
+    metadata row and artifact into fresh resources with a matching SHA-256,
+    verified private PostgreSQL networking and a loopback-only test endpoint,
+    and left no labeled resources. Ruff and Python compilation passed; the
+    backend suite outside owner-gated auth files passed (352 passed, 340
+    skipped). Reversing the restored-hash assertion failed as expected, then
+    the restored check passed. This does not prove a production backup
+    procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
