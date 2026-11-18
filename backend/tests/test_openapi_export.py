@@ -28,6 +28,7 @@ def test_exports_local_openapi_without_registering_a_public_schema_route():
     assert schema["paths"]["/api/v1/health"]["get"]["responses"]["200"]
     assert "/api/v1/runs/{id}" in schema["paths"]
     assert "/api/v1/runs/{id}/events" in schema["paths"]
+    assert "/api/v1/runs/{id}/cancellations" in schema["paths"]
     revision_path = "/api/v1/workflows/{id}/revisions/{revision}"
     assert set(schema["paths"][revision_path]) == {"get"}
     revision_read = schema["paths"][revision_path]["get"]

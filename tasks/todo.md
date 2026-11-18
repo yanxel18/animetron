@@ -221,11 +221,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   approved spec explicitly says P1-10b's sample evaluator does not verify
   handler artifacts or model readiness and does not satisfy this prerequisite.
 - P1-10c is implemented on `task/p1-10c-ready-dispatch-intents`, stacked on
-  P1-08c and pushed at `1c6ad32`. The slice persists validated node
-  dependencies and a distinct run-ready outbox record atomically with the run
-  transition; readiness failures do not create executable intents. Focused
-  dispatch/readiness tests
-  pass (147 passed, 111 skipped), full backend Ruff passes, Linux-target strict
+  P1-08c and pushed through `cd1cc3a` (implementation commit `38a6f5b`).
+  The slice persists validated node dependencies and a distinct run-ready
+  outbox record atomically with the run transition; readiness failures do not
+  create executable intents. Focused dispatch/readiness tests pass
+  (147 passed, 111 skipped), full backend Ruff passes, Linux-target strict
   mypy passes (47 app files), and Alembic reports the new revision as head.
   The full backend suite returned 420 passed, 341 skipped, 3 failures and 48
   errors; the failures are database-ownership tests and the errors are
@@ -236,8 +236,23 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   configuration. No PR exists; the GitHub integration is read-only and `gh`
   is unavailable, so keep unchecked and use the
   [PR creation link](https://github.com/yanxel18/animetron/pull/new/task/p1-10c-ready-dispatch-intents).
-- Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12. Unmerged slices do not
-  change the project counts.
+- P1-11b is implemented in commit `66a39de` and pushed on
+  `task/p1-11b-run-cancellation`, stacked on P1-10c.
+  The owner-only endpoint records a cooperative `CANCELLING` intent and uses a
+  run-derived stable outbox key; retries are idempotent and do not claim worker
+  termination. Focused cancellation/dispatch/readiness/API/OpenAPI tests passed
+  (26 passed, 40 skipped); skipped API cases require the unavailable owned
+  PostgreSQL/auth harness. Ruff and strict Linux-target mypy passed. Frontend
+  API types were regenerated; 113 frontend tests, typecheck, production build
+  and API type-drift check passed. The generated contract also reconciles
+  previously missing workflow-draft/validation types in the current OpenAPI
+  schema. A mutation of the active-state guard failed all three targeted
+  regression cases; restoring it returned all 11 cancellation service tests
+  to passing. No PR can be created through the read-only GitHub integration
+  and `gh` is unavailable; keep unchecked and use the stacked
+  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-10c-ready-dispatch-intents...task/p1-11b-run-cancellation?expand=1).
+- Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
+  recording the P1-11b slice. Unmerged slices do not change the project counts.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -591,6 +606,16 @@ immutable workflow and recover its state without duplicate effects.
     review/independent QA without self-approval or gate waiver. Root master
     was pulled and tested backend/spec matched.
     [Run replay evidence](run-read-replay-api-report.md).
+  - [ ] P1-11b Implement the owner-only cooperative cancellation endpoint:
+    atomically transition an active run to `CANCELLING` and enqueue one stable
+    cancellation intent. Retries must not duplicate the intent; do not report
+    `CANCELLED` before a worker confirms termination. This slice does not
+    interrupt workers or reconcile unknown external effects. Implemented on
+    `task/p1-11b-run-cancellation` at `66a39de`, stacked on P1-10c. Focused
+    backend, Ruff, mypy, frontend typecheck/build/tests and generated API drift
+    checks passed; 40 database/auth API tests were skipped without the owned
+    harness. No PR is available through the read-only GitHub integration; keep
+    unchecked pending PR review and required checks.
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
   end-to-end, including duplicate message handling.
 

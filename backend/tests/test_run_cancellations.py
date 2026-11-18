@@ -1,0 +1,171 @@
+import pytest
+from sqlalchemy import func, select
+
+from app.core.outbox import metadata as outbox_metadata
+from app.core.outbox import outbox
+from app.services.workflows import run_cancellations
+from app.services.workflows.runs import (
+    RunConflict,
+    RunState,
+    get_run_status,
+    transition_run,
+)
+
+pytest_plugins = ("test_execution_readiness",)
+
+
+@pytest.fixture
+def cancellation_run(queued_run):
+    engine, run_id, workflow_id, revision = queued_run
+    outbox_metadata.create_all(engine)
+    return engine, run_id, workflow_id, revision
+
+
+def test_cancellation_request_transitions_once_and_deduplicates_outbox(
+    cancellation_run,
+):
+    engine, run_id, *_ = cancellation_run
+
+    with engine.begin() as connection:
+        first = run_cancellations.request_run_cancellation(connection, run_id)
+
+    assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED
+    assert first.state is RunState.CANCELLING
+    assert first.last_sequence == 2
+    with engine.begin() as connection:
+        intent_count = connection.scalar(
+            select(func.count())
+            .select_from(outbox)
+            .where(outbox.c.resource_id == run_id)
+        )
+        intents = connection.execute(
+            select(outbox.c.topic, outbox.c.resource_id).where(
+                outbox.c.resource_id == run_id
+            )
+        ).all()
+        second = run_cancellations.request_run_cancellation(connection, run_id)
+
+    assert intent_count == 1
+    assert [tuple(intent) for intent in intents] == [
+        (run_cancellations.CANCELLATION_TOPIC, run_id)
+    ]
+    assert second.outcome is run_cancellations.CancellationOutcome.ALREADY_REQUESTED
+    assert second.state is RunState.CANCELLING
+    assert second.last_sequence == 2
+    with engine.connect() as connection:
+        assert get_run_status(connection, run_id).state is RunState.CANCELLING
+
+
+@pytest.mark.parametrize(
+    ("initial_state", "sequence_before_cancel"),
+    [
+        (RunState.QUEUED, 1),
+        (RunState.RUNNING, 2),
+        (RunState.WAITING_REVIEW, 3),
+    ],
+)
+def test_active_run_states_accept_a_cancellation_request(
+    cancellation_run,
+    initial_state,
+    sequence_before_cancel,
+):
+    engine, run_id, *_ = cancellation_run
+
+    with engine.begin() as connection:
+        if initial_state is not RunState.QUEUED:
+            transition_run(connection, run_id, 1, RunState.RUNNING, "Started")
+        if initial_state is RunState.WAITING_REVIEW:
+            transition_run(connection, run_id, 2, initial_state, "Waiting")
+        result = run_cancellations.request_run_cancellation(connection, run_id)
+
+    assert result.outcome is run_cancellations.CancellationOutcome.REQUESTED
+    assert result.state is RunState.CANCELLING
+    assert result.last_sequence == sequence_before_cancel + 1
+
+
+@pytest.mark.parametrize(
+    "terminal_state",
+    [RunState.SUCCEEDED, RunState.PARTIAL_FAILURE, RunState.FAILED],
+)
+def test_terminal_runs_reject_cancellation_without_creating_intents(
+    cancellation_run,
+    terminal_state,
+):
+    engine, run_id, *_ = cancellation_run
+    with engine.begin() as connection:
+        transition_run(connection, run_id, 1, RunState.RUNNING, "Started")
+        transition_run(connection, run_id, 2, terminal_state, "Finished")
+
+    with engine.begin() as connection, pytest.raises(RunConflict):
+        run_cancellations.request_run_cancellation(connection, run_id)
+
+    with engine.begin() as connection:
+        assert connection.scalar(
+            select(func.count()).select_from(outbox).where(
+                outbox.c.resource_id == run_id
+            )
+        ) == 0
+        assert get_run_status(connection, run_id).state is terminal_state
+
+
+def test_cancelled_run_retries_are_idempotent(cancellation_run):
+    engine, run_id, *_ = cancellation_run
+    with engine.begin() as connection:
+        result = run_cancellations.request_run_cancellation(connection, run_id)
+        transition_run(
+            connection,
+            run_id,
+            result.last_sequence,
+            RunState.CANCELLED,
+            "Cancellation completed",
+        )
+
+    with engine.begin() as connection:
+        retry = run_cancellations.request_run_cancellation(connection, run_id)
+        intent_count = connection.scalar(
+            select(func.count()).select_from(outbox).where(
+                outbox.c.resource_id == run_id
+            )
+        )
+
+    assert retry.outcome is run_cancellations.CancellationOutcome.ALREADY_CANCELLED
+    assert retry.state is RunState.CANCELLED
+    assert retry.last_sequence == 3
+    assert intent_count == 1
+
+
+def test_inconsistent_cancelling_state_fails_closed(cancellation_run):
+    engine, run_id, *_ = cancellation_run
+    with engine.begin() as connection:
+        transition_run(connection, run_id, 1, RunState.CANCELLING, "Cancel")
+
+    with engine.begin() as connection, pytest.raises(
+        run_cancellations.RunCancellationCorrupt
+    ):
+        run_cancellations.request_run_cancellation(connection, run_id)
+
+
+def test_outer_rollback_removes_cancellation_state_and_intent(
+    cancellation_run,
+):
+    engine, run_id, *_ = cancellation_run
+    with pytest.raises(RuntimeError, match="abort"), engine.begin() as connection:
+        result = run_cancellations.request_run_cancellation(connection, run_id)
+        assert result.state is RunState.CANCELLING
+        raise RuntimeError("abort")
+
+    with engine.begin() as connection:
+        assert get_run_status(connection, run_id).state is RunState.QUEUED
+        assert connection.scalar(
+            select(func.count()).select_from(outbox).where(
+                outbox.c.resource_id == run_id
+            )
+        ) == 0
+
+
+def test_cancellation_requires_a_caller_owned_transaction(cancellation_run):
+    engine, run_id, *_ = cancellation_run
+    with engine.connect() as connection, pytest.raises(
+        RuntimeError, match="explicit transaction"
+    ):
+        run_cancellations.request_run_cancellation(connection, run_id)
