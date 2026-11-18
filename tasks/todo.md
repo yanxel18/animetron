@@ -328,7 +328,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   and Linux-target mypy. Replacing the existing-dispatch replay with a conflict
   made the new test fail; restoring it passed. The test verifies one node plan,
   run-ready intent and running transition, not worker delivery or execution.
-  The slice is in review on `task/p1-10c-postgres-duplicate-dispatch`.
+  The slice is in review in
+  [#95](https://github.com/yanxel18/animetron/pull/95).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #93 and recording P1-12d and P1-12e. Nested slices do not change
   the project counts.
@@ -751,8 +752,8 @@ immutable workflow and recover its state without duplicate effects.
     persisted node plan and run-ready intent after waiting on PostgreSQL.
     Nine dispatch tests, migrations, Ruff and Linux-target mypy passed in the
     owned harness; a replay-path mutation failed the new regression. This is
-    in review on `task/p1-10c-postgres-duplicate-dispatch`, depends on #94,
-    and does not verify worker delivery or execution.
+    in review in [#95](https://github.com/yanxel18/animetron/pull/95), depends
+    on #94, and does not verify worker delivery or execution.
 
 ## Phase 2 - Model registry and hardware readiness
 
