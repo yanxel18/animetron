@@ -601,6 +601,56 @@ separate work.
 The internal implementation currently accepts `EXECUTION_FAILED` as its sole
 failure code. It must not be interpreted as a retry classification.
 
+## Proposed P1-10f admitted-node revalidation contract (not approved)
+
+The next step toward a worker is a read-only check for an already admitted
+root node in a prepared run. The existing preflight accepts only `QUEUED` runs
+and can transition them to `FAILED`; it cannot safely be reused unchanged on a
+`RUNNING` run. This proposal assumes the check is useful as a building block,
+not as permission to execute. Owner approval is required before implementation.
+
+A trusted internal caller provides an exact claim ID, run ID and node ID, an
+explicit non-autocommit PostgreSQL transaction, server-owned graph/byte limits,
+and trusted handler and model resolvers. Lock the run row before the claim and
+outcome checks, matching admission and cancellation. Require `RUNNING`, the
+exact existing root-node claim, no recorded outcome, and matching run-ready
+outbox evidence. Missing or conflicting evidence, a non-running run, or an
+existing outcome fails closed. Claim identity is not authentication.
+
+Revalidate the run request and revision association, execution binding and
+source digest, canonical bounded execution document, and every handler and
+model pin using the same verification rules as the existing whole-graph
+preflight. Compare the entire persisted node-intent dependency plan with the
+decoded snapshot; missing, additional or altered nodes/dependencies are
+corruption, not readiness. Use trusted in-process, bounded resolvers that do
+not download, install, load untrusted code or perform external effects.
+Missing or mismatched pins fail closed with stable non-sensitive reasons;
+unexpected errors propagate. The caller supplies bounded lock/statement
+timeouts and owns rollback and any whole-transaction retry.
+
+On success, return only a point-in-time readiness result and verified opaque
+handles. No state transition, event, outbox entry, outcome, retry or executable
+intent is created, including on failure. Rechecking does not change the
+existing queued-run preflight's behavior. A later cancellation, changed
+catalog or mutable handle can invalidate the result immediately: neither the
+claim nor this check authorizes invocation, fences another executor, proves
+the handles remain valid, or prevents execution after cancellation. A future
+executor contract must resolve those races and unknown effects before any
+handler runs. Outputs, dependent-node admission and completion remain out of
+scope.
+
+Tests must use synthetic trusted registries and real isolated PostgreSQL to
+cover exact success, missing/mismatched bindings and pins, corrupted or
+changed persisted plans, mismatched and completed claims, and no state writes.
+Exercise both cancellation lock orderings: a committed cancellation prevents
+the check, while a check that wins the lock can succeed before cancellation
+but becomes stale afterward. Tests must also verify the queued preflight
+remains unchanged. No model downloads, worker, handler invocation, external
+transmission or deployment are authorized.
+
+**Approval needed:** Confirm this read-only revalidation contract before
+implementation.
+
 ## Bounded internal P1-10b sample evaluator
 
 `app.services.workflows.sample_evaluator.evaluate_sample_graph(data)` is a
