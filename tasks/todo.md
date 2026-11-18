@@ -461,6 +461,12 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   pending independent review and required gates. The earlier reconciliation
   merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
+- Remaining P7 work is gated: the artifact library/preview needs the incomplete
+  authorized artifact lifecycle (P0-07); remaining model, connection and
+  publication screens depend on backend services not yet available; full
+  non-drag editor/accessibility verification and the 100-node performance test
+  require the workflow editor and reference machine. No P7 completion or
+  external publishing is claimed.
 
 ## Phase 0 - Plan and shared foundations
 
