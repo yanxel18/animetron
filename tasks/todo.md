@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `8e698e4` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `ad6ad64` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,7 +27,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`8e698e4`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`ad6ad64`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -43,8 +43,11 @@ the owner approved implementation on 2026-11-18. #105 merged the approval
 and trust-root blocker record; its GitGuardian check passed, but no independent
 GitHub review is recorded and the combined status is pending.
 #106 merged the proposed trust-root design without an independent GitHub
-review; GitGuardian passed and the combined status is pending. The design
-remains unapproved and its latest amendments need independent review.
+review; GitGuardian passed and the combined status is pending. The owner
+explicitly approved proceeding on 2026-11-18; the latest amendments still need
+independent review and the design's prerequisites remain unsatisfied. #107
+merged the previous reconciliation; GitGuardian passed, no independent GitHub
+review is recorded and combined status is pending.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -411,16 +414,18 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   status gap; its GitGuardian check passed. The owner selected the
   deployment-backed direction on 2026-11-18. A concrete signed-artifact,
   verified-loading and revocation proposal merged in
-  [#106](https://github.com/yanxel18/animetron/pull/106) at `8e698e4`; it is
-  not approved for implementation, does not establish a trust root, and does
-  not authorize deployment or installation. Three adversarial review cycles
-  identified substantive issues; the latest amendments require further
-  independent review before this proposal can be approved. GitGuardian passed;
-  no independent GitHub review is recorded and combined status is pending.
-  Merge reconciliation is in review in
-  [#107](https://github.com/yanxel18/animetron/pull/107).
+  [#106](https://github.com/yanxel18/animetron/pull/106) at `8e698e4`. The
+  owner explicitly approved proceeding on 2026-11-18, but the proposal does
+  not establish a trust root or authorize deployment or installation. Three
+  adversarial review cycles identified substantive issues; the latest
+  amendments still require independent review and the remaining prerequisites
+  are unsatisfied. GitGuardian passed; no independent GitHub review is
+  recorded and combined status is pending. Merge reconciliation
+  [#107](https://github.com/yanxel18/animetron/pull/107) merged at `ad6ad64`;
+  GitGuardian passed, but no independent GitHub review is recorded and
+  combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #106 and recording the proposed trust-root design. Nested slices do
+  reconciling #107 and recording owner approval. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -811,9 +816,9 @@ immutable workflow and recover its state without duplicate effects.
     [#104](https://github.com/yanxel18/animetron/pull/104) merged. Blocked on
     verifiable deployment-owned handler-to-artifact binding. The
     [proposed binding](../docs/SPEC-workflow-runtime.md#proposed-p1-10g-deployment-backed-handler-binding)
-    merged in [#106](https://github.com/yanxel18/animetron/pull/106) but awaits
-    independent review, owner approval and independently verified deployment
-    controls.
+    merged in [#106](https://github.com/yanxel18/animetron/pull/106). The owner
+    approved proceeding on 2026-11-18; independent review and independently
+    verified deployment controls remain outstanding.
     No worker, model invocation, external effect or automatic retry is authorized.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
