@@ -1,11 +1,25 @@
-import pytest
-from sqlalchemy import func, select
-from test_execution_readiness import _binding, _manifest
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from queue import Queue
+from uuid import uuid4
 
+import pytest
+from sqlalchemy import func, select, text
+from test_execution_readiness import _binding, _manifest
+from test_run_revisions import save
+
+from app.core.database import create_database_engine
 from app.core.outbox import metadata as outbox_metadata
 from app.core.outbox import outbox
 from app.services.models.manifest import ModelManifest
-from app.services.workflows import execution_readiness, run_cancellations, run_dispatch
+from app.services.workflows import (
+    execution_readiness,
+    run_cancellations,
+    run_dispatch,
+    run_requests,
+)
 from app.services.workflows.execution_readiness import ReadyModel, ResolvedHandler
 from app.services.workflows.runs import (
     RunConflict,
@@ -247,6 +261,188 @@ def test_committed_cancellation_prevents_later_dispatch_preparation(
     assert topics == [run_cancellations.CANCELLATION_TOPIC]
     assert node_count == 0
     assert handlers.calls == []
+
+
+@pytest.mark.parametrize("first_operation", ["cancel", "dispatch"])
+def test_dispatch_and_cancellation_serialize_on_postgresql(first_operation, monkeypatch):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
+    engine = create_database_engine(url)
+    workflow_id = uuid4()
+    contender_pid = Queue()
+    handlers = AllHandlers()
+    try:
+        with engine.begin() as connection:
+            snapshot = save(connection, workflow_id)
+            request = run_requests.request_run(
+                connection, uuid4(), workflow_id, "rev1", snapshot.sha256,
+            )
+        run_id = request.run_id
+        binding = replace(
+            _binding(workflow_id, "rev1", _manifest()), source_sha256=snapshot.sha256,
+        )
+        monkeypatch.setattr(
+            execution_readiness, "get_execution_binding", lambda *_args: binding,
+        )
+
+        def execute(connection, operation):
+            if operation == "cancel":
+                return run_cancellations.request_run_cancellation(connection, run_id)
+            return run_dispatch.prepare_run_dispatch(
+                connection, run_id, handlers, ReadyModels(),
+                GraphLimits(max_nodes=8, max_edges=8), max_bytes=4096,
+            )
+
+        def contender():
+            try:
+                with engine.begin() as connection:
+                    connection.execute(text("SET LOCAL lock_timeout = '10s'"))
+                    contender_pid.put(connection.scalar(text("SELECT pg_backend_pid()")))
+                    operation = "dispatch" if first_operation == "cancel" else "cancel"
+                    return execute(connection, operation)
+            except RunConflict:
+                return "conflict"
+
+        with ThreadPoolExecutor(max_workers=1) as pool, engine.connect() as winner:
+            transaction = winner.begin()
+            try:
+                winner_pid = winner.scalar(text("SELECT pg_backend_pid()"))
+                first = execute(winner, first_operation)
+                future = pool.submit(contender)
+                pid = contender_pid.get(timeout=5)
+                deadline = time.monotonic() + 5
+                with engine.connect() as observer:
+                    while time.monotonic() < deadline:
+                        blockers = observer.scalar(
+                            text("SELECT pg_blocking_pids(:pid)"), {"pid": pid},
+                        )
+                        if winner_pid in blockers:
+                            break
+                        time.sleep(0.02)
+                    else:
+                        pytest.fail("Contender never waited on the first transaction")
+                assert not future.done()
+                transaction.commit()
+            finally:
+                if transaction.is_active:
+                    transaction.rollback()
+            second = future.result(timeout=10)
+
+        with engine.begin() as connection:
+            status = get_run_status(connection, run_id)
+            events = list_events(connection, run_id, 0)
+            topics = connection.execute(
+                select(outbox.c.topic).where(outbox.c.resource_id == run_id)
+            ).scalars().all()
+            node_count = connection.scalar(
+                select(func.count()).select_from(run_dispatch.node_intents).where(
+                    run_dispatch.node_intents.c.run_id == run_id
+                )
+            )
+    finally:
+        engine.dispose()
+
+    assert status.state is RunState.CANCELLING
+    assert topics.count(run_requests.INTERNAL_TOPIC) == 1
+    assert topics.count(run_cancellations.CANCELLATION_TOPIC) == 1
+    if first_operation == "cancel":
+        assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED
+        assert second == "conflict"
+        assert [event.state for event in events] == [RunState.QUEUED, RunState.CANCELLING]
+        assert topics.count(run_dispatch.RUN_READY_TOPIC) == 0
+        assert node_count == 0
+        assert handlers.calls == []
+        assert len(topics) == 2
+    else:
+        assert first.outcome is run_dispatch.DispatchOutcome.PREPARED
+        assert second.outcome is run_cancellations.CancellationOutcome.REQUESTED
+        assert [event.state for event in events] == [
+            RunState.QUEUED, RunState.RUNNING, RunState.CANCELLING,
+        ]
+        assert topics.count(run_dispatch.RUN_READY_TOPIC) == 1
+        assert node_count == 1
+        assert len(topics) == 3
+
+
+def test_concurrent_dispatch_reuses_prepared_intents_on_postgresql(monkeypatch):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
+    engine = create_database_engine(url)
+    workflow_id = uuid4()
+    contender_pid = Queue()
+    handlers = AllHandlers()
+    try:
+        with engine.begin() as connection:
+            snapshot = save(connection, workflow_id)
+            request = run_requests.request_run(
+                connection, uuid4(), workflow_id, "rev1", snapshot.sha256,
+            )
+        run_id = request.run_id
+        binding = replace(
+            _binding(workflow_id, "rev1", _manifest()), source_sha256=snapshot.sha256,
+        )
+        monkeypatch.setattr(
+            execution_readiness, "get_execution_binding", lambda *_args: binding,
+        )
+
+        def prepare(connection):
+            return run_dispatch.prepare_run_dispatch(
+                connection, run_id, handlers, ReadyModels(),
+                GraphLimits(max_nodes=8, max_edges=8), max_bytes=4096,
+            )
+
+        def contender():
+            with engine.begin() as connection:
+                connection.execute(text("SET LOCAL lock_timeout = '10s'"))
+                contender_pid.put(connection.scalar(text("SELECT pg_backend_pid()")))
+                return prepare(connection)
+
+        with ThreadPoolExecutor(max_workers=1) as pool, engine.connect() as winner:
+            transaction = winner.begin()
+            try:
+                winner_pid = winner.scalar(text("SELECT pg_backend_pid()"))
+                first = prepare(winner)
+                future = pool.submit(contender)
+                pid = contender_pid.get(timeout=5)
+                deadline = time.monotonic() + 5
+                with engine.connect() as observer:
+                    while time.monotonic() < deadline:
+                        blockers = observer.scalar(
+                            text("SELECT pg_blocking_pids(:pid)"), {"pid": pid},
+                        )
+                        if winner_pid in blockers:
+                            break
+                        time.sleep(0.02)
+                    else:
+                        pytest.fail("Duplicate dispatch never waited on the first transaction")
+                assert not future.done()
+                transaction.commit()
+            finally:
+                if transaction.is_active:
+                    transaction.rollback()
+            second = future.result(timeout=10)
+
+        with engine.connect() as connection:
+            status = get_run_status(connection, run_id)
+            events = list_events(connection, run_id, 0)
+            topics = connection.execute(
+                select(outbox.c.topic).where(outbox.c.resource_id == run_id)
+            ).scalars().all()
+            counts = _counts(connection, run_id)
+    finally:
+        engine.dispose()
+
+    assert first.outcome is run_dispatch.DispatchOutcome.PREPARED
+    assert second.outcome is run_dispatch.DispatchOutcome.ALREADY_PREPARED
+    assert second.node_count == first.node_count == 1
+    assert status.state is RunState.RUNNING
+    assert [event.state for event in events] == [RunState.QUEUED, RunState.RUNNING]
+    assert topics.count(run_requests.INTERNAL_TOPIC) == 1
+    assert topics.count(run_dispatch.RUN_READY_TOPIC) == 1
+    assert counts == (1, 2)
+    assert handlers.calls == ["handler-v1"]
 
 
 def test_dispatch_topic_is_distinct_from_non_executable_run_request():
