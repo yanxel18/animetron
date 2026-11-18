@@ -33,7 +33,7 @@ are not credited without a passing independent review and required checks.
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 P1-12d and P1-12e remain in review in #94 and #95, respectively; the
-persisted-readiness verification is also in review. P1-09f reached master via
+persisted-readiness verification is in review in #96. P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -323,8 +323,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   one prepared node plan and run-ready intent. Nine dispatch tests passed;
   breaking replay caused the new test to fail. Worker delivery and execution
   remain unverified.
-- P1-08c persisted-readiness verification is in review on
-  `task/p1-08c-postgres-persisted-readiness`. PostgreSQL tests exercise a real
+- P1-08c persisted-readiness verification is in review in
+  [#96](https://github.com/yanxel18/animetron/pull/96). PostgreSQL tests exercise a real
   persisted run request and execution binding, plus a missing-binding failure,
   with fake handler and model registries. Nine readiness tests, migrations,
   Ruff and Linux-target mypy passed. Forcing binding lookup to fail caused the
@@ -561,7 +561,7 @@ immutable workflow and recover its state without duplicate effects.
     - [ ] P1-08c1 Verify readiness against persisted PostgreSQL run requests
       and execution bindings, including the missing-binding failure. The owned
       harness passed 9 readiness tests, migrations, Ruff and Linux-target mypy.
-      In review on `task/p1-08c-postgres-persisted-readiness`; fake registries
+      In review in [#96](https://github.com/yanxel18/animetron/pull/96); fake registries
       do not prove installed-handler or model readiness.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
