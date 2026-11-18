@@ -154,11 +154,20 @@ def test_audit_reads_postgresql_metadata_without_mutation(engine) -> None:
     consistent = replace(
         artifact(), sha256=hashlib.sha256(b"ok").hexdigest(), byte_size=2,
     )
-    missing, corrupt, orphan_id = artifact(), artifact(), uuid4()
+    missing, digest_mismatch, size_mismatch, sentinel = (
+        artifact(), artifact(), artifact(), artifact(),
+    )
+    orphan_id = uuid4()
     inventory = SimpleNamespace(
         files=(
             StoredBytes(consistent.id, consistent.sha256, consistent.byte_size),
-            StoredBytes(corrupt.id, hashlib.sha256(b"bad").hexdigest(), 3),
+            StoredBytes(
+                digest_mismatch.id, hashlib.sha256(b"bad").hexdigest(),
+                digest_mismatch.byte_size,
+            ),
+            StoredBytes(
+                size_mismatch.id, size_mismatch.sha256, size_mismatch.byte_size + 1,
+            ),
             StoredBytes(orphan_id, hashlib.sha256(b"orphan").hexdigest(), 6),
         ),
         unsafe_ids=(),
@@ -169,7 +178,12 @@ def test_audit_reads_postgresql_metadata_without_mutation(engine) -> None:
     with engine.connect() as conn:
         transaction = conn.begin()
         try:
-            for record in (consistent, missing, corrupt):
+            save_artifact(conn, sentinel)
+            conn.execute(text(
+                "CREATE TEMP TABLE artifact_metadata "
+                "(LIKE public.artifact_metadata INCLUDING ALL) ON COMMIT DROP"
+            ))
+            for record in (consistent, missing, digest_mismatch, size_mismatch):
                 save_artifact(conn, record)
             before = conn.execute(select(artifacts).order_by(artifacts.c.id)).all()
 
@@ -177,13 +191,19 @@ def test_audit_reads_postgresql_metadata_without_mutation(engine) -> None:
                 conn, FakeByteStore(inventory), max_total_bytes=64, max_entries=10,
             )
 
+            assert transaction.is_active
             assert report.consistent == (consistent.id,)
             assert report.missing == (missing.id,)
-            assert report.corrupt == (corrupt.id,)
+            assert report.corrupt == tuple(sorted(
+                (digest_mismatch.id, size_mismatch.id), key=lambda identifier: identifier.int,
+            ))
             assert report.orphaned == (orphan_id,)
             assert conn.execute(select(artifacts).order_by(artifacts.c.id)).all() == before
         finally:
-            transaction.rollback()
+            if transaction.is_active:
+                transaction.rollback()
+    with engine.connect() as conn, pytest.raises(ArtifactNotFound):
+        get_artifact(conn, sentinel.id)
 
 
 def test_audit_excludes_invalid_metadata_ids_from_orphaned_bytes() -> None:

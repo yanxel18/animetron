@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `5bce7b7` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `f7b3171` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,11 +27,11 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`5bce7b7`; #82, #83, #84, #86, #87, #88, #89, #90 and #92 are merged but
-are not credited without
-independent review and required checks. #86 includes P1-08c and P1-10c;
-#87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #92 adds
-P1-12c. P1-09f reached master via
+`f7b3171`; #82, #83, #84, #86, #87, #88, #89, #90, #91 and #92 are merged but
+are not credited without a passing independent review and required checks.
+#86 includes P1-08c and P1-10c;
+#87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
+verifies P0-07c; #92 adds P1-12c. P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -186,15 +186,15 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `5bce7b7`. PRs #75, #78, #79, #81,
-  #82, #83, #84, #86, #87, #88, #89, #90 and #92 merged. #75 includes the
+- Reconciled with verified `master` at `f7b3171`. PRs #75, #78, #79, #81,
+  #82, #83, #84, #86, #87, #88, #89, #90, #91 and #92 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked pending independent review and remaining
   integration verification. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
   required review and status gates were not recorded. #82, #83, #84, #86 and
   #87 have no independent GitHub review records; their only reported check is
   GitGuardian. Keep the affected runtime and draft slices unchecked. #77 merged
-  into stacked #76, not master, so P0-07d is not credited.
+  into stacked #76, not master; P0-07d later reached master through #90.
 - P1-08c reached master through [#86](https://github.com/yanxel18/animetron/pull/86)
   at `dc26469` (implementation commit `c231472`). Focused readiness, binding,
   revision, run-request, artifact and migration tests passed (111 passed,
@@ -288,12 +288,19 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   113 frontend tests and build passed. It exposes metadata only, not bytes or
   uploads. GitGuardian passed; no independent review is recorded and the
   combined status is pending, so keep unchecked.
-- P0-07c PostgreSQL audit verification is in review in
-  [#91](https://github.com/yanxel18/animetron/pull/91). The owned harness
-  passed 61 artifact tests, migrations, Ruff and Linux-target mypy. A corrupt
-  classification mutation failed both SQLite and PostgreSQL regressions.
-  The new test uses a fake byte inventory and does not verify actual filesystem
-  integration; keep unchecked pending review, checks and merge.
+- P0-07c PostgreSQL audit verification merged in
+  [#91](https://github.com/yanxel18/animetron/pull/91) at `f7b3171`. Its
+  owned harness passed 61 artifact tests, migrations, Ruff and Linux-target
+  mypy. GitGuardian passed, but the combined status is pending. A post-merge
+  independent review identified three test gaps: shared-row isolation,
+  transaction ownership and separate digest/size mismatches.
+- The P0-07c review follow-up in [#93](https://github.com/yanxel18/animetron/pull/93) adds
+  temporary-table isolation, verifies rollback and tests the two mismatches
+  separately. The owned harness passed 61 tests, migrations, Ruff and
+  Linux-target mypy. Individually removing isolation, committing the caller
+  transaction, or omitting either comparison caused the new regression to
+  fail; restored code passed. Actual filesystem/byte-store integration remains
+  outside this test. Keep unchecked pending review, required checks and merge.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
@@ -305,7 +312,7 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   at `5bce7b7`. GitGuardian passed, but no independent review is recorded and
   combined status is pending; keep unchecked.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #92 and recording P0-07c verification. Nested slices do not change the project
+  reconciling #91 and recording its review follow-up. Nested slices do not change the project
   counts.
 
 ## Phase 0 - Plan and shared foundations
@@ -379,10 +386,11 @@ have the security and recovery guarantees below.
     GitGuardian passed; the earlier PostgreSQL harness attempt could not start
     because Windows Application Control blocked the installed psycopg DLL.
     A later owned PostgreSQL harness passed 61 artifact tests, including a new
-    audit regression against migrated metadata with a fake byte inventory.
-    The new test is not a real filesystem integration test. No independent
-    review record was present at merge; keep unchecked pending review and
-    verification of remaining integration boundaries. Its branch included master commit
+    audit regression against migrated metadata with a fake byte inventory,
+    merged in #91. A post-merge review identified test gaps; their follow-up
+    is in progress. The test is not a real filesystem integration test; keep
+    unchecked pending review, required checks and remaining integration
+    verification. Its branch included master commit
     `8d10be9` to resolve the checklist conflict.
     Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
     byte-store tests (26 passed), backend suite outside owner-gated auth tests
