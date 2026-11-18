@@ -407,7 +407,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   and combined status is pending. #105 has the same review and combined
   status gap; its GitGuardian check passed. The owner selected the
   deployment-backed direction on 2026-11-18. A concrete signed-artifact,
-  verified-loading and revocation proposal is under review; it is not approved
+  verified-loading and revocation proposal is in draft review in
+  [#106](https://github.com/yanxel18/animetron/pull/106); it is not approved
   for implementation, does not establish a trust root, and does not authorize
   deployment or installation. Three adversarial review cycles identified
   substantive issues; the latest amendments require further independent
@@ -804,7 +805,8 @@ immutable workflow and recover its state without duplicate effects.
     [#104](https://github.com/yanxel18/animetron/pull/104) merged. Blocked on
     verifiable deployment-owned handler-to-artifact binding. The
     [proposed binding](../docs/SPEC-workflow-runtime.md#proposed-p1-10g-deployment-backed-handler-binding)
-    awaits owner approval and independently verified deployment controls.
+    is in draft review in [#106](https://github.com/yanxel18/animetron/pull/106)
+    and awaits owner approval and independently verified deployment controls.
     No worker, model invocation, external effect or automatic retry is authorized.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
