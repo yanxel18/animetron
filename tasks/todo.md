@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `877821a` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `da33352` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,7 +27,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`877821a`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`da33352`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -50,6 +50,8 @@ merged the previous reconciliation; GitGuardian passed, no independent GitHub
 review is recorded and combined status is pending.
 #108 merged the owner approval record; GitGuardian passed, no independent
 GitHub review is recorded and combined status is pending.
+#109 merged P1-09i PostgreSQL verification evidence; GitGuardian passed, no
+independent GitHub review is recorded and combined status is pending.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -430,7 +432,7 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   GitGuardian passed, but no independent GitHub review is recorded and the
   combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #108 and recording P1-09i verification. Nested slices do
+  reconciling #109 and drafting the P1-09j contract. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -773,8 +775,20 @@ immutable workflow and recover its state without duplicate effects.
     not a checked-in regression; it did not test a live OIDC provider, worker,
     handler execution or external effects. Owned container, network and
     anonymous volume cleanup were verified. #84 has no independent review
-    record and only a GitGuardian check. Verification evidence is in review
-    in [#109](https://github.com/yanxel18/animetron/pull/109). Keep unchecked.
+    record and only a GitGuardian check. Verification evidence merged in
+    [#109](https://github.com/yanxel18/animetron/pull/109) at `da33352`;
+    GitGuardian passed, no independent GitHub review is recorded and combined
+    status is pending. Keep unchecked.
+  - [ ] P1-09j Create an immutable sample-workflow revision from an exact,
+    validated draft version. Draft specification
+    [#110](https://github.com/yanxel18/animetron/pull/110) is **in review**. The
+    [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-09j-owner-only-draft-to-revision-creation)
+    requires explicit owner approval before implementation. Three adversarial
+    review cycles found substantive issues; the latest changes need further
+    independent review. An existing sample draft of 16,125 bytes validated
+    without issues but produced 48,112 canonical bytes, supporting the
+    proposed separate 32-KiB canonical bound. No endpoint is implemented.
+    It does not create runs, execution bindings or authorize handler execution.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
