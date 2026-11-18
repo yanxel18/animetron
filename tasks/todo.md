@@ -780,7 +780,8 @@ immutable workflow and recover its state without duplicate effects.
     GitGuardian passed, no independent GitHub review is recorded and combined
     status is pending. Keep unchecked.
   - [ ] P1-09j Create an immutable sample-workflow revision from an exact,
-    validated draft version. The
+    validated draft version. Draft specification
+    [#110](https://github.com/yanxel18/animetron/pull/110) is **in review**. The
     [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-09j-owner-only-draft-to-revision-creation)
     requires explicit owner approval before implementation. Three adversarial
     review cycles found substantive issues; the latest changes need further
