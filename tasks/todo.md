@@ -169,8 +169,20 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   [#81](https://github.com/yanxel18/animetron/pull/81), based independently on
   `master` at `df80d91`. GitGuardian passed; combined status is pending and no
   GitHub review is recorded.
+- P1-09f owner-only mutable draft read is pushed on
+  `task/p1-09f-workflow-draft-read` at `4b6ff05`, based on `master` at
+  `df80d91`. The route returns the stored text/version, rejects non-owner and
+  malformed requests, and fails closed on missing/corrupt/database errors;
+  it adds no write or validation behavior. Workflow API, draft persistence and
+  OpenAPI tests passed (62 passed, 22 skipped); Ruff and Linux-target mypy
+  passed. The PostgreSQL/Keycloak harness could not start because the available
+  psycopg binary is blocked by Windows Application Control. No PR was created:
+  the current GitHub integration has no write action. Create it from the
+  [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read);
+  keep this slice unchecked and do not treat it as reviewed.
 - Reconciled with `df80d91` on 2026-11-18. Open PRs are not credited:
-  progress remains 18/57 (31.6%), P0 4/9 and P1 7/12.
+  progress remains 18/57 (31.6%), P0 4/9 and P1 7/12. The pushed P1-09f
+  branch is unmerged and does not change those counts.
 P0-P9 and owner-involved P9 acceptance remain incomplete. No external
 publishing was done.
 
@@ -324,8 +336,11 @@ immutable workflow and recover its state without duplicate effects.
       recorded. Keep unchecked until the required gates and merge.
   - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
     preserving its stored UTF-8 text and version. Implemented on
-    `task/p1-09f-workflow-draft-read`; pending PR creation and review. It adds
-    no draft write, validation or execution capability.
+    `task/p1-09f-workflow-draft-read` at `4b6ff05`; pushed but not in a PR
+    because this session has no GitHub write action. The PR can be created from
+    the [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read).
+    Keep unchecked pending review and merge. It adds no draft write, validation
+    or execution capability.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
