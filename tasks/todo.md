@@ -25,9 +25,9 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged.
-Reconciled after master commit `8d10be9`; #73 remains unchecked pending its
-review/check gates, so the overall percentage and per-phase counts remain
+percentage is unchanged. Recalculated after master commit `8d10be9` and the
+P0-08a test slice: open work is not credited, and #73 remains unchecked
+pending its review/check gates, so the percentage and per-phase counts remain
 unchanged.
 
 | Phase | Top-level tasks complete |
@@ -224,6 +224,26 @@ have the security and recovery guarantees below.
     writers to be stopped; it does not repair or adopt files.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
+  - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
+    metadata and artifact bytes. Verify restored metadata matches restored bytes
+    by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
+    loopback. The harness must use uniquely labeled resources and clean up only
+    resources it created. This does not select production networking, a
+    persistent backup target or encryption, retention duration, or deletion
+    behavior. The task branch depends on draft PR #75 and must remain unchecked
+    until its checks pass, independent review is recorded, and it is merged.
+    Implemented in commit `3fde341` on
+    `task/p0-08-local-recovery-test`; open draft
+    [#76](https://github.com/yanxel18/animetron/pull/76), based on #75.
+    No independent review is recorded; keep unchecked and do not merge until
+    required checks and review pass. The disposable Docker test restored a synthetic
+    metadata row and artifact into fresh resources with a matching SHA-256,
+    verified private PostgreSQL networking and a loopback-only test endpoint,
+    and left no labeled resources. Ruff and Python compilation passed; the
+    backend suite outside owner-gated auth files passed (352 passed, 340
+    skipped). Reversing the restored-hash assertion failed as expected, then
+    the restored check passed. This does not prove a production backup
+    procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
