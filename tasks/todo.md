@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `eb79dbb` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `2679b6c` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,11 +27,11 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`eb79dbb`; #82, #83, #84, #86 and #87 are merged but are not credited without
+`2679b6c`; #82, #83, #84, #86, #87 and #88 are merged but are not credited without
 independent review and required checks. #86 includes P1-08c and P1-10c;
-#87 adds P1-11b. P1-09f reached master via #82, and P1-09i via #84. These
-slices do not complete their parent tasks; the percentage and per-phase
-counts remain unchanged.
+#87 adds P1-11b; #88 adds P1-12a. P1-09f reached master via #82, and P1-09i
+via #84. These slices do not complete their parent tasks; the percentage and
+per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -184,8 +184,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `eb79dbb`. PRs #75, #78, #79, #81,
-  #82, #83, #84, #86 and #87 merged; no PRs remain open. #75 includes the
+- Reconciled with verified `master` at `2679b6c`. PRs #75, #78, #79, #81,
+  #82, #83, #84, #86, #87 and #88 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked because its required owned PostgreSQL harness could
   not run. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
@@ -258,20 +258,29 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   regression cases; restoring it returned all 11 cancellation service tests
   to passing. #87 has no independent review record and only a GitGuardian
   check; keep unchecked because the top-level P1-11 task remains incomplete.
-- P1-12a adds a file-backed SQLite reconnect regression: the cancellation state,
+- P1-12a merged through [#88](https://github.com/yanxel18/animetron/pull/88)
+  at `2679b6c`. Its file-backed SQLite reconnect regression verifies cancellation state,
   ordered events and single outbox intent survive engine disposal, and a retry
   after reconnect returns the existing intent. The focused run suite passed
   (19 passed, 40 auth/database cases skipped); Ruff passed. This does not
   exercise a worker consumer or prove PostgreSQL locking behavior. Commit
-  `e8e0e28` is pushed on `task/p1-12a-cancellation-restart-verification`; no
-  PR was created through the read-only GitHub integration; keep the slice
-  unchecked pending merge/review:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12a-cancellation-restart-verification?expand=1).
+  `e8e0e28` is included in #88; GitGuardian passed, but no independent GitHub
+  review is recorded and the combined status is pending. Keep unchecked.
+- P1-12b tests that a committed cancellation prevents a later dispatch
+  preparation from producing node or run-ready intents. A retry preserves the
+  cancellation intent and ordered events. Focused workflow/API tests passed
+  (28 passed, 40 skipped); Ruff passed. Simultaneously weakening the dispatch
+  and preflight state guards caused the new regression to fail, and restoring
+  them passed. This test is sequential and SQLite-based; it does not prove a
+  PostgreSQL race, stop an already-prepared run, or test a worker consumer.
+  The slice is in review in
+  [#89](https://github.com/yanxel18/animetron/pull/89); keep unchecked pending
+  independent review, required checks and merge.
   Full P1-12 end-to-end verification still requires the workflow dispatch
   consumer/worker, which is not present in the current backend.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #84, #86 and #87 and recording P1-12a. Merged subtask slices do
-  not change the project counts.
+  reconciling #88 and recording P1-12b. Nested slices do not change the project
+  counts.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -652,12 +661,18 @@ immutable workflow and recover its state without duplicate effects.
   end-to-end, including duplicate message handling.
   - [ ] P1-12a Verify a cancellation intent survives database reconnect and a
     retry reuses it without duplication. Implemented as a file-backed SQLite
-    regression in commit `e8e0e28` on
-    `task/p1-12a-cancellation-restart-verification`; focused run/cancellation/
-    API tests passed (19 passed, 40 database/auth cases skipped) and Ruff
-    passed. This does not verify PostgreSQL locking, worker delivery, or handler
-    execution. Keep unchecked pending merge and review.
-    [Compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12a-cancellation-restart-verification?expand=1).
+    regression in commit `e8e0e28`, merged through
+    [#88](https://github.com/yanxel18/animetron/pull/88) at `2679b6c`. Focused
+    run/cancellation/API tests passed (19 passed, 40 database/auth cases
+    skipped) and Ruff passed. This does not verify PostgreSQL locking, worker
+    delivery, or handler execution. GitGuardian passed; no independent review
+    is recorded and the combined status is pending. Keep unchecked.
+  - [ ] P1-12b Verify a committed cancellation blocks subsequent dispatch
+    preparation without creating node or run-ready intents. Implemented on
+    [#89](https://github.com/yanxel18/animetron/pull/89); focused workflow/API tests
+    passed (28 passed, 40 skipped) and Ruff passed. This does not verify a
+    concurrent PostgreSQL race or stop previously prepared work. Keep
+    unchecked pending PR review and checks.
 
 ## Phase 2 - Model registry and hardware readiness
 
