@@ -180,6 +180,8 @@ verification. This checklist remains the only current progress source.
   `git diff --check` passed. The PostgreSQL-backed persistence tests were
   skipped because `ANIMETRON_TEST_DATABASE_URL` is unavailable; the host's
   PostgreSQL/Keycloak harness is also blocked by Windows Application Control.
+  Self-review found no actionable route-level correctness or access-control
+  issue; database-backed idempotency remains unverified on this host.
   Separate latest-master artifact and migration tests passed (36 passed, 55
   skipped); the auth API tests could not set up without the database URL
   (34 errors). Pushed merge and verification commit `3593744`. GitHub search
@@ -424,7 +426,9 @@ immutable workflow and recover its state without duplicate effects.
     tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy passed.
     PostgreSQL-backed persistence tests were skipped because
     `ANIMETRON_TEST_DATABASE_URL` is unavailable; the PostgreSQL/Keycloak
-    harness is blocked by Windows Application Control. Pushed merge and
+    harness is blocked by Windows Application Control. Self-review found no
+    actionable route-level correctness or access-control issue; database-backed
+    idempotency remains unverified on this host. Pushed merge and
     verification commit `3593744`; GitHub search found no PR, and PR creation
     or review submission is unavailable through the read-only integration.
     Keep unchecked and target master with the
