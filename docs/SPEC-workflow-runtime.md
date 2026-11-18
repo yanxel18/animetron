@@ -135,6 +135,59 @@ All responses retain shared security headers and `Cache-Control: no-store`.
 This is discovery only, with no writes, execution, scheduling, model, or
 publication behavior.
 
+## Owner-only mutable workflow draft read (P1-09f)
+
+`GET /api/v1/workflows/{id}/draft` reads one stored draft and returns exactly
+`{ "workflowId": "<UUID>", "document": "<UTF-8 draft text>",
+"version": <positive integer> }`. `document` is the stored UTF-8 bytes decoded
+as text; it is not parsed, normalized, validated, or required to be complete.
+The version supports later compare-and-swap updates but this endpoint does not
+write drafts.
+
+The route accepts no query parameters and reuses the fresh-session,
+exact-origin owner dependency. A malformed workflow UUID or any query parameter
+returns the standard generic `422`; unauthenticated or stale sessions return
+`401`; non-owner roles return `403` before draft lookup; an absent draft returns
+`404`. Database failures or invalid stored draft metadata fail closed with the
+generic `503` envelope. Successful and error responses retain the shared
+security headers and `Cache-Control: no-store`.
+
+This endpoint exposes only an existing mutable draft. It adds no workflow
+creation, update, deletion, validation, immutable revision, execution,
+scheduling, publishing, or model-readiness behavior.
+
+## Owner-only mutable workflow draft write (P1-09g)
+
+`PUT /api/v1/workflows/{id}/draft` accepts exactly
+`{ "document": "<UTF-8 draft text>", "expectedVersion": null | <integer> }`
+and returns the same `{ "workflowId": "<UUID>", "document": "<UTF-8 draft
+text>", "version": <positive integer> }` shape as P1-09f. Extra fields are
+rejected. The document is stored as UTF-8 without parsing, normalization,
+validation, or a completeness requirement. Its encoded size is limited to
+32,768 bytes; the bounded outer JSON request is limited to 262,144 bytes.
+
+`expectedVersion: null` creates a draft at version 1 only when no draft exists.
+A positive expected version updates only a draft at that version and increments
+the version by one. A stale version, or a create for an existing draft, returns
+`409`; updating a missing draft returns `404`. The compare-and-swap is the
+retry-safety mechanism; clients that receive a conflict after an uncertain
+response must read the draft to reconcile state. The accepted expected-version
+range is 1 through 2,147,483,646.
+
+The route reuses the fresh-session, exact-origin owner dependency and requires
+the normal `Origin` and CSRF headers for `PUT`. It accepts no query parameters,
+requires JSON with identity content encoding, and retains shared security
+headers and `Cache-Control: no-store`. Malformed input, an oversized document
+or request, unsupported headers, invalid UTF-8 text, or an unknown query
+parameter returns generic `422`; unauthenticated or stale sessions return
+`401`; non-owner, origin or CSRF failures return `403`; database failures or
+invalid stored draft metadata fail closed with generic `503`.
+
+This endpoint writes only the mutable draft row within one database
+transaction. It does not create an immutable revision or workflow entity, and
+adds no workflow validation, deletion, execution, scheduling, publishing, or
+model-readiness behavior.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run

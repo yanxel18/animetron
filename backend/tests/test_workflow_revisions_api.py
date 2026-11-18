@@ -12,12 +12,15 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
-from sqlalchemy import event, text, update
+from sqlalchemy import create_engine, event, text, update
+from sqlalchemy.pool import StaticPool
 
 from app.api.auth import SESSION_COOKIE
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 from app.core.database import create_database_engine
 from app.main import SecurityHeaders, create_api
+from app.services.workflows.drafts import drafts as mutable_drafts
+from app.services.workflows.drafts import save_draft
 from app.services.workflows.revisions import (
     RevisionCorrupt,
     RevisionNotFound,
@@ -118,6 +121,26 @@ def context():
         handle, principal = store.create_session("workflow-owner", "test-request")
         client.cookies.set(SESSION_COOKIE, handle)
         yield client, store, engine, handle, principal
+    engine.dispose()
+
+
+@pytest.fixture
+def offline_draft_context(offline_context, monkeypatch):
+    client, store = offline_context
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    mutable_drafts.metadata.create_all(engine)
+
+    @contextmanager
+    def transaction():
+        with engine.begin() as connection:
+            yield connection
+
+    monkeypatch.setattr(store, "transaction", transaction)
+    yield client, store, engine
     engine.dispose()
 
 
@@ -859,3 +882,338 @@ def test_revision_read_requires_exact_single_origin(context):
         ),
         403,
     )
+
+
+def test_workflow_draft_read_returns_stored_text_and_version(
+    offline_draft_context,
+):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    document = b'{"schemaVersion":1,"nodes":['
+    with engine.begin() as connection:
+        save_draft(
+            connection,
+            workflow_id,
+            document,
+            expected_version=None,
+            max_bytes=4096,
+        )
+
+    response = client.get(f"/api/v1/workflows/{workflow_id}/draft")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "workflowId": str(workflow_id),
+        "document": document.decode("utf-8"),
+        "version": 1,
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_missing_workflow_draft_is_not_found(offline_draft_context):
+    client, _, _ = offline_draft_context
+
+    response = client.get(f"/api/v1/workflows/{uuid4()}/draft")
+
+    assert_error(response, 404)
+
+
+def test_corrupt_workflow_draft_fails_closed(offline_draft_context):
+    client, _, engine = offline_draft_context
+    workflow_id = uuid4()
+    with engine.begin() as connection:
+        connection.execute(
+            mutable_drafts.insert().values(
+                workflow_id=workflow_id,
+                document=b"\xff",
+                version=1,
+            )
+        )
+
+    response = client.get(f"/api/v1/workflows/{workflow_id}/draft")
+
+    assert_error(response, 503)
+
+
+def test_workflow_draft_read_authorization_precedes_lookup(offline_context, monkeypatch):
+    client, _ = offline_context
+
+    def fail_lookup(*_args, **_kwargs):
+        pytest.fail("unauthorized draft lookup")
+
+    monkeypatch.setattr("app.api.workflows.get_draft", fail_lookup)
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+
+    assert_error(client.get(f"/api/v1/workflows/{uuid4()}/draft"), 403)
+
+
+def test_workflow_draft_read_rejects_unknown_query(offline_draft_context):
+    client, _, _ = offline_draft_context
+
+    assert_error(client.get("/api/v1/workflows/not-a-uuid/draft"), 422)
+
+    response = client.get(
+        f"/api/v1/workflows/{uuid4()}/draft?unexpected=1"
+    )
+
+    assert_error(response, 422)
+
+
+def test_workflow_draft_read_database_failure_is_generic(offline_context):
+    client, store = offline_context
+    store.transaction_error = RuntimeError("private connection information")
+
+    response = client.get(f"/api/v1/workflows/{uuid4()}/draft")
+
+    assert_error(response, 503)
+    assert "private connection information" not in response.text
+
+
+def test_workflow_draft_write_uses_versioned_compare_and_swap(
+    offline_draft_context,
+):
+    client, _, _ = offline_draft_context
+    workflow_id = uuid4()
+    path = f"/api/v1/workflows/{workflow_id}/draft"
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+    }
+
+    created = client.put(
+        path,
+        json={"document": '{"nodes":[', "expectedVersion": None},
+        headers=headers,
+    )
+    assert created.status_code == 200, created.text
+    assert created.json() == {
+        "workflowId": str(workflow_id),
+        "document": '{"nodes":[',
+        "version": 1,
+    }
+    assert created.headers["cache-control"] == "no-store"
+
+    updated = client.put(
+        path,
+        json={"document": '{"nodes":[]}', "expectedVersion": 1},
+        headers=headers,
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["version"] == 2
+
+    duplicate_create = client.put(
+        path,
+        json={"document": '{"nodes":["duplicate"]}', "expectedVersion": None},
+        headers=headers,
+    )
+    assert_error(duplicate_create, 409)
+
+    stale = client.put(
+        path,
+        json={"document": '{"nodes":["stale"]}', "expectedVersion": 1},
+        headers=headers,
+    )
+    assert_error(stale, 409)
+    assert client.get(path).json() == updated.json()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"document": "missing version"},
+        {"document": "extra field", "expectedVersion": None, "unexpected": True},
+        {"document": 42, "expectedVersion": None},
+        {"document": "bad version", "expectedVersion": "1"},
+        {"document": "boolean version", "expectedVersion": True},
+    ],
+)
+def test_workflow_draft_write_rejects_invalid_shapes(offline_draft_context, body):
+    client, _, _ = offline_draft_context
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+    }
+
+    response = client.put(
+        f"/api/v1/workflows/{uuid4()}/draft",
+        json=body,
+        headers=headers,
+    )
+
+    assert_error(response, 422)
+
+
+def test_workflow_draft_write_rejects_surrogate_text(offline_draft_context):
+    client, _, _ = offline_draft_context
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+        "Content-Type": "application/json",
+    }
+
+    response = client.put(
+        f"/api/v1/workflows/{uuid4()}/draft",
+        content=b'{"document":"\\ud800","expectedVersion":null}',
+        headers=headers,
+    )
+
+    assert_error(response, 422)
+
+
+def test_workflow_draft_write_enforces_document_and_body_limits(offline_draft_context):
+    client, _, _ = offline_draft_context
+    path = f"/api/v1/workflows/{uuid4()}/draft"
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+    }
+
+    oversized_document = client.put(
+        path,
+        json={"document": "x" * 32_769, "expectedVersion": None},
+        headers=headers,
+    )
+    assert_error(oversized_document, 422)
+
+    oversized_utf8_document = client.put(
+        path,
+        json={"document": "é" * 16_385, "expectedVersion": None},
+        headers=headers,
+    )
+    assert_error(oversized_utf8_document, 422)
+
+    oversized_body = client.put(
+        path,
+        content=b'{"document":"' + b"x" * 262_144 + b'","expectedVersion":null}',
+        headers={
+            **headers,
+            "Content-Type": "application/json",
+        },
+    )
+    assert_error(oversized_body, 422)
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+        {
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Content-Type": "application/json",
+            "Content-Encoding": "gzip",
+        },
+    ],
+)
+def test_workflow_draft_write_rejects_unsupported_json_headers(
+    offline_draft_context,
+    headers,
+):
+    client, _, _ = offline_draft_context
+
+    response = client.put(
+        f"/api/v1/workflows/{uuid4()}/draft",
+        content=b'{"document":"draft","expectedVersion":null}',
+        headers=headers,
+    )
+
+    assert_error(response, 422)
+
+
+def test_workflow_draft_write_requires_existing_row_for_updates(offline_draft_context):
+    client, _, _ = offline_draft_context
+
+    response = client.put(
+        f"/api/v1/workflows/{uuid4()}/draft",
+        json={"document": "draft", "expectedVersion": 1},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert_error(response, 404)
+
+
+def test_workflow_draft_write_rejects_query_parameters(offline_draft_context):
+    client, _, _ = offline_draft_context
+
+    response = client.put(
+        f"/api/v1/workflows/{uuid4()}/draft?unexpected=1",
+        json={"document": "draft", "expectedVersion": None},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert_error(response, 422)
+
+
+def test_workflow_draft_write_authorization_precedes_persistence(
+    offline_context,
+    monkeypatch,
+):
+    client, _ = offline_context
+
+    def fail_save(*_args, **_kwargs):
+        pytest.fail("unauthorized draft write")
+
+    monkeypatch.setattr("app.api.workflows.save_draft", fail_save)
+    path = f"/api/v1/workflows/{uuid4()}/draft"
+    body = {"document": "draft", "expectedVersion": None}
+
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+    assert_error(
+        client.put(
+            path,
+            json=body,
+            headers={
+                "Origin": "https://control.example",
+                "X-CSRF-Token": "operator-csrf",
+            },
+        ),
+        403,
+    )
+    client.cookies.set(SESSION_COOKIE, "owner-session")
+    assert_error(
+        client.put(
+            path,
+            json=body,
+            headers={"Origin": "https://control.example"},
+        ),
+        403,
+    )
+    client.cookies.clear()
+    assert_error(
+        client.put(
+            path,
+            json=body,
+            headers={
+                "Origin": "https://control.example",
+                "X-CSRF-Token": "owner-csrf",
+            },
+        ),
+        401,
+    )
+
+
+def test_workflow_draft_write_database_failure_is_generic(offline_context):
+    client, store = offline_context
+    store.transaction_error = RuntimeError("private connection information")
+
+    response = client.put(
+        f"/api/v1/workflows/{uuid4()}/draft",
+        json={"document": "draft", "expectedVersion": None},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+        },
+    )
+
+    assert_error(response, 503)
+    assert "private connection information" not in response.text
