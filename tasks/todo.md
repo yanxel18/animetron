@@ -25,8 +25,9 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after the P0-08a test slice: no open
-work is credited, so the percentage and per-phase counts remain unchanged.
+percentage is unchanged. Recalculated after P0-07d entered draft PR #77:
+no open work is credited, so the percentage and per-phase counts remain
+unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -218,6 +219,20 @@ have the security and recovery guarantees below.
     PostgreSQL harness could not start because Windows Application Control
     blocked the installed psycopg DLL. The audit requires all metadata and byte
     writers to be stopped; it does not repair or adopt files.
+  - [ ] P0-07d Expose owner-only HTTP reads of one artifact's metadata, without
+    returning its internal storage locator or bytes. Implemented in commit
+    `6ccd3c2` on `task/p0-07d-artifact-metadata-read`; open draft
+    [#77](https://github.com/yanxel18/animetron/pull/77), based on #76, which
+    is itself based on #75. GitGuardian passed; combined status is pending and
+    no GitHub review is recorded. Keep unchecked until the dependency chain's
+    required checks, independent reviews and merges are complete. Reconciled
+    with `df80d91` on 2026-11-18; this additive slice does not change the
+    top-level count.
+    Verification: disposable PostgreSQL upgrade/check; 64 artifact/API tests
+    passed; targeted Ruff, Linux-target mypy and Python compilation passed.
+    A disposable mutation removing the owner dependency made both operator and
+    viewer access tests fail as expected. Upload, content delivery, byte
+    verification, media policy and deployment remain out of scope.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
