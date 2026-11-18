@@ -361,8 +361,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 - P1-10e records confirmed node outcomes without unlocking downstream work or
   retrying unknown effects. The owner approved the contract on 2026-11-18;
   its proposal remains in review in
-  [#100](https://github.com/yanxel18/animetron/pull/100). Implementation is
-  in review and depends on #100; it is not credited before merge and checks.
+  [#100](https://github.com/yanxel18/animetron/pull/100). Implementation
+  [#101](https://github.com/yanxel18/animetron/pull/101) is in review and
+  depends on #100; it is not credited before merge and checks.
   The owned PostgreSQL harness passed 24 admission/outcome tests and seven
   migration tests, including migration drift, Ruff and Linux-target mypy.
   Adjacent no-database workflow tests passed 25 with six skips.
@@ -744,8 +745,9 @@ immutable workflow and recover its state without duplicate effects.
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10e-node-outcome-contract).
     The owner approved implementation on 2026-11-18; the specification remains
     in review in [#100](https://github.com/yanxel18/animetron/pull/100).
-    The implementation is in review; it does not execute handlers, store
-    outputs, or unlock dependent nodes.
+    Implementation is in review in
+    [#101](https://github.com/yanxel18/animetron/pull/101); it does not
+    execute handlers, store outputs, or unlock dependent nodes.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
