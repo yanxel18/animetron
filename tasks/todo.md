@@ -289,9 +289,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   a duplicate outbox key; the restored implementation passed. Related dispatch,
   readiness and OpenAPI tests passed (14). This does not test a worker,
   dispatch contention or cancellation of already-running external effects.
-  The slice is on `task/p1-12c-postgres-cancellation-contention`, pending PR
-  review and checks:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-12c-postgres-cancellation-contention?expand=1).
+  The slice is in [#92](https://github.com/yanxel18/animetron/pull/92),
+  pending independent review, required checks and merge.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #89 and recording P1-12c. Nested slices do not change the project
   counts.
@@ -693,7 +692,8 @@ immutable workflow and recover its state without duplicate effects.
   - [ ] P1-12c Verify concurrent cancellation requests serialize and reuse one
     intent on PostgreSQL. The owned harness passed 13 cancellation tests, and
     a row-lock mutation failed the new regression. This does not verify worker
-    execution or dispatch contention; keep unchecked pending review and merge.
+    execution or dispatch contention; keep unchecked pending review and merge
+    of [#92](https://github.com/yanxel18/animetron/pull/92).
 
 ## Phase 2 - Model registry and hardware readiness
 
