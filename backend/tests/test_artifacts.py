@@ -1,13 +1,17 @@
+import hashlib
 import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import FrozenInstanceError, replace
 from threading import Barrier
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import CheckConstraint, insert, inspect, select, text
+from sqlalchemy import CheckConstraint, create_engine, insert, inspect, select, text
 from sqlalchemy.exc import IntegrityError
 
+from app.core import artifacts as artifact_module
+from app.core.artifact_bytes import ArtifactAuditLimitExceeded, StoredBytes
 from app.core.artifacts import (
     ArtifactConflict,
     ArtifactMetadata,
@@ -39,6 +43,35 @@ def artifact():
     )
 
 
+class FakeByteStore:
+    def __init__(self, inventory):
+        self.inventory = inventory
+        self.max_total_bytes = None
+        self.max_entries = None
+
+    def audit(self, *, max_total_bytes, max_entries):
+        self.max_total_bytes = max_total_bytes
+        self.max_entries = max_entries
+        return self.inventory
+
+
+def sqlite_artifact_engine():
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE artifact_metadata (
+                id CHAR(32) PRIMARY KEY,
+                owner_id TEXT NOT NULL,
+                revision TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                byte_size INTEGER NOT NULL,
+                media_type TEXT NOT NULL,
+                storage_locator TEXT NOT NULL
+            )
+        """))
+    return engine
+
+
 @pytest.fixture
 def engine():
     url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
@@ -58,6 +91,136 @@ def test_metadata_is_immutable_and_locator_is_derived() -> None:
     assert replace(record, byte_size=2**63 - 1).byte_size == 2**63 - 1
     with pytest.raises(FrozenInstanceError):
         record.revision = "changed"
+
+
+def test_audit_compares_complete_metadata_and_bytes_without_writing() -> None:
+    engine = sqlite_artifact_engine()
+    consistent_id, missing_id, corrupt_id, unsafe_id, orphan_id = (
+        uuid4(), uuid4(), uuid4(), uuid4(), uuid4(),
+    )
+    rows = (
+        replace(artifact(), id=consistent_id, sha256=hashlib.sha256(b"ok").hexdigest(),
+                byte_size=2),
+        replace(artifact(), id=missing_id),
+        replace(artifact(), id=corrupt_id),
+        replace(artifact(), id=unsafe_id),
+    )
+    inventory = SimpleNamespace(
+        files=(
+            StoredBytes(consistent_id, hashlib.sha256(b"ok").hexdigest(), 2),
+            StoredBytes(corrupt_id, hashlib.sha256(b"bad").hexdigest(), 3),
+            StoredBytes(orphan_id, hashlib.sha256(b"orphan").hexdigest(), 6),
+        ),
+        unsafe_ids=(unsafe_id,),
+        pending_names=(".pending-a", ".pending-b"),
+        unsafe_pending_names=(),
+        unexpected_count=1,
+    )
+    byte_store = FakeByteStore(inventory)
+    try:
+        with engine.begin() as conn:
+            for record in rows:
+                conn.execute(insert(artifacts).values(
+                    id=record.id,
+                    owner_id=record.owner_id,
+                    revision=record.revision,
+                    sha256=record.sha256,
+                    byte_size=record.byte_size,
+                    media_type=record.media_type,
+                    storage_locator=record.storage_locator,
+                ))
+
+            report = artifact_module.audit_artifacts(
+                conn, byte_store, max_total_bytes=64, max_entries=10,
+            )
+
+            assert report.consistent == (consistent_id,)
+            assert report.missing == (missing_id,)
+            assert report.corrupt == (corrupt_id,)
+            assert report.unsafe == (unsafe_id,)
+            assert report.orphaned == (orphan_id,)
+            assert report.pending_names == (".pending-a", ".pending-b")
+            assert report.unsafe_pending_names == ()
+            assert report.unexpected_count == 1
+            assert report.invalid_metadata == ()
+            assert byte_store.max_total_bytes == 64
+            assert byte_store.max_entries == 10
+            assert conn.scalar(text("SELECT count(*) FROM artifact_metadata")) == 4
+    finally:
+        engine.dispose()
+
+
+def test_audit_excludes_invalid_metadata_ids_from_orphaned_bytes() -> None:
+    engine = sqlite_artifact_engine()
+    identifier = uuid4()
+    inventory = SimpleNamespace(
+        files=(StoredBytes(identifier, hashlib.sha256(b"content").hexdigest(), 7),),
+        unsafe_ids=(),
+        pending_names=(),
+        unsafe_pending_names=(),
+        unexpected_count=0,
+    )
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO artifact_metadata
+                VALUES (:id, 'owner', 'rev1', 'invalid', 7, 'video/mp4',
+                        :locator)
+            """), {"id": identifier.hex, "locator": f"artifacts/{identifier.hex}"})
+
+            report = artifact_module.audit_artifacts(
+                conn, FakeByteStore(inventory), max_total_bytes=64, max_entries=10,
+            )
+
+            assert report.invalid_metadata == (identifier,)
+            assert report.orphaned == ()
+            assert report.consistent == ()
+    finally:
+        engine.dispose()
+
+
+def test_audit_rejects_metadata_over_entry_limit_before_scanning_bytes() -> None:
+    engine = sqlite_artifact_engine()
+    byte_store = FakeByteStore(SimpleNamespace(
+        files=(), unsafe_ids=(), pending_names=(), unsafe_pending_names=(),
+        unexpected_count=0,
+    ))
+    try:
+        with engine.begin() as conn:
+            for _ in range(2):
+                record = artifact()
+                conn.execute(insert(artifacts).values(
+                    id=record.id,
+                    owner_id=record.owner_id,
+                    revision=record.revision,
+                    sha256=record.sha256,
+                    byte_size=record.byte_size,
+                    media_type=record.media_type,
+                    storage_locator=record.storage_locator,
+                ))
+
+            with pytest.raises(ArtifactAuditLimitExceeded):
+                artifact_module.audit_artifacts(
+                    conn, byte_store, max_total_bytes=64, max_entries=1,
+                )
+
+            assert byte_store.max_entries is None
+    finally:
+        engine.dispose()
+
+
+def test_audit_requires_a_caller_owned_transaction() -> None:
+    engine = create_engine("sqlite://")
+    try:
+        with engine.connect() as conn, pytest.raises(RuntimeError, match="transaction"):
+            artifact_module.audit_artifacts(
+                conn, FakeByteStore(SimpleNamespace(
+                    files=(), unsafe_ids=(), pending_names=(),
+                    unsafe_pending_names=(), unexpected_count=0,
+                )), max_total_bytes=64, max_entries=10,
+            )
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.parametrize("identifier", NON_UUID4_IDS)

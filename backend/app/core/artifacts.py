@@ -17,6 +17,12 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import Connection
 
+from app.core.artifact_bytes import (
+    ArtifactAuditLimitExceeded,
+    ArtifactByteStore,
+    StoredBytes,
+)
+
 metadata = MetaData()
 artifacts = Table(
     "artifact_metadata",
@@ -105,6 +111,88 @@ class ArtifactNotFound(LookupError):
 
 class ArtifactConflict(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class ArtifactAuditReport:
+    consistent: tuple[UUID, ...]
+    missing: tuple[UUID, ...]
+    orphaned: tuple[UUID, ...]
+    corrupt: tuple[UUID, ...]
+    unsafe: tuple[UUID, ...]
+    invalid_metadata: tuple[UUID, ...]
+    pending_names: tuple[str, ...]
+    unsafe_pending_names: tuple[str, ...]
+    unexpected_count: int
+
+
+def audit_artifacts(
+    connection: Connection,
+    store: ArtifactByteStore,
+    *,
+    max_total_bytes: int,
+    max_entries: int,
+) -> ArtifactAuditReport:
+    """Compare stopped-writer metadata and byte inventories without changing either."""
+    if not connection.in_transaction():
+        raise RuntimeError("An explicit transaction is required")
+    if type(max_total_bytes) is not int or not 0 <= max_total_bytes <= 2**63 - 1:
+        raise ValueError("Artifact audit byte limit is invalid")
+    if type(max_entries) is not int or not 1 <= max_entries <= 2**31 - 1:
+        raise ValueError("Artifact audit entry limit is invalid")
+
+    rows = connection.execute(select(artifacts).limit(max_entries + 1)).all()
+    if len(rows) > max_entries:
+        raise ArtifactAuditLimitExceeded("Artifact audit exceeds configured entry limit")
+
+    expected: dict[UUID, StoredBytes] = {}
+    invalid_metadata: set[UUID] = set()
+    for row in rows:
+        try:
+            metadata_record = ArtifactMetadata(
+                row.id, row.owner_id, row.revision, row.sha256, row.byte_size, row.media_type,
+            )
+        except (TypeError, ValueError):
+            if isinstance(row.id, UUID):
+                invalid_metadata.add(row.id)
+            continue
+        expected[metadata_record.id] = StoredBytes(
+            metadata_record.id, metadata_record.sha256, metadata_record.byte_size,
+        )
+
+    inventory = store.audit(
+        max_total_bytes=max_total_bytes, max_entries=max_entries,
+    )
+    actual = {record.id: record for record in inventory.files}
+    unsafe = set(inventory.unsafe_ids)
+    consistent: list[UUID] = []
+    missing: list[UUID] = []
+    corrupt: list[UUID] = []
+    for identifier, expected_bytes in expected.items():
+        if identifier in unsafe:
+            continue
+        stored = actual.get(identifier)
+        if stored is None:
+            missing.append(identifier)
+        elif stored != expected_bytes:
+            corrupt.append(identifier)
+        else:
+            consistent.append(identifier)
+
+    return ArtifactAuditReport(
+        consistent=tuple(sorted(consistent, key=lambda value: value.int)),
+        missing=tuple(sorted(missing, key=lambda value: value.int)),
+        orphaned=tuple(sorted(
+            actual.keys() - expected.keys() - invalid_metadata,
+            key=lambda value: value.int,
+        )),
+        corrupt=tuple(sorted(corrupt, key=lambda value: value.int)),
+        unsafe=tuple(sorted(unsafe, key=lambda value: value.int)),
+        invalid_metadata=tuple(sorted(invalid_metadata, key=lambda value: value.int)),
+        pending_names=inventory.pending_names,
+        unsafe_pending_names=inventory.unsafe_pending_names,
+        unexpected_count=inventory.unexpected_count,
+    )
 
 
 def get_artifact(connection: Connection, artifact_id: UUID) -> ArtifactMetadata:

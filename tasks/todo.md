@@ -25,11 +25,10 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after P0-09c entered draft PR #80:
-no open work is credited, so the percentage and per-phase counts remain
+percentage is unchanged. Recalculated after master commit `8d10be9` and the
+P0-08a test slice: open work is not credited, and #73 remains unchecked
+pending its review/check gates, so the percentage and per-phase counts remain
 unchanged.
-The branch includes master commit `8d10be9`; counts remain unchanged because
-no open PR is credited.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -121,12 +120,12 @@ verification. This checklist remains the only current progress source.
   [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. It stores
   bounded exact UTF-8 bytes separately from immutable revisions and uses
   caller-owned transactions with version-checked updates; it adds no API, UI,
-  validation, execution or external effects. The owned PostgreSQL harness passed
-  7 focused tests, Alembic upgrade/check, Ruff and Linux-target mypy. The backend
-  suite outside owner-gated auth suites passed 348 tests with 335 skips. Its PR
-  description reports independent review, and GitGuardian passed; GitHub has
-  no review record and the combined status is pending. It merged before those
-  required gates were recorded; keep this slice unchecked and do not infer
+  validation, execution or external effects. The PR reports 7 focused PostgreSQL
+  tests, Alembic upgrade/check, Ruff, Linux-target mypy, and a backend suite
+  outside owner-gated auth suites (348 passed, 335 skipped). The PR description
+  reports an independent review with no findings, and GitGuardian passed; GitHub
+  has no review record and the combined status is pending. It merged before
+  those required gates were recorded; keep this slice unchecked and do not infer
   approval from the PR description or merge.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
@@ -239,42 +238,41 @@ have the security and recovery guarantees below.
     no HTTP, media probing, authorization,
     byte/metadata atomicity or automatic orphan recovery).
   - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
-    byte inventories without changing either store. Implemented in commits
-    `a25fd7f` and `0944cf9` on `task/p0-07c-artifact-reconciliation`; open draft
+    byte inventories without changing either store.
+    Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
+    `task/p0-07c-artifact-reconciliation`; open draft
     [#75](https://github.com/yanxel18/animetron/pull/75). GitGuardian passed,
-    but combined status is pending and no GitHub review is recorded. Verification:
-    SQLite metadata tests (34 passed, 25 skipped), Linux byte-store tests
-    (26 passed), backend suite outside owner-gated auth tests (352 passed,
-    340 skipped), Ruff and Linux-target mypy passed. The PostgreSQL harness
-    could not start because Windows Application Control blocked the psycopg DLL.
-    Keep unchecked; the audit requires writers stopped and does not repair or
-    adopt files.
-  - [ ] P0-07d Expose owner-only HTTP reads of one artifact's metadata, without
-    returning its internal storage locator or bytes. Implemented in commit
-    `6ccd3c2` on `task/p0-07d-artifact-metadata-read`; open draft
-    [#77](https://github.com/yanxel18/animetron/pull/77), based on #76, itself
-    based on #75. GitGuardian passed, combined status is pending and no GitHub
-    review is recorded. Verification: disposable PostgreSQL upgrade/check;
-    64 artifact/API tests passed; targeted Ruff, Linux-target mypy and Python
-    compilation passed. A disposable mutation removing the owner dependency
-    made operator and viewer tests fail as expected. Keep unchecked until the
-    dependency chain's required checks, independent reviews and merges complete.
-    Upload, content delivery, byte verification, media policy and deployment
-    remain out of scope.
+    but the combined status is pending and no GitHub review is recorded. Keep
+    unchecked pending required checks, independent review and merge. Its branch
+    includes master commit `8d10be9` to resolve the checklist conflict.
+    Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
+    byte-store tests (26 passed), backend suite outside owner-gated auth tests
+    (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The owned
+    PostgreSQL harness could not start because Windows Application Control
+    blocked the installed psycopg DLL. The audit requires all metadata and byte
+    writers to be stopped; it does not repair or adopt files.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
-    metadata and artifact bytes. Implemented in commit `3fde341` on
+    metadata and artifact bytes. Verify restored metadata matches restored bytes
+    by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
+    loopback. The harness must use uniquely labeled resources and clean up only
+    resources it created. This does not select production networking, a
+    persistent backup target or encryption, retention duration, or deletion
+    behavior. The task branch depends on draft PR #75 and must remain unchecked
+    until its checks pass, independent review is recorded, and it is merged.
+    Implemented in commit `3fde341` on
     `task/p0-08-local-recovery-test`; open draft
     [#76](https://github.com/yanxel18/animetron/pull/76), based on #75.
-    GitGuardian passed, combined status is pending and no GitHub review is
-    recorded. The disposable Docker test restored a synthetic metadata row and
-    artifact with matching SHA-256, verified private PostgreSQL networking and
-    a loopback-only test endpoint, and removed its labeled resources. Ruff,
-    Python compilation, and the backend suite outside owner-gated auth files
-    passed (352 passed, 340 skipped); reversing the restored-hash assertion
-    failed as expected. Keep unchecked; this is not production backup or gateway
-    evidence and does not choose backup target, encryption, retention, or deletion.
+    No independent review is recorded; keep unchecked and do not merge until
+    required checks and review pass. The disposable Docker test restored a synthetic
+    metadata row and artifact into fresh resources with a matching SHA-256,
+    verified private PostgreSQL networking and a loopback-only test endpoint,
+    and left no labeled resources. Ruff and Python compilation passed; the
+    backend suite outside owner-gated auth files passed (352 passed, 340
+    skipped). Reversing the restored-hash assertion failed as expected, then
+    the restored check passed. This does not prove a production backup
+    procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
