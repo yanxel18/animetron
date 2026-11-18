@@ -374,7 +374,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 - P1-10f proposes read-only, whole-graph pin and plan revalidation for an
   existing root-node claim. It is not approval to execute: owner approval is
   required before implementation and a future executor needs separate
-  cancellation, fencing and unknown-effect contracts.
+  cancellation, fencing and unknown-effect contracts. The proposal is in
+  review in [#102](https://github.com/yanxel18/animetron/pull/102).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #100 and #101 and recording the P1-10f proposal. Nested slices do
   not change the project counts. The earlier reconciliation merged in
@@ -756,6 +757,7 @@ immutable workflow and recover its state without duplicate effects.
     dependent nodes.
   - [ ] P1-10f Implement admitted-node revalidation only after owner approval of
     the [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10f-admitted-node-revalidation-contract-not-approved).
+    In review in [#102](https://github.com/yanxel18/animetron/pull/102).
     This remains read-only and does not authorize execution.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
