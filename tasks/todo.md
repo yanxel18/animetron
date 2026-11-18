@@ -1252,8 +1252,9 @@ accessibility checks pass, not merely when mock screens exist.
     does not edit drafts or run workflows. Local validation: 125 frontend
     tests, production build, API type drift and six fixture-backed Chromium
     workflow tests passed. Live authenticated backend, screen-reader use and
-    independent review remain unverified. **In review**; keep unchecked until
-    merged and required gates pass.
+    independent review remain unverified.
+    [#113](https://github.com/yanxel18/animetron/pull/113) is **in review**;
+    keep unchecked until merged and required gates pass.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
