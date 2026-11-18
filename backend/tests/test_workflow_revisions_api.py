@@ -28,6 +28,11 @@ from app.services.workflows.revisions import (
     revisions,
     save_revision,
 )
+from app.services.workflows.run_requests import (
+    RunRequest,
+    RunRequestConflict,
+    RunRequestCorrupt,
+)
 from app.services.workflows.snapshot import WorkflowSnapshot, create_snapshot
 from app.services.workflows.validation import GraphLimits, NodeDefinition
 
@@ -884,6 +889,72 @@ def test_revision_read_requires_exact_single_origin(context):
     )
 
 
+def test_owner_creates_idempotent_run_and_returns_status_location(
+    offline_context, monkeypatch
+):
+    client, _ = offline_context
+    workflow_id = uuid4()
+    request_id = uuid4()
+    run_id = uuid4()
+    digest = "a" * 64
+    snapshot = WorkflowSnapshot("rev-1", b'{"revision":"rev-1"}', digest)
+    record = RunRequest(
+        request_id,
+        run_id,
+        workflow_id,
+        "rev-1",
+        digest,
+        datetime.now(UTC),
+    )
+    received = {}
+
+    def load_revision(connection, actual_workflow_id, revision):
+        received["revision"] = (connection, actual_workflow_id, revision)
+        return snapshot
+
+    def create_run(connection, key, actual_workflow_id, revision, expected_sha256):
+        received["request"] = (
+            connection,
+            key,
+            actual_workflow_id,
+            revision,
+            expected_sha256,
+        )
+        return record
+
+    monkeypatch.setattr("app.api.workflows.get_revision", load_revision)
+    monkeypatch.setattr("app.api.workflows.request_run", create_run, raising=False)
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+        "Idempotency-Key": str(request_id),
+    }
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/runs",
+        json={"revision": "rev-1"},
+        headers=headers,
+    )
+    retry = client.post(
+        f"/api/v1/workflows/{workflow_id}/runs",
+        json={"revision": "rev-1"},
+        headers=headers,
+    )
+
+    assert response.status_code == 202, response.text
+    assert response.json() == {"runId": str(run_id)}
+    assert response.headers["location"] == f"/api/v1/runs/{run_id}"
+    assert response.headers["cache-control"] == "no-store"
+    assert retry.status_code == 202, retry.text
+    assert retry.json() == response.json()
+    assert retry.headers["location"] == response.headers["location"]
+    assert received["revision"][1:] == (workflow_id, "rev-1")
+    assert received["request"][1:] == (
+        request_id,
+        workflow_id,
+        "rev-1",
+        digest,
+    )
 def test_workflow_draft_read_returns_stored_text_and_version(
     offline_draft_context,
 ):
@@ -1092,6 +1163,148 @@ def test_workflow_draft_write_enforces_document_and_body_limits(offline_draft_co
         },
     )
     assert_error(oversized_body, 422)
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Origin": "https://control.example", "X-CSRF-Token": "owner-csrf"},
+        {
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Idempotency-Key": "not-a-uuid",
+        },
+        {
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Idempotency-Key": "00000000-0000-0000-0000-000000000000",
+        },
+    ],
+)
+def test_run_creation_requires_canonical_uuid4_idempotency_key(
+    offline_context, headers
+):
+    client, _ = offline_context
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/runs",
+        json={"revision": "rev-1"},
+        headers=headers,
+    )
+    assert_error(response, 422)
+
+
+def test_run_creation_rejects_noncanonical_uuid4_idempotency_key(offline_context):
+    client, _ = offline_context
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/runs",
+        json={"revision": "rev-1"},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Idempotency-Key": str(uuid4()).upper(),
+        },
+    )
+    assert_error(response, 422)
+
+
+@pytest.mark.parametrize(
+    ("failure", "status"),
+    [
+        (RevisionNotFound("private missing revision"), 404),
+        (RevisionCorrupt("private corrupt revision"), 503),
+        (RunRequestConflict("private idempotency conflict"), 409),
+        (RunRequestCorrupt("private corrupt request"), 503),
+        (RuntimeError("private database failure"), 503),
+    ],
+)
+def test_run_creation_maps_revision_and_request_failures(
+    offline_context, monkeypatch, failure, status
+):
+    client, _ = offline_context
+    workflow_id = uuid4()
+    request_id = uuid4()
+    snapshot = WorkflowSnapshot("rev-1", b'{"revision":"rev-1"}', "a" * 64)
+
+    def fail(*_args, **_kwargs):
+        raise failure
+
+    if isinstance(failure, (RevisionNotFound, RevisionCorrupt)):
+        monkeypatch.setattr("app.api.workflows.get_revision", fail)
+    else:
+        monkeypatch.setattr("app.api.workflows.get_revision", lambda *_args: snapshot)
+        monkeypatch.setattr("app.api.workflows.request_run", fail, raising=False)
+
+    response = client.post(
+        f"/api/v1/workflows/{workflow_id}/runs",
+        json={"revision": "rev-1"},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "owner-csrf",
+            "Idempotency-Key": str(request_id),
+        },
+    )
+
+    assert_error(response, status)
+    assert "private" not in response.text
+
+
+def test_run_creation_rejects_extra_fields_and_query_parameters(offline_context):
+    client, _ = offline_context
+    path = f"/api/v1/workflows/{uuid4()}/runs"
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": "owner-csrf",
+        "Idempotency-Key": str(uuid4()),
+    }
+    assert_error(
+        client.post(path, json={"revision": "rev-1", "runId": str(uuid4())}, headers=headers),
+        422,
+    )
+    assert_error(
+        client.post(path + "?unexpected=1", json={"revision": "rev-1"}, headers=headers),
+        422,
+    )
+
+
+def test_run_creation_bounds_json_request_headers_and_body(offline_context):
+    client, _ = offline_context
+    path = f"/api/v1/workflows/{uuid4()}/runs"
+    headers = [
+        ("Origin", "https://control.example"),
+        ("X-CSRF-Token", "owner-csrf"),
+        ("Idempotency-Key", str(uuid4())),
+        ("Content-Type", "application/json"),
+    ]
+
+    unsupported = client.post(
+        path,
+        content=b'{"revision":"rev-1"}',
+        headers=headers + [("Content-Encoding", "gzip")],
+    )
+    oversized = client.post(
+        path,
+        content=b'{"revision":"' + b"x" * 4096 + b'"}',
+        headers=headers,
+    )
+
+    assert_error(unsupported, 422)
+    assert_error(oversized, 422)
+
+
+def test_run_creation_rejects_duplicate_idempotency_keys(offline_context):
+    client, _ = offline_context
+    key = str(uuid4())
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/runs",
+        json={"revision": "rev-1"},
+        headers=[
+            ("Origin", "https://control.example"),
+            ("X-CSRF-Token", "owner-csrf"),
+            ("Idempotency-Key", key),
+            ("Idempotency-Key", key),
+        ],
+    )
+    assert_error(response, 422)
 
 
 @pytest.mark.parametrize(
@@ -1485,6 +1698,24 @@ def test_workflow_draft_validation_bounds_request_body(offline_draft_context):
     assert_error(response, 422)
 
 
+def test_non_owner_is_denied_before_run_revision_lookup(offline_context, monkeypatch):
+    client, _ = offline_context
+
+    def fail(*_args, **_kwargs):
+        raise AssertionError("revision lookup must not run for a non-owner")
+
+    monkeypatch.setattr("app.api.workflows.get_revision", fail)
+    client.cookies.set(SESSION_COOKIE, "operator-session")
+    response = client.post(
+        f"/api/v1/workflows/{uuid4()}/runs",
+        json={"revision": "rev-1"},
+        headers={
+            "Origin": "https://control.example",
+            "X-CSRF-Token": "operator-csrf",
+            "Idempotency-Key": str(uuid4()),
+        },
+    )
+    assert_error(response, 403)
 def test_workflow_draft_validation_database_failure_is_generic(offline_context):
     client, store = offline_context
     store.transaction_error = RuntimeError("private connection information")

@@ -6,9 +6,9 @@ import json
 import re
 from datetime import UTC, datetime
 from typing import Annotated, Any
-from uuid import UUID
+from uuid import RFC_4122, UUID
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, Header, Path, Query, Request, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -35,6 +35,11 @@ from app.services.workflows.revisions import (
     list_revisions,
     list_workflow_ids,
 )
+from app.services.workflows.run_requests import (
+    RunRequestConflict,
+    RunRequestCorrupt,
+    request_run,
+)
 from app.services.workflows.sample_evaluator import validate_sample_document
 
 _ASCII_DECIMAL = re.compile(r"[0-9]+\Z")
@@ -55,6 +60,17 @@ class WorkflowJSONRoute(BoundedJSONRoute):
     methods_with_body = frozenset({"POST", "PUT"})
     invalid_headers_code = "INVALID_WORKFLOW_HEADERS"
     too_large_code = "WORKFLOW_BODY_TOO_LARGE"
+
+
+class WorkflowRunJSONRoute(WorkflowJSONRoute):
+    max_body_bytes = 4096
+    methods_with_body = frozenset({"POST"})
+
+
+class RunCreateInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    revision: str = Field(min_length=1, max_length=128)
 
 
 class RevisionOutput(BaseModel):
@@ -92,6 +108,12 @@ class WorkflowIdListOutput(BaseModel):
 
     data: list[WorkflowIdOutput]
     next_cursor: str | None = Field(alias="nextCursor")
+
+
+class RunCreateOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    run_id: UUID = Field(alias="runId")
 
 
 class WorkflowDraftOutput(BaseModel):
@@ -192,6 +214,23 @@ def _parse_revision_limit(value: str | None) -> int:
     return int(value)
 
 
+def _parse_idempotency_key(value: str, request: Request) -> UUID:
+    headers = request.headers.getlist("idempotency-key")
+    if len(headers) != 1 or headers[0] != value:
+        raise AuthDenied("INVALID_REQUEST", 422)
+    try:
+        request_id = UUID(value)
+    except ValueError:
+        raise AuthDenied("INVALID_REQUEST", 422) from None
+    if (
+        str(request_id) != value
+        or request_id.version != 4
+        or request_id.variant != RFC_4122
+    ):
+        raise AuthDenied("INVALID_REQUEST", 422)
+    return request_id
+
+
 def _encode_revision_cursor(
     workflow_id: UUID, created_at: datetime, revision: str
 ) -> str:
@@ -271,6 +310,80 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
         if config is None or store is None:
             raise AuthDenied("AUTH_UNAVAILABLE", 503)
         return store
+
+    run_router = APIRouter(route_class=WorkflowRunJSONRoute)
+
+    @run_router.post(
+        "/{id}/runs",
+        response_model=RunCreateOutput,
+        status_code=202,
+        responses={
+            202: {
+                "headers": {
+                    "Location": {
+                        "description": "URL for reading persisted run status.",
+                        "schema": {"type": "string"},
+                    }
+                }
+            },
+            404: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            },
+            409: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            },
+        },
+    )
+    def create_run(
+        id: UUID,
+        request: Request,
+        response: Response,
+        body: RunCreateInput,
+        idempotency_key: Annotated[
+            str,
+            Header(
+                alias="Idempotency-Key",
+                min_length=36,
+                max_length=36,
+                description=(
+                    "Canonical lowercase RFC-variant UUID4, reused for retries "
+                    "of this run intent."
+                ),
+            ),
+        ],
+        _: Annotated[Principal, Depends(owner)],
+    ) -> RunCreateOutput:
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        request_id = _parse_idempotency_key(idempotency_key, request)
+        try:
+            validate_revision_identifier(body.revision)
+        except ValueError:
+            raise AuthDenied("INVALID_REQUEST", 422) from None
+
+        try:
+            with persistence().transaction() as connection:
+                snapshot = get_revision(connection, id, body.revision)
+                run_request = request_run(
+                    connection,
+                    request_id,
+                    id,
+                    body.revision,
+                    snapshot.sha256,
+                )
+        except RevisionNotFound:
+            raise AuthDenied("REVISION_NOT_FOUND", 404) from None
+        except RunRequestConflict:
+            raise AuthDenied("WORKFLOW_RUN_CONFLICT", 409) from None
+        except (RevisionCorrupt, RunRequestCorrupt, RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+
+        response.headers["Location"] = f"/api/v1/runs/{run_request.run_id}"
+        return RunCreateOutput(runId=run_request.run_id)
+
+    router.include_router(run_router)
 
     @router.get("", response_model=WorkflowIdListOutput)
     def discover_workflows(

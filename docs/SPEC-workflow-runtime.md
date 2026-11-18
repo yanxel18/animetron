@@ -135,6 +135,39 @@ All responses retain shared security headers and `Cache-Control: no-store`.
 This is discovery only, with no writes, execution, scheduling, model, or
 publication behavior.
 
+## Owner-only idempotent run creation (P1-09i)
+
+`POST /api/v1/workflows/{id}/runs` accepts exactly
+`{ "revision": "<existing immutable revision identifier>" }` and one
+`Idempotency-Key` header containing a canonical lowercase RFC-variant UUID4.
+The client creates the key once per run intent and reuses it on retries. The
+body is strict JSON, limited to 4,096 bytes, and the request accepts no query
+parameters. The revision identifier uses the existing 1..128-character
+validator.
+
+The endpoint reads and integrity-checks the addressed immutable revision, then
+calls the internal run-request service in the same caller-owned transaction.
+The service atomically claims the key, associates one new run with that exact
+revision and digest, records the initial `QUEUED` event, and adds one reserved
+internal outbox notification. That notification is not a dispatcher or
+execution intent. No caller-supplied run ID or digest is accepted.
+
+Success returns `202` with exactly `{ "runId": "<UUID>" }` and a relative
+`Location: /api/v1/runs/{runId}` status link. Replaying the same key with the
+same workflow and revision returns the same run ID and location; reusing the
+key for a different workflow or revision returns `409` when the addressed
+revision exists. A missing revision returns `404` before the run-request
+service is called; malformed input or headers return generic `422`;
+unauthenticated or stale sessions return `401`; non-owner, origin or CSRF
+failures return `403`; corrupt stored state or persistence failures return
+generic `503`. Responses retain shared security headers and
+`Cache-Control: no-store`.
+
+This endpoint requests a run against an existing immutable revision only. It
+does not create or edit workflows or revisions, validate mutable drafts,
+execute handlers, dispatch an outbox message, or authorize model readiness or
+external effects.
+
 ## Owner-only mutable workflow draft read (P1-09f)
 
 `GET /api/v1/workflows/{id}/draft` reads one stored draft and returns exactly

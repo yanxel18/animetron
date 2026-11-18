@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `dc88fbe` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `cfbd7a3` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -26,9 +26,10 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`dc88fbe`; #82 and #83 merged but are not credited without independent review
-and required checks. P1-08c and P1-09f/i remain unmerged, so the percentage
-and per-phase counts remain unchanged.
+`cfbd7a3`; #82 and #83 merged but are not credited without independent review
+and required checks. #86 and #87 added P1-10c and P1-11b slices but do not
+complete their parent tasks. P1-08c and P1-09f/i remain unmerged, so the
+percentage and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -181,8 +182,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `dc88fbe`. PRs #75, #78, #79, #81,
-  #82 and #83 merged. #75 includes the P0-08a recovery harness from #76;
+- Reconciled with verified `master` at `cfbd7a3`. PRs #75, #78, #79, #81,
+  #82, #83, #86 and #87 merged. #75 includes the P0-08a recovery harness from #76;
   P0-07c remains unchecked because its required owned PostgreSQL harness could
   not run. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
   required review and status gates were not recorded. #82 and #83 have no
@@ -213,15 +214,19 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   passed, 341 skipped, 3 failures and 48 errors; auth/database cases were
   blocked by the missing test database URL. Its only check is GitGuardian and
   it has no independent review record; keep unchecked.
-- P1-09i is pushed on `task/p1-09i-workflow-run-create` through `3c6de03`.
-  Focused tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy
-  passed. Its PostgreSQL-backed service tests remain unverified without the
-  test database URL. No PR exists; keep unchecked.
+- P1-09i is under review in
+  [#84](https://github.com/yanxel18/animetron/pull/84) on
+  `task/p1-09i-workflow-run-create`; its conflict-resolution integration
+  includes current master `cfbd7a3`. Focused tests passed (65 passed, 52
+  skipped); Ruff and Linux-target mypy passed. Its PostgreSQL-backed service
+  tests remain unverified without the test database URL. Keep unchecked until
+  the PR is merged and its required checks pass.
 - P1-10 production dispatch remains gated on P1-08 runtime enforcement; the
   approved spec explicitly says P1-10b's sample evaluator does not verify
   handler artifacts or model readiness and does not satisfy this prerequisite.
-- P1-10c is implemented on `task/p1-10c-ready-dispatch-intents`, stacked on
-  P1-08c and pushed through `cd1cc3a` (implementation commit `38a6f5b`).
+- P1-10c is merged through
+  [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`, stacked on
+  P1-08c (implementation commit `38a6f5b`).
   The slice persists validated node dependencies and a distinct run-ready
   outbox record atomically with the run transition; readiness failures do not
   create executable intents. Focused dispatch/readiness tests pass
@@ -233,11 +238,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   configuration, including `ANIMETRON_TEST_DATABASE_URL`. Mutating the
   duplicate-state guard made its regression test fail as expected. A live
   migration upgrade/check is likewise blocked by unavailable owned database
-  configuration. No PR exists; the GitHub integration is read-only and `gh`
-  is unavailable, so keep unchecked and use the
-  [PR creation link](https://github.com/yanxel18/animetron/pull/new/task/p1-10c-ready-dispatch-intents).
-- P1-11b is implemented in commit `66a39de` and pushed on
-  `task/p1-11b-run-cancellation`, stacked on P1-10c.
+  configuration. Keep unchecked pending its required review and verification
+  gates.
+- P1-11b is merged through
+  [#87](https://github.com/yanxel18/animetron/pull/87) at `cfbd7a3` (implementation
+  commit `66a39de`), stacked on P1-10c.
   The owner-only endpoint records a cooperative `CANCELLING` intent and uses a
   run-derived stable outbox key; retries are idempotent and do not claim worker
   termination. Focused cancellation/dispatch/readiness/API/OpenAPI tests passed
@@ -248,11 +253,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   previously missing workflow-draft/validation types in the current OpenAPI
   schema. A mutation of the active-state guard failed all three targeted
   regression cases; restoring it returned all 11 cancellation service tests
-  to passing. No PR can be created through the read-only GitHub integration
-  and `gh` is unavailable; keep unchecked and use the stacked
-  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-10c-ready-dispatch-intents...task/p1-11b-run-cancellation?expand=1).
+  to passing. Keep unchecked because the top-level P1-11 task remains
+  incomplete.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  recording the P1-11b slice. Unmerged slices do not change the project counts.
+  reconciling #86 and #87. Merged subtask slices do not change the project
+  counts.
 
 ## Phase 0 - Plan and shared foundations
 

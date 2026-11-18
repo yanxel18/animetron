@@ -492,6 +492,26 @@ export type RunCancellationOutput = {
 };
 
 /**
+ * RunCreateInput
+ */
+export type RunCreateInput = {
+    /**
+     * Revision
+     */
+    revision: string;
+};
+
+/**
+ * RunCreateOutput
+ */
+export type RunCreateOutput = {
+    /**
+     * Runid
+     */
+    runId: string;
+};
+
+/**
  * RunEventOutput
  */
 export type RunEventOutput = {
@@ -1794,6 +1814,64 @@ export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses = {
 };
 
 export type ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponse = ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses[keyof ReadRevisionApiV1WorkflowsIdRevisionsRevisionGetResponses];
+
+export type CreateRunApiV1WorkflowsIdRunsPostData = {
+    body: RunCreateInput;
+    headers: {
+        /**
+         * Idempotency-Key
+         *
+         * Canonical lowercase RFC-variant UUID4, reused for retries of this run intent.
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workflows/{id}/runs';
+};
+
+export type CreateRunApiV1WorkflowsIdRunsPostErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    409: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type CreateRunApiV1WorkflowsIdRunsPostError = CreateRunApiV1WorkflowsIdRunsPostErrors[keyof CreateRunApiV1WorkflowsIdRunsPostErrors];
+
+export type CreateRunApiV1WorkflowsIdRunsPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: RunCreateOutput;
+};
+
+export type CreateRunApiV1WorkflowsIdRunsPostResponse = CreateRunApiV1WorkflowsIdRunsPostResponses[keyof CreateRunApiV1WorkflowsIdRunsPostResponses];
 
 export type ValidateWorkflowDraftApiV1WorkflowsIdValidationsPostData = {
     body: WorkflowValidationInput;

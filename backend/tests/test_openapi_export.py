@@ -33,4 +33,18 @@ def test_exports_local_openapi_without_registering_a_public_schema_route():
     assert set(schema["paths"][revision_path]) == {"get"}
     revision_read = schema["paths"][revision_path]["get"]
     assert revision_read["responses"]["200"]["content"]["application/json"]
+    run_path = "/api/v1/workflows/{id}/runs"
+    assert set(schema["paths"][run_path]) == {"post"}
+    run_create = schema["paths"][run_path]["post"]
+    idempotency_key = [
+        parameter
+        for parameter in run_create["parameters"]
+        if parameter["in"] == "header" and parameter["name"] == "Idempotency-Key"
+    ]
+    assert len(idempotency_key) == 1
+    assert idempotency_key[0]["required"] is True
+    assert run_create["requestBody"]["required"] is True
+    assert run_create["responses"]["202"]["headers"]["Location"]["schema"] == {
+        "type": "string"
+    }
     assert "/openapi.json" not in schema["paths"]
