@@ -558,11 +558,11 @@ recovery of unknown effects need separate contracts and are not solved by this
 slice. Downgrading the claim migration destroys evidence and requires explicit
 authorization and recovery planning on populated databases.
 
-## Proposed P1-10e node outcome contract (not approved)
+## Approved P1-10e node outcome contract
 
-This proposal adds a durable record of a **confirmed** outcome for one
-previously admitted node. Owner approval is required before implementation. It
-does not add a worker, invoke handlers, or authorize effects.
+The owner approved this record-only contract for implementation on 2026-11-18.
+It adds a durable record of a **confirmed** outcome for one previously
+admitted node. It does not add a worker, invoke handlers, or authorize effects.
 
 A trusted internal caller may report `SUCCEEDED` or `FAILED` for an existing
 claim, using the claim's exact run and node association. The claim ID is an
@@ -598,8 +598,8 @@ effects. Completion of a run, dependent-node admission, output validation,
 failure/skip propagation, executor fencing, and unknown-effect recovery remain
 separate work.
 
-**Approval needed:** Confirm this record-only outcome contract before
-implementation.
+The internal implementation currently accepts `EXECUTION_FAILED` as its sole
+failure code. It must not be interpreted as a retry classification.
 
 ## Bounded internal P1-10b sample evaluator
 

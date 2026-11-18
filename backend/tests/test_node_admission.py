@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import delete, event, func, insert, select, text
+from sqlalchemy.exc import DBAPIError
 from test_execution_readiness import _binding, _manifest
 from test_run_dispatch import AllHandlers, ReadyModels
 from test_run_revisions import save
@@ -16,6 +17,7 @@ from app.core.outbox import enqueue, outbox
 from app.services.workflows import (
     execution_readiness,
     node_admission,
+    node_outcomes,
     run_cancellations,
     run_dispatch,
     run_requests,
@@ -321,3 +323,204 @@ def test_cancellation_and_claim_serialize(prepared_run, first_operation):
     else:
         assert first.outcome is node_admission.AdmissionOutcome.CLAIMED
         assert second.outcome is run_cancellations.CancellationOutcome.REQUESTED
+
+
+def test_confirmed_outcome_replay_and_conflicts(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        first = node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+        replay = node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+        assert first.recorded is True
+        assert replay.recorded is False
+        with pytest.raises(node_outcomes.OutcomeConflict):
+            node_outcomes.record_outcome(
+                connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.FAILED,
+                node_outcomes.FailureCode.EXECUTION_FAILED,
+            )
+        with pytest.raises(node_outcomes.OutcomeConflict):
+            node_outcomes.record_outcome(
+                connection, claim_id, run_id, "node-2", node_outcomes.NodeStatus.SUCCEEDED,
+            )
+        with pytest.raises(node_outcomes.OutcomeConflict):
+            node_outcomes.record_outcome(
+                connection, uuid4(), run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+            )
+        assert connection.scalar(
+            select(func.count()).select_from(node_outcomes.outcomes)
+            .where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ) == 1
+        assert get_run_status(connection, run_id).state is RunState.RUNNING
+        with pytest.raises(node_admission.AdmissionConflict):
+            claim(connection, uuid4(), run_id, "node-2")
+
+
+def test_outcome_input_validation_and_transaction(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.connect() as connection, pytest.raises(RuntimeError, match="transaction"):
+        node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        for status, code in [
+            (node_outcomes.NodeStatus.FAILED, None),
+            (node_outcomes.NodeStatus.SUCCEEDED, node_outcomes.FailureCode.EXECUTION_FAILED),
+            (node_outcomes.NodeStatus.FAILED, "arbitrary sensitive error"),
+            ("UNKNOWN", None),
+        ]:
+            with pytest.raises(ValueError):
+                node_outcomes.record_outcome(connection, claim_id, run_id, "node-1", status, code)
+        assert connection.scalar(
+            select(func.count()).select_from(node_outcomes.outcomes)
+            .where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ) == 0
+
+
+def test_confirmed_failure_replay(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        first = node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.FAILED,
+            node_outcomes.FailureCode.EXECUTION_FAILED,
+        )
+        replay = node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.FAILED,
+            node_outcomes.FailureCode.EXECUTION_FAILED,
+        )
+        assert first.recorded is True
+        assert replay.recorded is False
+        assert replay.error_code is node_outcomes.FailureCode.EXECUTION_FAILED
+
+
+def test_outcome_failure_savepoint_and_outer_rollback(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+    with engine.begin() as connection:
+        def fail_after_insert(_conn, _cursor, statement, _parameters, _context, _many):
+            if statement.startswith("INSERT INTO workflow_node_outcomes"):
+                raise RuntimeError("injected failure")
+
+        event.listen(connection, "after_cursor_execute", fail_after_insert)
+        try:
+            with pytest.raises(RuntimeError, match="injected failure"):
+                node_outcomes.record_outcome(
+                    connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+                )
+        finally:
+            event.remove(connection, "after_cursor_execute", fail_after_insert)
+        assert connection.scalar(text("SELECT 1")) == 1
+        assert connection.scalar(
+            select(func.count()).select_from(node_outcomes.outcomes)
+            .where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ) == 0
+    with pytest.raises(RuntimeError, match="abort"), engine.begin() as connection:
+        node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+        raise RuntimeError("abort")
+    with engine.connect() as connection:
+        assert connection.scalar(
+            select(func.count()).select_from(node_outcomes.outcomes)
+            .where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ) == 0
+
+
+@pytest.mark.parametrize("first_operation", ["cancel", "outcome", "competing"])
+def test_outcome_serialization_and_late_recording(prepared_run, first_operation):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+    contender_pid = Queue()
+
+    def execute(connection, operation):
+        if operation == "cancel":
+            return run_cancellations.request_run_cancellation(connection, run_id)
+        if operation == "competing":
+            return node_outcomes.record_outcome(
+                connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.FAILED,
+                node_outcomes.FailureCode.EXECUTION_FAILED,
+            )
+        return node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+
+    def contender():
+        with engine.begin() as connection:
+            connection.execute(text("SET LOCAL lock_timeout = '10s'"))
+            contender_pid.put(connection.scalar(text("SELECT pg_backend_pid()")))
+            try:
+                return execute(connection, "cancel" if first_operation == "outcome" else "outcome")
+            except node_outcomes.OutcomeConflict:
+                return "conflict"
+
+    with ThreadPoolExecutor(max_workers=1) as pool, engine.connect() as winner:
+        transaction = winner.begin()
+        try:
+            winner_pid = winner.scalar(text("SELECT pg_backend_pid()"))
+            execute(winner, first_operation)
+            future = pool.submit(contender)
+            pid = contender_pid.get(timeout=5)
+            deadline = time.monotonic() + 5
+            with engine.connect() as observer:
+                while time.monotonic() < deadline:
+                    if winner_pid in observer.scalar(
+                        text("SELECT pg_blocking_pids(:pid)"), {"pid": pid},
+                    ):
+                        break
+                    time.sleep(0.02)
+                else:
+                    pytest.fail("Outcome contender never waited on the first transaction")
+            transaction.commit()
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+        result = future.result(timeout=10)
+
+    with engine.connect() as connection:
+        row = connection.execute(
+            select(node_outcomes.outcomes).where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ).one()
+        assert row.status == ("FAILED" if first_operation == "competing" else "SUCCEEDED")
+        assert get_run_status(connection, run_id).state is (
+            RunState.RUNNING if first_operation == "competing" else RunState.CANCELLING
+        )
+    if first_operation == "competing":
+        assert result == "conflict"
+    elif first_operation == "cancel":
+        assert result.recorded is True
+
+
+def test_outcome_database_rejects_mutation_and_invalid_codes(prepared_run):
+    engine, run_id = prepared_run
+    claim_id = uuid4()
+    with engine.begin() as connection:
+        claim(connection, claim_id, run_id)
+        with pytest.raises(DBAPIError), connection.begin_nested():
+            connection.execute(node_outcomes.outcomes.insert().values(
+                claim_id=claim_id, status="FAILED", error_code="raw exception",
+            ))
+        node_outcomes.record_outcome(
+            connection, claim_id, run_id, "node-1", node_outcomes.NodeStatus.SUCCEEDED,
+        )
+        for statement in (
+            node_outcomes.outcomes.update().where(node_outcomes.outcomes.c.claim_id == claim_id)
+            .values(status="FAILED", error_code="EXECUTION_FAILED"),
+            node_outcomes.outcomes.delete().where(node_outcomes.outcomes.c.claim_id == claim_id),
+        ):
+            with pytest.raises(DBAPIError), connection.begin_nested():
+                connection.execute(statement)
+        assert connection.scalar(
+            select(node_outcomes.outcomes.c.status).where(node_outcomes.outcomes.c.claim_id == claim_id)
+        ) == "SUCCEEDED"
