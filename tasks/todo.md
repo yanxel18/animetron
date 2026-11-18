@@ -14,7 +14,7 @@ The historical #33 scanner failure remains unresolved. #73 merged at
 are satisfied. #84, #86 and #87 also merged; their only reported check is
 GitGuardian and none has an independent GitHub review record. #113 merged at
 `33e9c7e`, but no independent GitHub review is recorded and its only check is
-GitGuardian; its recovery-on-reload gap is being addressed separately.
+GitGuardian; its recovery-on-reload gap is addressed in open PR #114.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -456,9 +456,10 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   fresh explicit acknowledgement before a retry. The full frontend suite
   passed (130 tests), production build passed, and all 22 Chromium tests passed.
   API type-drift validation is blocked because Windows Application Control
-  prevents psycopg's PostgreSQL DLL from loading. This branch is unmerged and
-  has no PR yet; keep P7-02c unchecked pending independent review and required
-  gates. The earlier reconciliation merged in
+  prevents psycopg's PostgreSQL DLL from loading. The correction is open in
+  [#114](https://github.com/yanxel18/animetron/pull/114); keep P7-02c unchecked
+  pending independent review and required gates. The earlier reconciliation
+  merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
 ## Phase 0 - Plan and shared foundations
@@ -1273,9 +1274,10 @@ accessibility checks pass, not merely when mock screens exist.
     attempts with Web Locks. Local full frontend suite (130 tests), production
     build and 22 Chromium tests passed. API type-drift validation is blocked
     because Windows Application Control prevents psycopg's PostgreSQL DLL from
-    loading. Live authenticated backend, screen-reader use and independent
-    review remain unverified. Keep unchecked until the recovery correction is
-    merged and all required gates pass.
+    loading. Live authenticated backend and screen-reader use remain
+    unverified. The recovery correction is open in
+    [#114](https://github.com/yanxel18/animetron/pull/114); keep unchecked
+    until it is merged and all required gates pass.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
