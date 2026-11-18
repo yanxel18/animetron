@@ -692,6 +692,10 @@ immutable workflow and recover its state without duplicate effects.
     [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`.
     #86 has no independent review record and only a GitGuardian check; keep
     unchecked pending the required review and verification gates.
+  - [ ] P1-10d Implement durable node admission after approval of the proposed
+    contract in [the workflow runtime spec](../docs/SPEC-workflow-runtime.md#proposed-p1-10d-node-admission-contract-not-approved).
+    In review in [#97](https://github.com/yanxel18/animetron/pull/97); the
+    proposal does not authorize handler execution or automatic retries.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
