@@ -32,8 +32,8 @@ are not credited without a passing independent review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
-P1-12d, P1-12e and persisted-readiness verification are in review in #94,
-#95 and #96, respectively. P1-09f reached master via
+P1-12d and P1-12e are in review and do not count as complete.
+P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -188,8 +188,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `f7b3171`. PRs #75, #78, #79, #81,
-  #82, #83, #84, #86, #87, #88, #89, #90, #91 and #92 merged. #75 includes the
+- Reconciled with verified `master` at `c0560a1`. PRs #75, #78, #79, #81,
+  #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked pending independent review and remaining
   integration verification. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
@@ -314,23 +314,25 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   The slice merged in [#92](https://github.com/yanxel18/animetron/pull/92)
   at `5bce7b7`. GitGuardian passed, but no independent review is recorded and
   combined status is pending; keep unchecked.
-- P1-12d and P1-12e verify cancellation/dispatch ordering and duplicate
-  dispatch contention, respectively, in
-  [#94](https://github.com/yanxel18/animetron/pull/94) and
-  [#95](https://github.com/yanxel18/animetron/pull/95). #95 depends on #94.
-  Both are in review; neither verifies worker execution.
-- P1-08c persisted-readiness verification is in review in
-  [#96](https://github.com/yanxel18/animetron/pull/96). Its owned harness
-  passed 9 readiness tests, migrations, Ruff and Linux-target mypy. Handler and
-  model registries are fakes; installed readiness and execution are unverified.
-- P1-10d node-admission contract is proposed in
-  [#97](https://github.com/yanxel18/animetron/pull/97), not approved. It
-  specifies a durable, cancellation-serialized claim with no automatic
-  reassignment of an unknown outcome. Owner approval is required before
-  implementation. This proposal adds no worker, execution, or external effects.
+- P1-12d tests both cancellation-first and dispatch-first lock orderings on
+  PostgreSQL using real persisted run requests and a fake execution binding.
+  The owned harness passed 8 dispatch and 13 cancellation tests, migrations,
+  Ruff and Linux-target mypy. Removing both dispatch and preflight locks made
+  cancellation-first resolve a handler before cancellation committed, failing
+  the regression; restored locks passed. If dispatch wins, its run-ready and
+  node intents remain after cancellation. No worker or suppression of such
+  previously prepared work is tested. This slice is in review in
+  [#94](https://github.com/yanxel18/animetron/pull/94).
+- P1-12e tests duplicate dispatch preparation under PostgreSQL contention,
+  stacked on #94. The owned harness passed 9 dispatch tests, migrations, Ruff
+  and Linux-target mypy. Replacing the existing-dispatch replay with a conflict
+  made the new test fail; restoring it passed. The test verifies one node plan,
+  run-ready intent and running transition, not worker delivery or execution.
+  The slice is in review in
+  [#95](https://github.com/yanxel18/animetron/pull/95).
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #93 and recording the in-review slices and P1-10d proposal.
-  Nested slices do not change the project counts.
+  reconciling #93 and recording P1-12d and P1-12e. Nested slices do not change
+  the project counts.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -405,7 +407,8 @@ have the security and recovery guarantees below.
     A later owned PostgreSQL harness passed 61 artifact tests, including a new
     audit regression against migrated metadata with a fake byte inventory,
     merged in #91. A post-merge review identified test gaps; their follow-up
-    is in progress. The test is not a real filesystem integration test; keep
+    merged in #93, pending independent review and required checks. The test is
+    not a real filesystem integration test; keep
     unchecked pending review, required checks and remaining integration
     verification. Its branch included master commit
     `8d10be9` to resolve the checklist conflict.
@@ -556,6 +559,11 @@ immutable workflow and recover its state without duplicate effects.
     [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`.
     #86 has no independent review record and only a GitGuardian check; keep
     unchecked pending the missing review and required verification gates.
+    - [ ] P1-08c1 Verify readiness against persisted PostgreSQL run requests
+      and execution bindings, including the missing-binding failure. The owned
+      harness passed 9 readiness tests, migrations, Ruff and Linux-target mypy.
+      In review in [#96](https://github.com/yanxel18/animetron/pull/96); fake registries
+      do not prove installed-handler or model readiness.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
   - [ ] P1-09e Internal mutable draft persistence merged in
@@ -743,6 +751,18 @@ immutable workflow and recover its state without duplicate effects.
     [#92](https://github.com/yanxel18/animetron/pull/92) at `5bce7b7`;
     GitGuardian passed, but independent review is not recorded and combined
     status is pending, so keep unchecked.
+  - [ ] P1-12d Verify cancellation and dispatch preparation serialize on
+    PostgreSQL in both lock orderings. Eight dispatch and 13 cancellation
+    tests passed in the owned harness. Uses a fake execution binding and does
+    not verify a worker or suppression of already-prepared run-ready intents;
+    keep unchecked pending review, required checks and merge of
+    [#94](https://github.com/yanxel18/animetron/pull/94).
+  - [ ] P1-12e Verify concurrent duplicate dispatch preparation reuses one
+    persisted node plan and run-ready intent after waiting on PostgreSQL.
+    Nine dispatch tests, migrations, Ruff and Linux-target mypy passed in the
+    owned harness; a replay-path mutation failed the new regression. This is
+    in review in [#95](https://github.com/yanxel18/animetron/pull/95), depends
+    on #94, and does not verify worker delivery or execution.
 
 ## Phase 2 - Model registry and hardware readiness
 
