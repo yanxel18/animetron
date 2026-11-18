@@ -28,6 +28,8 @@ merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after master commit `181bf6c`: merged
 subtask slices do not complete their parent tasks, and P1-09f/P1-09g remain
 unmerged, so the overall percentage and phase counts remain unchanged.
+Recounted again after P1-09g integration commit `5ecd362`; its branch is pushed
+but still has no PR, so no task completion is credited.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -171,8 +173,9 @@ verification. This checklist remains the only current progress source.
   Self-review found no actionable issues; a deliberate CAS-predicate mutation
   made the versioned-write regression test fail as expected. The
   PostgreSQL/Keycloak harness remains blocked by Windows Application Control.
-  No PR exists; GitHub tools expose no write actions and `gh` is unavailable.
-  Compare: https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1
+  Integrated branch head `5ecd362` is pushed. No PR exists; GitHub tools expose
+  no write actions and `gh` is unavailable. Compare:
+  https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1
 - Reconciled with `181bf6c` on 2026-11-18. The top-level recount remains 18/57
   (31.6%), P0 4/9 and P1 7/12; no parent task or phase is complete from these
   merged slices. P1-09e remains unchecked because its required review/check
@@ -396,9 +399,9 @@ immutable workflow and recover its state without duplicate effects.
     `4aca101`/master `181bf6c`; focused tests passed (76 passed, 22 skipped),
     Ruff and Linux-target mypy passed. Self-review found no actionable issues,
     and CAS mutation was caught by its regression test. PostgreSQL/Keycloak
-    verification is blocked by Windows Application Control. No PR exists;
-    compare link and branch/PR blocker are recorded above. Keep unchecked
-    pending independent review and merge.
+    verification is blocked by Windows Application Control. Integration commit
+    `5ecd362` is pushed, but no PR exists; keep unchecked pending independent
+    review and merge. Compare link and branch/PR blocker are recorded above.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
