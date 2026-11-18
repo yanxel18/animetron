@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `ad6ad64` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `877821a` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,7 +27,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`ad6ad64`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`877821a`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -48,6 +48,8 @@ explicitly approved proceeding on 2026-11-18; the latest amendments still need
 independent review and the design's prerequisites remain unsatisfied. #107
 merged the previous reconciliation; GitGuardian passed, no independent GitHub
 review is recorded and combined status is pending.
+#108 merged the owner approval record; GitGuardian passed, no independent
+GitHub review is recorded and combined status is pending.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -423,10 +425,12 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   recorded and combined status is pending. Merge reconciliation
   [#107](https://github.com/yanxel18/animetron/pull/107) merged at `ad6ad64`;
   GitGuardian passed, but no independent GitHub review is recorded and
-  combined status is pending. The approval record is in review in
-  [#108](https://github.com/yanxel18/animetron/pull/108).
+  combined status is pending. The approval record
+  [#108](https://github.com/yanxel18/animetron/pull/108) merged at `877821a`;
+  GitGuardian passed, but no independent GitHub review is recorded and the
+  combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #107 and recording owner approval. Nested slices do
+  reconciling #108 and recording P1-09i verification. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -760,9 +764,16 @@ immutable workflow and recover its state without duplicate effects.
     workflow revision. Implemented in `abbb12b` and merged through
     [#84](https://github.com/yanxel18/animetron/pull/84) at `eb79dbb`.
     Focused tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy
-    passed. PostgreSQL-backed service tests remain unverified without the
-    owned test database. #84 has no independent review record and only a
-    GitGuardian check. Keep unchecked.
+    passed. On 2026-11-18, the owned disposable PostgreSQL harness ran the
+    existing workflow-revisions API and run-request service test files plus
+    one session-only synthetic integration smoke: 153 passed, including real
+    owner-session API creation, identical retry, changed-revision conflict,
+    missing-revision refusal and persisted run/event/outbox evidence. Alembic
+    upgrade and drift check, Ruff and Linux-target mypy passed. The smoke is
+    not a checked-in regression; it did not test a live OIDC provider, worker,
+    handler execution or external effects. Owned container, network and
+    anonymous volume cleanup were verified. #84 has no independent review
+    record and only a GitGuardian check. Keep unchecked.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
