@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `df80d91` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `8d10be9` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -26,6 +26,9 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged.
+Reconciled after master commit `8d10be9`; #73 remains unchecked pending its
+review/check gates, so the overall percentage and per-phase counts remain
+unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -40,9 +43,10 @@ percentage is unchanged.
 | P8 MCP bridge | 0 / 2 |
 | P9 Integrated readiness | 0 / 4 |
 
-Main remaining gates include the historical #33 scanner failure, missing
-workflow execution and editing services, model feasibility and capacity,
-real media generation, and owner-involved P9 acceptance.
+Main remaining gates include the unresolved #33 scanner review/check state,
+missing authorized artifact lifecycle and workflow execution/editing services,
+model feasibility and capacity, real media generation, and owner-involved P9
+acceptance.
 
 ## How to use
 
@@ -73,7 +77,7 @@ P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
 
-### Current work - 2026-11-15
+### Current work - 2026-11-18
 
 - P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
@@ -118,11 +122,11 @@ verification. This checklist remains the only current progress source.
   caller-owned transactions with version-checked updates; it adds no API, UI,
   validation, execution or external effects. The PR reports 7 focused PostgreSQL
   tests, Alembic upgrade/check, Ruff, Linux-target mypy, and a backend suite
-  outside owner-gated auth suites (348 passed, 335 skipped). Its description
-  reports an independent review with no findings, but GitHub has no review
-  record and the combined status is pending. It merged before those required
-  gates were recorded; keep this slice unchecked and do not infer approval from
-  the PR description or merge.
+  outside owner-gated auth suites (348 passed, 335 skipped). The PR description
+  reports an independent review with no findings, and GitGuardian passed; GitHub
+  has no review record and the combined status is pending. It merged before
+  those required gates were recorded; keep this slice unchecked and do not infer
+  approval from the PR description or merge.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
@@ -133,11 +137,11 @@ verification. This checklist remains the only current progress source.
   records and the PR body said independent review was pending at merge. The
   exact-head GitGuardian check passed, but no other check runs or statuses were
   present. The merge did not satisfy the independent-review gate.
-- Reconciled with `df80d91` on 2026-11-18: the top-level recount remains 18 of
+- Reconciled with `8d10be9` on 2026-11-18: the top-level recount remains 18 of
   57 (31.6%), with the phase counts above unchanged. #71 is documentation-only
-  and completes no P0-P9 task. P1-09e in #73 is merged but remains unchecked
-  because required review/check gates are missing; no top-level task or phase
-  is complete from this work.
+  and completes no P0-P9 task. #73 merged, but P1-09e remains unchecked because
+  required review/check gates are missing; no top-level task or phase was
+  completed by #73.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
@@ -210,7 +214,8 @@ have the security and recovery guarantees below.
     `task/p0-07c-artifact-reconciliation`; open draft
     [#75](https://github.com/yanxel18/animetron/pull/75). GitGuardian passed,
     but the combined status is pending and no GitHub review is recorded. Keep
-    unchecked pending required checks, independent review and merge.
+    unchecked pending required checks, independent review and merge. Its branch
+    includes master commit `8d10be9` to resolve the checklist conflict.
     Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
     byte-store tests (26 passed), backend suite outside owner-gated auth tests
     (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The owned
