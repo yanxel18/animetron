@@ -57,14 +57,16 @@ def context():
     "/api/v1/audit-events", "/api/v1/auth/callback?state=fake&code=fake",
 ])
 def test_no_configuration_fails_closed_without_header_bypass(path):
+    bearer_token = secrets.token_urlsafe(32)
     with TestClient(SecurityHeaders(create_api()), base_url="https://control.example") as client:
         response = client.get(path, headers={
             "X-User": "owner", "X-Principal": "owner", "X-Role": "owner",
-            "Authorization": "Bearer " + secrets.token_urlsafe(32),
+            "Authorization": "Bearer " + bearer_token,
         })
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "AUTH_UNAVAILABLE"
     assert "requestId" in response.json()["error"]
+    assert bearer_token not in response.text
 
 
 def test_malformed_database_configuration_preserves_only_public_liveness(monkeypatch):
@@ -244,6 +246,7 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
     client, store = context
     key = RSAKey.generate_key(parameters={"kid": "test"})
     nonce = ""
+    provider_tokens: list[str] = []
     base = store.config.issuer + "/protocol/openid-connect/"
 
     async def response(_transport, request):
@@ -289,7 +292,9 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
                 token = jwt.encode({"alg": "HS256"}, claims, OctKey.generate_key(256))
             elif attack == "unknown_key":
                 token = jwt.encode({"alg": "RS256", "kid": "unknown"}, claims, key)
-            payload = {"access_token": secrets.token_urlsafe(32), "token_type": "Bearer",
+            access_token = secrets.token_urlsafe(32)
+            provider_tokens.extend((access_token, token))
+            payload = {"access_token": access_token, "token_type": "Bearer",
                        "id_token": token}
         return httpx.Response(200, json=payload, request=request)
 
@@ -301,6 +306,8 @@ def test_callback_rejects_adversarial_signed_claims_and_algorithms(context, monk
     callback = "/api/v1/auth/callback?state=" + query["state"][0] + "&code=test-code"
     rejected = client.get(callback, follow_redirects=False)
     assert rejected.status_code == 400
+    assert rejected.json()["error"]["code"] == "IDENTITY_REJECTED"
+    assert all(token not in rejected.text for token in provider_tokens)
     assert "__Host-animetron_session" not in client.cookies
     assert client.get(callback, follow_redirects=False).status_code == 400
     with store.engine.connect() as conn:

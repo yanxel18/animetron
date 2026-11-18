@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `df80d91` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `181bf6c` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -9,7 +9,9 @@ and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #62 merged owner-only reads of known immutable workflow revisions.
 #63 merged bounded revision discovery for a known workflow ID.
 #64 merged owner-only discovery of workflow IDs with persisted revisions.
-The historical #33 scanner failure remains unresolved.
+The historical #33 scanner failure remains unresolved. #73 merged at
+`df80d91`, but is not credited until the missing GitHub review and check gates
+are satisfied.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -23,9 +25,9 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Reconciled with remote `master` at `df80d91` on
-2026-11-18; P1-08c and P1-09f, P1-09g, P1-09h and P1-09i remain unmerged, so
-the counts do not change.
+percentage is unchanged. Recalculated after integrating latest verified master
+`181bf6c`; open work is not credited, and P1-08c and P1-09f/g/h/i remain
+unmerged, so the percentage and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -40,9 +42,10 @@ the counts do not change.
 | P8 MCP bridge | 0 / 2 |
 | P9 Integrated readiness | 0 / 4 |
 
-Main remaining gates include the historical #33 scanner failure, missing
-workflow execution and editing services, model feasibility and capacity,
-real media generation, and owner-involved P9 acceptance.
+Main remaining gates include the unresolved #33 scanner review/check state,
+missing authorized artifact lifecycle and workflow execution/editing services,
+model feasibility and capacity, real media generation, and owner-involved P9
+acceptance.
 
 ## How to use
 
@@ -73,7 +76,10 @@ P0-P9 is not complete. Preserve all unchecked tasks and approval gates.
 See the [closeout report](session-closeout-report.md) for cleanup scope and
 verification. This checklist remains the only current progress source.
 
-### Current work - 2026-11-18
+### Earlier activity - 2026-11-18 (superseded by latest reconciliation)
+
+The following session notes precede the reconciliation with master `181bf6c`;
+use the current-work section below for present branch and PR status.
 
 - P7-05a mobile navigation focus merged to master in
   [#53](https://github.com/yanxel18/animetron/pull/53).
@@ -111,16 +117,18 @@ verification. This checklist remains the only current progress source.
   schedule-slot observations, without scheduler dispatch or outcome decisions.
 - P1-10b merged in [#69](https://github.com/yanxel18/animetron/pull/69): pure deterministic
   sample graph evaluation, not persisted or dispatched execution.
-- P1-09e internal mutable-draft persistence merged in
+- P1-09e draft persistence had been investigated only before the 2026-11-15 stop.
+  The internal mutable-draft slice merged in
   [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. It stores
   bounded exact UTF-8 bytes separately from immutable revisions and uses
   caller-owned transactions with version-checked updates; it adds no API, UI,
-  validation, execution or external effects. The owned PostgreSQL harness
-  passed 7 focused tests, Alembic upgrade/check, Ruff and Linux-target mypy.
-  The backend suite outside owner-gated auth suites passed 348 tests with 335
-  skips. GitHub has no review, no commit statuses (combined status pending),
-  and only a passing GitGuardian check, so P1-09e remains unchecked. PR #74
-  records the merge reconciliation.
+  validation, execution or external effects. The PR reports 7 focused PostgreSQL
+  tests, Alembic upgrade/check, Ruff, Linux-target mypy, and a backend suite
+  outside owner-gated auth suites (348 passed, 335 skipped). The PR description
+  reports an independent review with no findings, and GitGuardian passed; GitHub
+  has no review record and the combined status is pending. It merged before
+  those required gates were recorded; keep this slice unchecked and do not infer
+  approval from the PR description or merge.
 - [#70](https://github.com/yanxel18/animetron/pull/70) merged the previous
   progress reconciliation. On `c0da081`, recounting confirms 18 of 57
   top-level tasks complete (31.6%); newly completed slices do not by themselves
@@ -169,6 +177,46 @@ verification. This checklist remains the only current progress source.
   (31.6%), P0 4/9 and P1 7/12; unmerged slices do not change these counts.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
+
+### Current work - 2026-11-18
+
+- Reconciled with verified `master` at `181bf6c`. PRs #75, #78, #79 and #81
+  merged. #75 includes the P0-08a recovery harness from #76; P0-07c remains
+  unchecked because its required owned PostgreSQL harness could not run. #79
+  includes #80 and P1-09e1; P1-09e1 stays unchecked because required review
+  and status gates were not recorded. #77 merged into stacked #76, not master,
+  so P0-07d is not credited.
+- P1-08c is implemented on `task/p1-08c-runtime-readiness`, with its approved
+  specification on the dependent spec branch. The current branch integrates
+  master `181bf6c`. Focused readiness, binding, revision, run-request, artifact
+  and migration tests passed (111 passed, 123 skipped); Ruff and Linux-target
+  mypy passed. Database-gated cases remain skipped because
+  `ANIMETRON_TEST_DATABASE_URL` is unavailable. The handler-digest mutation was
+  caught and restored. No model or artifact downloads or handler loading
+  occurred. There is no PR; keep unchecked and target master with the
+  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-08c-runtime-readiness?expand=1).
+- P1-09f is implemented on `task/p1-09f-workflow-draft-read` at `4aca101`,
+  including master `181bf6c`; six focused tests, Ruff and mypy passed.
+  PostgreSQL/Keycloak verification is blocked by Windows Application Control.
+  No PR exists; keep unchecked.
+- P1-09g is pushed on `task/p1-09g-workflow-draft-write` through `429e1a7`,
+  stacked on P1-09f. Focused tests passed (76 passed, 22 skipped); Ruff and
+  Linux-target mypy passed. PostgreSQL/Keycloak verification is blocked by
+  Windows Application Control. No PR exists; keep unchecked.
+- P1-09h is pushed on `task/p1-09h-workflow-draft-validation` through
+  `3e5c52a`, based on P1-09g. Focused tests passed (124 passed, 22 skipped);
+  Ruff and Linux-target mypy passed. The full backend run had 408 passed,
+  341 skipped, 3 failures and 48 errors; auth/database cases were blocked by
+  the missing test database URL. No PR exists; keep unchecked.
+- P1-09i is pushed on `task/p1-09i-workflow-run-create` through `3c6de03`.
+  Focused tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy
+  passed. Its PostgreSQL-backed service tests remain unverified without the
+  test database URL. No PR exists; keep unchecked.
+- P1-10 production dispatch remains gated on P1-08 runtime enforcement; the
+  approved spec explicitly says P1-10b's sample evaluator does not verify
+  handler artifacts or model readiness and does not satisfy this prerequisite.
+- Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12. Unmerged slices do not
+  change the project counts.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -233,8 +281,41 @@ have the security and recovery guarantees below.
     with no-replace publication ([#23](https://github.com/yanxel18/animetron/pull/23);
     no HTTP, media probing, authorization,
     byte/metadata atomicity or automatic orphan recovery).
+  - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
+    byte inventories without changing either store.
+    Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
+    `task/p0-07c-artifact-reconciliation`; merged to master through
+    [#75](https://github.com/yanxel18/animetron/pull/75) (PR head `f9d12df`).
+    GitGuardian passed, but the required PostgreSQL harness could not start
+    because Windows Application Control blocked the installed psycopg DLL.
+    No independent review record was present at merge; keep unchecked pending
+    the missing verification and review. Its branch included master commit
+    `8d10be9` to resolve the checklist conflict.
+    Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
+    byte-store tests (26 passed), backend suite outside owner-gated auth tests
+    (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The audit
+    requires all metadata and byte writers to be stopped; it does not repair
+    or adopt files.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
+  - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
+    metadata and artifact bytes. Verify restored metadata matches restored bytes
+    by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
+    loopback. The harness must use uniquely labeled resources and clean up only
+    resources it created. This does not select production networking, a
+    persistent backup target or encryption, retention duration, or deletion
+    behavior. Implemented in `3fde341` on `task/p0-08-local-recovery-test`,
+    stacked through [#76](https://github.com/yanxel18/animetron/pull/76) and
+    included in master via #75.
+    No independent review was recorded; keep unchecked pending review-gate
+    reconciliation. The disposable Docker test restored a synthetic metadata
+    row and artifact into fresh resources with a matching SHA-256, verified
+    private PostgreSQL networking and a loopback-only test endpoint,
+    and left no labeled resources. Ruff and Python compilation passed; the
+    backend suite outside owner-gated auth files passed (352 passed, 340
+    skipped). Reversing the restored-hash assertion failed as expected, then
+    the restored check passed. This does not prove a production backup
+    procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
@@ -243,6 +324,30 @@ have the security and recovery guarantees below.
     [#39](https://github.com/yanxel18/animetron/pull/39); this is not a fix
     for or clearance of the blocked auth scanner.
     [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
+  - [ ] P0-09b Assert that authentication failure responses never reflect a
+    supplied bearer token. Implemented in commit `c8ab7a2` on
+    `task/p0-09b-auth-error-secret-redaction`; merged in
+    [#78](https://github.com/yanxel18/animetron/pull/78). Five parameterized
+    route cases passed; a disposable mutation reflecting the Authorization
+    header made all five fail, then was restored. Ruff and `git diff --check`
+    passed. GitGuardian passed; no independent GitHub review was recorded at
+    merge. Keep unchecked pending review-gate reconciliation. This slice does
+    not cover malformed uploads, transaction recovery or backup/restore.
+  - [ ] P0-09c Assert that OIDC callback failure responses never reflect
+    provider-returned access or ID tokens. Implemented in commit `2c8af75` on
+    `task/p0-09c-oidc-token-redaction`; merged through stacked
+    [#80](https://github.com/yanxel18/animetron/pull/80) and #79.
+    The owned auth/integration harness passed 733 tests with 20 skips; Ruff,
+    Linux-target mypy and Alembic upgrade/check passed. Inverting the assertion
+    made all 12 invalid-claim/signature variants fail, then the correct
+    assertion was restored. GitGuardian passed; no independent GitHub review
+    was recorded at merge. Keep unchecked pending review-gate reconciliation.
+    This does not resolve upload or production backup policy.
+  - [ ] P0-09d Verify artifact metadata transaction recovery after a constraint
+    failure. Implemented and merged in [#81](https://github.com/yanxel18/animetron/pull/81)
+    at master `181bf6c`; the owned PostgreSQL harness passed 56 tests, with Ruff,
+    Linux-target mypy and Alembic upgrade/check. The PR body reported no
+    independent review; keep unchecked pending review-gate reconciliation.
 
 ## Phase 1 - Workflow runtime
 
@@ -303,7 +408,7 @@ immutable workflow and recover its state without duplicate effects.
     self-approval or gate waiver. Root master was pulled; tested source,
     migrations, tests and spec matched. Runtime enforcement remains open.
     [Binding verification](execution-revision-bindings-report.md).
-  - [ ] P1-08c Draft a pre-execution readiness gate: resolve only exact-pinned
+  - [ ] P1-08c Implement a pre-execution readiness gate: resolve only exact-pinned
     installed handlers from a trusted server-owned catalog, require exact
     pinned model manifests to be `READY`, and prevent all node handlers from
     starting if any check fails. The owner confirmed the catalog and terminal
@@ -314,29 +419,32 @@ immutable workflow and recover its state without duplicate effects.
     `task/p1-08c-runtime-readiness`, based on spec commit `6615b19`. Exact
     handler digest and full model-manifest matching, full-graph preflight,
     safe typed terminal failure events, and no partial handles on failure are
-    implemented in `c231472`; this tracker reconciliation is `b066aa7`.
-    Focused readiness plus related binding/revision/run-request
-    tests passed (75 passed, 68 skipped); Ruff and strict Linux-target mypy
-    passed. A deliberate handler-digest comparison mutation was caught by its
-    regression test and reverted. No downloads, model acquisition, artifact
-    fetching or handler code loading occurred. No PR can be created through the
-    available read-only GitHub integration, so no independent PR review or
-    merge exists; keep unchecked. Compare branch:
-    [task/p1-08c-runtime-readiness-spec...task/p1-08c-runtime-readiness](https://github.com/yanxel18/animetron/compare/task/p1-08c-runtime-readiness-spec...task/p1-08c-runtime-readiness?expand=1).
+    implemented in `c231472`. The branch integrates verified master
+    `181bf6c`. Readiness, binding, revision, run-request, artifact and migration
+    tests passed (111 passed, 123 skipped); Ruff and Linux-target mypy passed.
+    Database-gated cases were skipped because `ANIMETRON_TEST_DATABASE_URL` is
+    unavailable. A deliberate handler-digest comparison mutation failed its
+    regression test and was restored. No downloads, model acquisition, artifact
+    fetching or handler code loading occurred. No PR exists; the GitHub
+    integration is read-only and the GitHub CLI is unavailable, so no
+    independent PR review or merge exists. Keep unchecked. Compare against
+    master:
+    [task/p1-08c-runtime-readiness](https://github.com/yanxel18/animetron/compare/master...task/p1-08c-runtime-readiness?expand=1).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09e Internal mutable-draft persistence merged in
+  - [ ] P1-09e Internal mutable draft persistence merged in
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is
     pending.
-    - [ ] P1-09e1 Correct migration downgrade test expectations for the
-      `workflow_drafts` table. Implemented in `efe330c` on
-      `task/p1-09e-migration-downgrade-tests`; open draft
-      [#79](https://github.com/yanxel18/animetron/pull/79). Migration and
-      backend auth/integration tests, Alembic upgrade/check, Ruff and
-      Linux-target mypy passed. GitHub has no review, the combined status is
-      pending, and the only check run (GitGuardian) passed. Keep unchecked
-      until gates pass and it merges.
+    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
+      `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
+      `task/p1-09e-migration-downgrade-tests`; merged through
+      [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
+      harness passed all 5 migration tests; the full backend auth/integration
+      harness passed 733 tests with 20 skips. Alembic upgrade/check, Ruff and
+      Linux-target mypy passed. No migration or production behavior changed.
+      GitGuardian passed; no independent GitHub review was recorded at merge.
+      Keep unchecked pending review-gate reconciliation.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
