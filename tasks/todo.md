@@ -145,6 +145,35 @@ verification. This checklist remains the only current progress source.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
 
+### Current work - 2026-11-18
+
+- P0-07c reconciliation is in draft [#75](https://github.com/yanxel18/animetron/pull/75)
+  based on `master`; P0-08a recovery harness is in draft
+  [#76](https://github.com/yanxel18/animetron/pull/76), based on #75; P0-07d
+  metadata read is in draft [#77](https://github.com/yanxel18/animetron/pull/77),
+  based on #76. All three are open, GitGuardian passed, combined status is
+  pending, and no GitHub review is recorded. Keep each unchecked and do not
+  merge before its required gates pass.
+- P0-09b bearer-token error redaction is in draft
+  [#78](https://github.com/yanxel18/animetron/pull/78), based on verified
+  `master` at `df80d91`. GitGuardian passed; combined status is pending and no
+  GitHub review is recorded. This focused test-only slice does not complete
+  P0-09.
+- P1-09e1 migration downgrade test correction is in draft
+  [#79](https://github.com/yanxel18/animetron/pull/79), based on verified
+  `master` at `df80d91`. Its branch includes master commit `8d10be9` to resolve
+  the checklist conflict. GitGuardian passed; combined status is pending and no
+  GitHub review is recorded. The P1-09e migration remains in master; the
+  correction only updates integration-test expectations.
+- P0-09c OIDC provider-token redaction coverage is in draft
+  [#80](https://github.com/yanxel18/animetron/pull/80), stacked on #79 because
+  the full auth/integration suite includes its migration-test correction.
+  GitGuardian passed; combined status is pending and no GitHub review is
+  recorded. Keep unchecked until the dependency is merged and independent
+  review/check gates pass.
+- Reconciled against `df80d91` on 2026-11-18. Open PRs are not credited:
+  progress remains 18/57 (31.6%), P0 4/9 and P1 7/12.
+
 ## Phase 0 - Plan and shared foundations
 
 Depends on: none. Complete when shared specifications are available to the
@@ -252,6 +281,27 @@ have the security and recovery guarantees below.
     [#39](https://github.com/yanxel18/animetron/pull/39); this is not a fix
     for or clearance of the blocked auth scanner.
     [Credential exclusion evidence](development-report.md#hugging-face-credential-file-exclusion).
+  - [ ] P0-09b Assert that authentication failure responses never reflect a
+    supplied bearer token. Implemented in commit `c8ab7a2` on
+    `task/p0-09b-auth-error-secret-redaction`; open draft
+    [#78](https://github.com/yanxel18/animetron/pull/78). Five parameterized
+    route cases passed; a disposable mutation reflecting the Authorization
+    header made all five fail, then was restored. Ruff and `git diff --check`
+    passed. GitGuardian passed, but combined status is pending and no GitHub
+    review is recorded. Keep unchecked until required checks, independent
+    review and merge. This slice does not cover malformed uploads, transaction
+    recovery or backup/restore.
+  - [ ] P0-09c Assert that OIDC callback failure responses never reflect
+    provider-returned access or ID tokens. Implemented in commit `2c8af75` on
+    `task/p0-09c-oidc-token-redaction`; open draft
+    [#80](https://github.com/yanxel18/animetron/pull/80), stacked on #79.
+    The owned auth/integration harness passed 733 tests with 20 skips; Ruff,
+    Linux-target mypy and Alembic upgrade/check passed. Inverting the assertion
+    made all 12 invalid-claim/signature variants fail, then the correct
+    assertion was restored. GitGuardian passed; combined status is pending and
+    no GitHub review is recorded. Keep unchecked until #79 merges and required
+    review/check gates pass. This does not resolve upload or production backup
+    policy.
 
 ## Phase 1 - Workflow runtime
 
@@ -314,9 +364,19 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09e Internal mutable draft persistence is implemented in
-    [#73](https://github.com/yanxel18/animetron/pull/73) and in review; keep it
-    unchecked until required gates pass and it merges.
+  - [ ] P1-09e Internal mutable draft persistence merged in
+    [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
+    unchecked because GitHub has no review record and the combined status is
+    pending.
+    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
+      `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
+      `task/p1-09e-migration-downgrade-tests`; open draft
+      [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
+      harness passed all 5 migration tests; the full backend auth/integration
+      harness passed 733 tests with 20 skips. Alembic upgrade/check, Ruff and
+      Linux-target mypy passed. No migration or production behavior changed.
+      GitGuardian passed; combined status is pending and no GitHub review is
+      recorded. Keep unchecked until the required gates and merge.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
