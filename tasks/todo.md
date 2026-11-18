@@ -183,17 +183,24 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   [pushed branch](https://github.com/yanxel18/animetron/pull/new/task/p1-09f-workflow-draft-read);
   keep this slice unchecked and do not treat it as reviewed.
 - P1-09g owner-only mutable draft write is implemented on
-  `task/p1-09g-workflow-draft-write`, stacked on P1-09f. The strict JSON `PUT`
-  uses compare-and-swap versions, rejects stale/duplicate creates, bounds the
-  request and UTF-8 document, and adds no parsing or validation behavior.
+  `task/p1-09g-workflow-draft-write` at `f0d21a7`, stacked on P1-09f. The
+  strict JSON `PUT` uses compare-and-swap versions, rejects stale/duplicate
+  creates, bounds the request and UTF-8 document, and adds no parsing or
+  validation behavior.
   Focused workflow API, persistence and OpenAPI tests passed (76 passed,
   22 skipped); Ruff and strict Linux-target mypy for all 45 application
   modules passed. An owner-guard mutation was detected by its regression test
   and restored. The PostgreSQL/Keycloak harness remains blocked because
   Windows Application Control blocks the available psycopg binary. This
-  dependent branch is not in a PR because the current GitHub integration has
-  no write action; keep it unchecked and create its PR against the P1-09f
-  branch after the P1-09f PR exists.
+  dependent branch was pushed but is not in a PR because the current GitHub
+  integration has no write action. Create P1-09f's PR from its branch, then
+  create this task's PR against P1-09f using the
+  [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1).
+  Author self-review: the endpoint reuses the established owner/CSRF guard,
+  writes only the mutable row in a transaction, enforces byte-accurate limits,
+  and relies on compare-and-swap to avoid lost updates; focused tests cover
+  auth, input validation, size-limit rejection, conflicts, missing rows and
+  generic database errors. No self-approval or merge was performed.
 - Reconciled with `df80d91` on 2026-11-18. Open PRs are not credited:
   progress remains 18/57 (31.6%), P0 4/9 and P1 7/12. The pushed P1-09f
   and P1-09g branches are unmerged and do not change those counts. PRs #74-#81
@@ -357,8 +364,9 @@ immutable workflow and recover its state without duplicate effects.
     Keep unchecked pending review and merge. It adds no draft write, validation
     or execution capability.
   - [ ] P1-09g Add an owner-only version-checked write for an existing mutable
-    workflow draft. Implemented on `task/p1-09g-workflow-draft-write`, stacked
-    on P1-09f. `PUT /api/v1/workflows/{id}/draft` creates at version 1 only
+    workflow draft. Implemented in `f0d21a7` on
+    `task/p1-09g-workflow-draft-write`, stacked on P1-09f.
+    `PUT /api/v1/workflows/{id}/draft` creates at version 1 only
     when absent, or updates exactly the supplied version; stale/duplicate
     writes conflict, and missing updates return 404. Rejects extra fields,
     invalid UTF-8, unknown query parameters, unsupported JSON headers, bodies
@@ -368,8 +376,9 @@ immutable workflow and recover its state without duplicate effects.
     22 skipped); Ruff and strict Linux-target mypy passed. The owner-guard
     mutation was caught and restored. PostgreSQL/Keycloak verification is
     blocked by Windows Application Control preventing psycopg from loading.
-    No PR was created because GitHub write actions are unavailable; keep
-    unchecked and make the PR depend on P1-09f.
+    Pushed but no PR was created because GitHub write actions are unavailable;
+    keep unchecked and target P1-09f as its PR base. Use the
+    [compare page](https://github.com/yanxel18/animetron/compare/task/p1-09f-workflow-draft-read...task/p1-09g-workflow-draft-write?expand=1).
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
