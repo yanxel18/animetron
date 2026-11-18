@@ -80,7 +80,7 @@ export function StudioNavigation({
           <span>Schedules</span>
         </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Workflows and Review are read-only; Runs shows persisted history. Schedules supports
+          Workflows can validate saved drafts and create revisions; Review is read-only. Runs shows persisted history. Schedules supports
           previews and pause or resume. Other sections are not implemented.
         </p>
         <ul className="navigation-list">

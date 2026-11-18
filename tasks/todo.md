@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `5f4ce66` on 2026-11-19. #53 and #54 merged
+verified remote `master` at `f5f29fc` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,7 +27,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`5f4ce66`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`f5f29fc`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -60,6 +60,10 @@ amendments is recorded.
 Approval reconciliation [#111](https://github.com/yanxel18/animetron/pull/111)
 merged at `5f4ce66`; GitGuardian passed, no independent GitHub review is
 recorded and combined status is pending.
+P1-09j implementation [#112](https://github.com/yanxel18/animetron/pull/112)
+merged at `f5f29fc`; GitGuardian passed, no independent GitHub review is
+recorded and combined status is pending. The P7-02c draft UI slice is in
+review and does not change the top-level count.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -797,15 +801,16 @@ immutable workflow and recover its state without duplicate effects.
     independent GitHub review of the final amendments is recorded. An existing
     sample draft of 16,125 bytes validated without issues but produced 48,112
     canonical bytes, supporting the separate 32-KiB canonical bound.
-    Implementation [#112](https://github.com/yanxel18/animetron/pull/112) is
-    **in review** and adds the owner-only endpoint, locked draft validation,
+    Implementation [#112](https://github.com/yanxel18/animetron/pull/112) merged
+    at `f5f29fc` and adds the owner-only endpoint, locked draft validation,
     immutable replay and conflict handling; it does not create runs, execution
     bindings or authorize handler execution. The isolated PostgreSQL suite
     passed 204 tests including both update/create lock orderings, duplicate
     creation, lock timeout, lost-acknowledgement replay, size and version
     boundaries; migrations, Ruff, Linux-target mypy, generated API type drift
     check and frontend typecheck passed. Live OIDC and execution were not
-    tested. Keep unchecked until the implementation is merged and reviewed.
+    tested. GitGuardian passed, but the independent GitHub review record is
+    absent and combined status is pending; keep unchecked.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
@@ -1212,9 +1217,9 @@ accessibility checks pass, not merely when mock screens exist.
     backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
-  - Editing remains blocked: workflow create/update and validation routes are
-    unavailable; prerequisite P1-09 remains unchecked. Do not invent a
-    frontend-only workflow schema or enable editing before those APIs exist.
+  - Owner-only draft read, write, validation and revision creation APIs exist.
+    A full editor and its workflow-creation UX remain unimplemented; P1-09
+    remains unchecked because its review/check gates are incomplete.
   - [x] P7-02a Browse persisted workflow IDs and immutable revision metadata
     read-only, with bounded pagination and truthful loading, errors and access
     states. This does not provide editing, validation or execution.
@@ -1241,6 +1246,14 @@ accessibility checks pass, not merely when mock screens exist.
     authenticated backend and screen-reader testing remain unverified.
     Exact-head GitGuardian passed; [#66](https://github.com/yanxel18/animetron/pull/66)
     merged at `f0e610b`.
+  - [ ] P7-02c Load an existing draft by ID, validate its saved version and
+    create an immutable revision. The UI preserves draft context on conflict
+    and uncertain creation, clears protected data on authorization loss, and
+    does not edit drafts or run workflows. Local validation: 125 frontend
+    tests, production build, API type drift and six fixture-backed Chromium
+    workflow tests passed. Live authenticated backend, screen-reader use and
+    independent review remain unverified. **In review**; keep unchecked until
+    merged and required gates pass.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status

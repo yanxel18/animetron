@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { RevisionListOutput, RevisionOutput, WorkflowIdListOutput } from "../api/generated";
 import { fetchRevision, fetchRevisionPage, fetchWorkflowPage, WorkflowDiscoveryError } from "../api/workflows";
+import { WorkflowDraftError } from "../api/workflow-drafts";
+import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
 
 type Request = { cursor: string | null; attempt: number };
 const firstPage = (): Request => ({ cursor: null, attempt: 0 });
@@ -31,7 +33,8 @@ export function WorkflowDiscovery() {
   const restoreFocus = useRef(false);
 
   function denied(error: unknown) {
-    if (!(error instanceof WorkflowDiscoveryError) || (error.status !== 401 && error.status !== 403)) return false;
+    if (!(error instanceof WorkflowDiscoveryError || error instanceof WorkflowDraftError) ||
+        (error.status !== 401 && error.status !== 403)) return false;
     restoreFocus.current = Boolean(content.current?.contains(document.activeElement));
     workflowController.current?.abort();
     revisionController.current?.abort();
@@ -125,14 +128,14 @@ export function WorkflowDiscovery() {
   }
 
   function retryWorkflows() {
-    const accessDenied = workflowError instanceof WorkflowDiscoveryError &&
+    const accessDenied = (workflowError instanceof WorkflowDiscoveryError || workflowError instanceof WorkflowDraftError) &&
       (workflowError.status === 401 || workflowError.status === 403);
     workflowHeading.current?.focus();
     setWorkflowRequest((current) => ({ cursor: accessDenied ? null : current.cursor, attempt: current.attempt + 1 }));
   }
 
   const errorText = (error: unknown) =>
-    error instanceof WorkflowDiscoveryError && (error.status === 401 || error.status === 403)
+    (error instanceof WorkflowDiscoveryError || error instanceof WorkflowDraftError) && (error.status === 401 || error.status === 403)
       ? "Access to saved workflows is unavailable. Sign in with an authorized account."
       : error instanceof Error ? error.message : "The workflow service could not be reached.";
 
@@ -144,14 +147,17 @@ export function WorkflowDiscovery() {
         <p className="page-description">Browse saved workflow IDs and inspect immutable revisions.</p>
       </div></header>
       <p className="review-blocked-note" role="note">
-        Immutable, read-only discovery and inspection. Editing, validation, execution, scheduling, model readiness and publishing are not offered here.
+        Immutable, read-only revision discovery and inspection. Saved drafts can be validated and made into revisions below; editing, execution, scheduling, model readiness and publishing are not offered here.
       </p>
+      {!(workflowError instanceof WorkflowDiscoveryError || workflowError instanceof WorkflowDraftError) ||
+       (workflowError.status !== 401 && workflowError.status !== 403)
+        ? <WorkflowDraftPanel onDenied={(error) => { denied(error); }} /> : null}
       <section aria-labelledby="workflow-list-title" aria-busy={workflowLoading}>
         <h2 ref={workflowHeading} id="workflow-list-title" tabIndex={-1}>Workflow IDs</h2>
         {workflowLoading && <p role="status">Loading workflows...</p>}
         {workflowError !== null && <div className="review-error" role="alert">
           <p>{errorText(workflowError)}</p>
-          {workflowError instanceof WorkflowDiscoveryError && workflowError.status === 401 && <a className="review-login-link" href="/api/v1/auth/login">Sign in</a>}
+          {(workflowError instanceof WorkflowDiscoveryError || workflowError instanceof WorkflowDraftError) && workflowError.status === 401 && <a className="review-login-link" href="/api/v1/auth/login">Sign in</a>}
           <button ref={retryButton} className="button button--secondary" type="button" onClick={retryWorkflows}>Retry</button>
         </div>}
         {workflows && workflows.data.length === 0 && <p role="status">No saved workflows are available.</p>}
