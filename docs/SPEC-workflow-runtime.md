@@ -724,6 +724,196 @@ Design and establish a verifiable deployment-owned trust root before executing;
 the approved contract does not authorize deployment or artifact installation.
 Do not treat a hard-coded or caller-asserted digest as that proof.
 
+## Proposed P1-10g deployment-backed handler binding
+
+**Status: design proposal, not approved for implementation or deployment.**
+The revised design needs further independent review; three adversarial review
+cycles found substantive issues. The amendments below have not yet been
+independently verified.
+The owner selected a deployment-backed trust root on 2026-11-18; that choice
+does not approve this specific mechanism. P1-10g remains blocked until this
+design is approved, the trust root is independently established, and the
+binding is verified. This section does not authorize installing artifacts,
+starting a deployment, signing releases, fetching models, or calling a handler.
+
+The proposed artifact is the exact UTF-8 source bytes of a single built-in
+sample-handler module: the deployed built-in `sample_evaluator.py`, including
+the fixed `sample.constant` implementation and its module-local configuration
+and failure types. It is not a Python
+package, wheel, dependency tree, or a hash of the current checkout. The sample
+evaluator keeps its existing behavior and conventional import path. The
+executor uses a separately loaded, verified instance of that same built-in
+module's deployed source bytes, not the evaluator's conventionally imported
+function. The signing procedure must derive the artifact from the exact release
+tree subjected to sample evaluator tests and retain evidence of that tree and
+digest. Acceptance also tests the verified instance itself; tests against the
+conventional import alone cannot establish its behavior. The verified
+instance's locally defined configuration and exception types must be used
+when calling and interpreting it; they are not identical to the conventionally
+imported module's corresponding classes. Shared imported types remain shared.
+The trusted interpreter, bootstrap,
+dependencies, their imports and the rest of the process are part of the
+deployment trusted computing base, not covered by this artifact digest.
+
+A deployment owner, separate from workflow authors and API callers, controls
+a release-signing key and a provisioned verification key. The owner approves
+one immutable record associating the existing `HandlerArtifact.artifact_id`
+with the SHA-256 of those exact module bytes and the sole fixed entry point.
+The deployment signs that record and provisions it and the bytes locally;
+workflow data cannot select a key, path, entry point, module name or signer.
+The verification key and its permitted identity must be provisioned outside
+the application checkout, protected from workflow and application writers,
+and loaded from deployment-controlled configuration. A public key committed
+in source, a signature supplied with workflow data, or an application-owned
+signing key is not an independent trust root.
+
+The proposed version-1 signed record is exactly ASCII bytes
+`animetron-sample-handler-v1\n<deploymentId>\n<keyGeneration>\n<artifactId>\n<sha256>\n`.
+The deployment ID and artifact ID match `[A-Za-z0-9][A-Za-z0-9_-]{0,127}`;
+the key generation is a positive decimal integer of at most 18 digits with
+no leading zero; the lowercase digest is 64 hexadecimal characters. The
+signature is exactly 64 raw Ed25519 bytes over the record; the version fixes
+the only permitted entry point to `sample.constant`. The record and detached
+signature have fixed deployment-configured local locations, never locations
+chosen by a workflow. Their deployment ID and key generation must match the
+independently provisioned verifier configuration. Read each record and
+signature once into immutable bytes, limiting the record to 512 bytes, and
+parse only the verified record bytes. The provisioned Ed25519 public key is
+exactly 32 raw bytes. Verification must reject non-canonical signatures and
+invalid or small-order public keys. Reject extra bytes,
+unsupported versions, malformed fields, untrusted keys and invalid signatures.
+The deployment must not reuse a key generation for a different public key.
+The owner
+must authorize a release only after reviewing the module's behavior and its
+dependency assumptions; a valid signature authenticates that authorization,
+not the safety of arbitrary Python.
+
+At process initialization, a trusted bootstrap reads the one configured
+artifact once into at most 262,144 immutable bytes, verifies the signed record
+and the SHA-256 of those same bytes, decodes strictly as UTF-8 without a BOM
+or encoding declaration, then compiles and executes that decoded source.
+It registers the verified module under the fixed private name
+`app.services.workflows._verified_sample_evaluator` for module initialization
+and rejects any preexisting entry for that name. It obtains `_constant` from
+that module, retains the actual callable and its companion types in a private
+server-owned handle, and does not resolve them again through `sys.modules`.
+It never imports or reopens the
+artifact by path after verification, chooses an entry point from input, or
+loads a caller-provided plugin. The module must have bounded, effect-free
+top-level initialization. The bootstrap must fail closed if it cannot establish
+this sequence; hashing a file after a conventional import is insufficient.
+The verified handle is used directly for the eventual call. Ordinary imports,
+bytecode caches and import hooks cannot supply this executor callable; no
+unverified artifact code may run on this loading path. The existing sample
+evaluator remains independent and must not be used as evidence for the
+executor's verified identity.
+After whole-graph revalidation, derive the selected node's configuration from
+the verified snapshot and validate it again using the verified instance's
+`_ConstantConfig` before committing a start. Invoke the retained `_constant`
+with that config and an empty inputs mapping. Validate the returned text port
+and byte bounds with trusted server logic before recording an outcome, without
+exposing module-local types to existing evaluator callers.
+This bootstrap is not a sandbox: top-level behavior and trusted imports require
+release review and deployment controls, not an AST-based safety claim.
+An opaque handle or matching digest
+string by itself does not satisfy this contract.
+
+The trust boundary assumes the deployment controls the interpreter and
+bootstrap, trusted imports and startup environment, verification-key
+configuration, and process memory throughout use. Workflow users cannot
+modify them, invoke arbitrary in-process code, attach a debugger, replace
+globals or mutate the retained callable. The host, deployment administrator,
+database administrator and signing authority are trusted. A compromised host,
+signer, interpreter, dependency or process is not detected by this design.
+Python does not freeze functions or globals: this design cannot guarantee
+callable integrity against code already able to mutate the process.
+The artifact digest alone does not establish those assumptions; an actual
+deployment must demonstrate and enforce them before execution is enabled.
+
+Revocation and start must be ordered, not merely checked at startup. A
+deployment-owned policy row keyed by deployment ID in the same PostgreSQL database identifies
+the deployment ID, current key generation, SHA-256 of the provisioned raw
+public-key bytes, and permitted `(artifactId, sha256)` pair. Only a separate
+deployment administrator may update it; the runtime cannot directly update it.
+A narrowly scoped administrator-owned `SECURITY DEFINER` function with a fixed
+safe search path exposes the policy and takes its shared row lock on behalf of
+the runtime, which otherwise lacks the PostgreSQL update privilege needed for
+`SELECT FOR SHARE`. Its owner, execute grants and body must be independently
+reviewed; it cannot accept arbitrary SQL or change policy. After
+locking the run and revalidating the graph, the start transaction takes a
+shared lock through that function and requires the handle's deployment ID,
+verified key generation, public-key fingerprint and pair to match the policy;
+only the pair is compared with the existing snapshot pin. Any mismatch fails
+closed. It inserts the unique-per-claim start record with those identities, and
+holds the policy lock through a successful commit. A policy update or
+revocation takes an exclusive lock on the same row and does not acquire run
+locks. The function is `VOLATILE` and returns the current locked row under
+`READ COMMITTED`; a timeout, serialization failure or duplicate start forbids
+invocation. A committed revocation first prevents a start; a start committed first
+may still invoke once even if revocation follows. Revocation does not stop
+an already committed start, even if the original process stalls indefinitely;
+the owner must accept this residual risk. Restart never invokes that start.
+Missing policy, inaccessible keys, mismatches,
+timeouts, failed verification or ambiguous commit fail closed, and do not
+permit a call or retry. A post-start failure remains uncertain under P1-10g.
+
+The trusted server creates new snapshots using the authorized catalog's exact
+artifact ID and digest, not a workflow-provided pin. Changing the signed module
+requires a new digest, an owner-authorized release and policy update, and a new
+snapshot pin; old snapshots are never repinned. Under the same exclusive
+policy lock, a controlled administrative write path permanently tombstones
+retired or revoked pairs in an append-only deployment-owned table keyed by
+deployment ID, artifact ID and digest. The locked start check rejects any
+tombstoned pair, and the administrative write path atomically checks the
+tombstones before updating policy. The deployment administration role uses
+that path rather than direct table writes. A tombstoned pair must never be
+permitted again for that deployment, even under a different key. Key
+generations never decrease or bind a different public key. Initial provisioning
+is a separate deployment-administrator operation creating the complete policy
+only after verifying the signed record and provisioned key; an absent or
+partially provisioned policy never permits start. Rotation can retain an active
+pair without tombstoning it: after the new policy commits, old process handles
+fail and only a newly verified handle for the new key can start an old snapshot
+whose pair remains permitted.
+An old or already-admitted
+snapshot whose pair is no longer permitted fails closed without invocation;
+no outcome or automatic retry is created, and an admitted run can remain
+`RUNNING` until existing cancellation or separately authorized recovery.
+The owner must accept that operational limitation. The proposal does not
+change P1-10f's read-only failure behavior.
+Rotation or revocation invalidates stale process handles at the next start
+check. Do not silently fall back to another key, artifact, handler or policy.
+Whole-graph P1-10f validation remains mandatory: this proposal proves only
+the selected sample handler and does not make other handler or model pins
+ready. Any graph containing unresolved pins must still fail closed.
+
+Before any implementation is approved, the owner must review the signing and
+key-provisioning procedure, policy administration and permissions, installed
+artifact location, process isolation, and the safe module-loading integration.
+Selection, version pinning, licensing and supply-chain review of an Ed25519
+implementation are also prerequisites; no cryptographic dependency is added
+or installed by this proposal. Integration must preserve the sample
+evaluator's current behavior and failure-type identity for its existing callers;
+the verified instance's separate types must not leak into that API.
+None is currently established. Acceptance must include offline synthetic-key
+tests for modified bytes, mismatched pins, invalid signatures, malformed
+records, cross-deployment signatures, reused key generations, untrusted or
+rotated keys, preloaded modules, file replacement after the read, and direct
+invocation of the verified function. Exercise existing sample evaluator
+behavior, separate module type identity, retired-pair non-reinstatement and
+old-snapshot refusal without changing P1-10f failure semantics.
+Real isolated
+PostgreSQL tests must exercise initial provisioning, partially provisioned
+policy refusal, both policy-update/start lock orderings,
+policy privilege denial and lock timeouts, concurrent starts, revocation
+waiting behind starts, and ambiguous commits. Tests must demonstrate that an
+unverified conventional import and stale handles cannot be selected by the
+executor and the retained verified callable is the one invoked under the
+stated process-trust assumptions. Tests alone cannot prove deployment isolation
+or signing authority;
+those require independently reviewed deployment evidence. Existing P1-10g
+replay, cancellation, outcome and no-external-effect requirements still apply.
+
 ## Bounded internal P1-10b sample evaluator
 
 `app.services.workflows.sample_evaluator.evaluate_sample_graph(data)` is a

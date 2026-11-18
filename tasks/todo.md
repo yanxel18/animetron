@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `7292829` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `af9142a` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,7 +27,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`7292829`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`af9142a`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -39,7 +39,9 @@ verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 The owner approved the P1-10e outcome contract for implementation on
 2026-11-18; #100 and #101 are merged. The owner approved P1-10f implementation
 on 2026-11-18; #102 and #103 are merged. #104 merged the P1-10g contract;
-the owner approved implementation on 2026-11-18.
+the owner approved implementation on 2026-11-18. #105 merged the approval
+and trust-root blocker record; its GitGuardian check passed, but no independent
+GitHub review is recorded and the combined status is pending.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -399,12 +401,20 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   that application code has no concrete trusted handler catalog, and the sample
   catalog does not bind handler artifacts. Deployment and artifact installation
   remain unauthorized. No execution or start-record implementation is claimed.
-  Approval and blocker reconciliation is in review in
-  [#105](https://github.com/yanxel18/animetron/pull/105).
+  Approval and blocker reconciliation merged in
+  [#105](https://github.com/yanxel18/animetron/pull/105) at `af9142a`.
   #104's GitGuardian check passed; no independent GitHub review is recorded
-  and combined status is pending.
+  and combined status is pending. #105 has the same review and combined
+  status gap; its GitGuardian check passed. The owner selected the
+  deployment-backed direction on 2026-11-18. A concrete signed-artifact,
+  verified-loading and revocation proposal is in draft review in
+  [#106](https://github.com/yanxel18/animetron/pull/106); it is not approved
+  for implementation, does not establish a trust root, and does not authorize
+  deployment or installation. Three adversarial review cycles identified
+  substantive issues; the latest amendments require further independent
+  review before this proposal can be approved.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #104 and recording P1-10g approval and its blocker. Nested slices do
+  reconciling #105 and recording the proposed trust-root design. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -793,8 +803,11 @@ immutable workflow and recover its state without duplicate effects.
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10g-one-shot-sample-execution-contract).
     The owner approved implementation on 2026-11-18; specification
     [#104](https://github.com/yanxel18/animetron/pull/104) merged. Blocked on
-    verifiable deployment-owned handler-to-artifact binding. No worker, model
-    invocation, external effect or automatic retry is authorized.
+    verifiable deployment-owned handler-to-artifact binding. The
+    [proposed binding](../docs/SPEC-workflow-runtime.md#proposed-p1-10g-deployment-backed-handler-binding)
+    is in draft review in [#106](https://github.com/yanxel18/animetron/pull/106)
+    and awaits owner approval and independently verified deployment controls.
+    No worker, model invocation, external effect or automatic retry is authorized.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
