@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `c0560a1` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `39aa8c0` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,12 +27,14 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`c0560a1`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 are merged but
-are not credited without a passing independent review and required checks.
+`39aa8c0`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+#94, #95 and #96 are merged but are not credited without a passing independent
+review and required checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
-P1-12d and P1-12e are in review and do not count as complete.
+#94 and #95 verify P1-12d and P1-12e; #96 verifies persisted readiness.
+#97 merged a proposed P1-10d contract, not owner approval to implement it.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -321,18 +323,33 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   cancellation-first resolve a handler before cancellation committed, failing
   the regression; restored locks passed. If dispatch wins, its run-ready and
   node intents remain after cancellation. No worker or suppression of such
-  previously prepared work is tested. This slice is in review in
-  [#94](https://github.com/yanxel18/animetron/pull/94).
+  previously prepared work is tested. Merged in
+  [#94](https://github.com/yanxel18/animetron/pull/94) at `4027b19`.
+  GitGuardian passed; no independent review is recorded and combined status
+  is pending. Keep unchecked.
 - P1-12e tests duplicate dispatch preparation under PostgreSQL contention,
   stacked on #94. The owned harness passed 9 dispatch tests, migrations, Ruff
   and Linux-target mypy. Replacing the existing-dispatch replay with a conflict
   made the new test fail; restoring it passed. The test verifies one node plan,
   run-ready intent and running transition, not worker delivery or execution.
-  The slice is in review in
-  [#95](https://github.com/yanxel18/animetron/pull/95).
+  Merged in [#95](https://github.com/yanxel18/animetron/pull/95) at `7009807`.
+  GitGuardian passed; no independent review is recorded and combined status
+  is pending. Keep unchecked.
+- Persisted-readiness verification merged in
+  [#96](https://github.com/yanxel18/animetron/pull/96) at `a530ddc`. The owned
+  harness passed 9 readiness tests, migrations, Ruff and Linux-target mypy.
+  Fake handler and model registries do not prove installed readiness or worker
+  execution. GitGuardian passed; no independent review is recorded and combined
+  status is pending. Keep unchecked.
+- The proposed P1-10d node-admission contract merged in
+  [#97](https://github.com/yanxel18/animetron/pull/97) at `39aa8c0`. It remains
+  explicitly unapproved: owner approval is required before implementation.
+  GitGuardian passed; no independent review is recorded and combined status is
+  pending. The proposal adds no worker, execution or external effects.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #93 and recording P1-12d and P1-12e. Nested slices do not change
-  the project counts.
+  reconciling #94 through #97. Nested slices do not change the project counts.
+  This reconciliation is in review in
+  [#98](https://github.com/yanxel18/animetron/pull/98).
 
 ## Phase 0 - Plan and shared foundations
 
@@ -562,8 +579,10 @@ immutable workflow and recover its state without duplicate effects.
     - [ ] P1-08c1 Verify readiness against persisted PostgreSQL run requests
       and execution bindings, including the missing-binding failure. The owned
       harness passed 9 readiness tests, migrations, Ruff and Linux-target mypy.
-      In review in [#96](https://github.com/yanxel18/animetron/pull/96); fake registries
-      do not prove installed-handler or model readiness.
+      Merged in [#96](https://github.com/yanxel18/animetron/pull/96) at
+      `a530ddc`; fake registries do not prove installed-handler or model
+      readiness. Independent review is not recorded and combined status is
+      pending; keep unchecked.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
   - [ ] P1-09e Internal mutable draft persistence merged in
@@ -694,8 +713,9 @@ immutable workflow and recover its state without duplicate effects.
     unchecked pending the required review and verification gates.
   - [ ] P1-10d Implement durable node admission after approval of the proposed
     contract in [the workflow runtime spec](../docs/SPEC-workflow-runtime.md#proposed-p1-10d-node-admission-contract-not-approved).
-    In review in [#97](https://github.com/yanxel18/animetron/pull/97); the
-    proposal does not authorize handler execution or automatic retries.
+    The proposal merged in [#97](https://github.com/yanxel18/animetron/pull/97)
+    at `39aa8c0`, but still requires owner approval. It does not authorize
+    handler execution or automatic retries.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
@@ -754,15 +774,17 @@ immutable workflow and recover its state without duplicate effects.
   - [ ] P1-12d Verify cancellation and dispatch preparation serialize on
     PostgreSQL in both lock orderings. Eight dispatch and 13 cancellation
     tests passed in the owned harness. Uses a fake execution binding and does
-    not verify a worker or suppression of already-prepared run-ready intents;
-    keep unchecked pending review, required checks and merge of
-    [#94](https://github.com/yanxel18/animetron/pull/94).
+    not verify a worker or suppression of already-prepared run-ready intents.
+    Merged in [#94](https://github.com/yanxel18/animetron/pull/94) at
+    `4027b19`. Independent review is not recorded and combined status is
+    pending; keep unchecked.
   - [ ] P1-12e Verify concurrent duplicate dispatch preparation reuses one
     persisted node plan and run-ready intent after waiting on PostgreSQL.
     Nine dispatch tests, migrations, Ruff and Linux-target mypy passed in the
-    owned harness; a replay-path mutation failed the new regression. This is
-    in review in [#95](https://github.com/yanxel18/animetron/pull/95), depends
-    on #94, and does not verify worker delivery or execution.
+    owned harness; a replay-path mutation failed the new regression. Merged in
+    [#95](https://github.com/yanxel18/animetron/pull/95) at `7009807`, after
+    #94. This does not verify worker delivery or execution. Independent review
+    is not recorded and combined status is pending; keep unchecked.
 
 ## Phase 2 - Model registry and hardware readiness
 
