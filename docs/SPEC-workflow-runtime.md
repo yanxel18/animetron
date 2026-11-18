@@ -253,6 +253,117 @@ Validation is read-only and applies to one observed draft version. No
 validation result is persisted; this endpoint creates no immutable revision,
 workflow entity, run, or external effect.
 
+## Proposed P1-09j owner-only draft-to-revision creation
+
+**Status: proposal; explicit owner approval is required before implementation.**
+Three adversarial review cycles identified substantive issues; the latest
+amendments require further independent review.
+The existing draft write and validation APIs cannot create the immutable
+revision required by run creation. This slice would let the owner save one
+validated draft version as a revision; it does not create an execution binding
+or establish execution readiness. The existing run-request API can still
+create a `QUEUED` run for a saved revision; that request does not prove
+readiness. Dispatch separately checks the required execution binding and pins.
+
+`POST /api/v1/workflows/{id}/revisions` accepts exactly
+`{ "expectedVersion": <positive integer> }`, with the same version range as
+P1-09h: 1 through 2,147,483,646. A draft at version 2,147,483,647 can
+exist but cannot be validated or saved through these endpoints; changing that
+existing boundary requires separate work. It accepts no document, revision
+identifier, digest, catalog or query parameter from the request. The revision
+identifier comes from the stored draft document and uses the existing revision
+validator. It uses the existing owner-only fresh-session, exact-origin and CSRF
+protections, bounded JSON and identity content encoding. The request body
+limit is 4,096 bytes.
+
+One internal sample-revision operation owns the locked draft read, shared
+sample catalog and limits, canonical-size check and revision save in a single
+non-autocommit PostgreSQL transaction. The new route uses this operation rather
+than calling the generic revision service directly. Read the draft row for the
+requested workflow using a row-locking `SELECT`; use the version and bytes
+returned by that locked statement, not an earlier unlocked read. A missing
+draft is `404` and a different version is `409` with
+`WORKFLOW_DRAFT_CONFLICT`. Keep the lock until the revision insert commits, so
+a concurrent draft update that commits first makes an old expected version
+fail, and an update that waits behind creation cannot alter the version being
+saved. Reuse the existing bounded lock and statement timeouts; a timeout or
+uncertain commit returns a generic `503`, without claiming that the transaction
+rolled back. Acquire the draft lock before the revision unique-key operation,
+never the reverse. Concurrent draft writes can wait for this lock and can
+themselves time out. A lookup that finds no row returns `404`, even if another
+transaction subsequently creates it.
+
+Validate the locked bytes against the same fixed, backend-owned text-only
+sample catalog and 32-node, 48-edge, 32-KiB limits used by P1-09h, regardless
+of any earlier validation result. Use one shared source of those definitions
+and limits rather than a second catalog; acceptance must verify the same
+document and graph validation results as P1-09h, apart from the additional
+canonical-size limit below. Reuse the canonical snapshot and application-level
+immutable revision service; persist the resulting canonical JSON and SHA-256
+atomically.
+The canonical snapshot bytes are separately limited to 32,768 bytes before
+insertion, because ASCII JSON escaping can expand a valid draft. Oversized
+canonical snapshots return `422` with `REVISION_CANONICAL_TOO_LARGE` even when
+P1-09h's draft validation passes; P1-09h does not report this additional size
+failure. This bound does not guarantee that the larger execution snapshot and
+its pins fit a later execution limit or are ready. Invalid documents or graphs
+return generic `422` and create no revision; the existing validation endpoint
+provides graph-validation details. A previously saved identical revision is
+reused, while the same workflow and revision identifier with
+different canonical content returns `409` with `WORKFLOW_REVISION_CONFLICT`
+without modifying either revision or draft. Immutability relies on the existing
+trusted-writer boundary, not a new database update/delete trigger. A successful
+insert or exact replay returns `200` and the existing revision-read shape with
+the keys `workflowId`, `revision`, `canonicalJson` and `sha256`.
+The response does not distinguish insert from replay. The draft is neither
+modified nor deleted. This proposal preserves existing parser semantics,
+including escaped non-scalar Unicode accepted by that parser; it does not
+assert that such values are suitable for later handler execution. Revisions
+have no per-workflow count or total-storage quota in this slice; owner-created
+revision history can grow without bound.
+
+Unlike run creation, no idempotency key or new request record is added: the
+immutable `(workflowId, revision)` uniqueness and exact canonical-content
+comparison handle identical replays. An identical retry is safe while the
+same draft version and the same catalog and canonicalization remain in use. If
+the draft changes after an uncertain response, an old-version retry returns
+`409`, not a guessed success. Before requesting, the client must retain the
+version and document including its revision identifier. After an uncertain
+response, it can read that revision through the existing query endpoint and
+compare its canonical content and digest using the same snapshot
+canonicalization. The existing snapshot algorithm preserves node and edge
+array order and serializes object keys sorted with compact separators,
+ASCII escapes and non-finite numbers rejected; semantically similar reordered
+graphs need not match. If the client cannot reproduce the exact bytes or
+otherwise prove an exact match, the result stays unknown; it must not silently
+repin or overwrite an existing revision.
+
+Malformed input, invalid headers, unsupported encoding, oversized request or
+query parameters return the existing generic `422`; unauthenticated or stale
+sessions return `401`; non-owner, origin or CSRF failures return `403` before
+draft or revision lookup. After authorization and input checks, check the
+locked version before validating the document, then insert or compare the
+revision. `InvalidWorkflowDocument` and `InvalidWorkflowGraph` map to `422`;
+`RevisionConflict` maps to the revision-specific `409`; corrupt draft or
+revision state and database failures map to generic `503`. Do not turn
+unexpected programming errors into validation failures. Success and error
+responses retain the existing security and `Cache-Control: no-store` headers.
+The operation must not invoke handlers,
+load artifacts, acquire models, enqueue work, create runs, or cause external
+effects. Execution readiness remains a separate gate.
+
+Acceptance requires focused API and isolated PostgreSQL tests for exact
+creation and replay, revision collisions, invalid and missing drafts,
+authorization, malformed input, stored-state corruption and commit failures.
+Include a multibyte draft whose canonical JSON exceeds 32 KiB and a boundary
+case for the largest accepted draft version.
+Exercise both winners of a concurrent draft-update/revision-create race with
+real transactions, simultaneous revision requests, lock timeout, and the
+missing-draft/concurrent-draft-create case. Verify no revision or draft mutation
+on rejected requests.
+Preserve existing draft validation, revision read/list and run-request behavior,
+and update generated API types as required by the existing project commands.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run
