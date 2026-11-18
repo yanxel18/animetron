@@ -21,7 +21,9 @@ parser accepts UTF-8 JSON with schemaVersion 1, an opaque nonblank revision,
 nodes with configs, and camelCase edge ports. Callers must provide byte and
 graph limits, check the returned validation issues, and must not treat a parsed
 document as an immutable snapshot. Revision identifiers are nonblank UTF-8
-strings up to 128 characters and cannot contain NUL. There is no workflow API.
+strings up to 128 characters and cannot contain NUL. Owner-only workflow
+routes provide immutable revision discovery/read and idempotent run creation.
+Mutable draft editing and full workflow CRUD are not available on this branch.
 
 The internal snapshot builder validates a document and produces immutable
 canonical JSON bytes and a SHA-256 digest. Object keys are sorted, but node and
@@ -128,10 +130,12 @@ expiry/deletion**; the database guards their mutation. The additive
 downgrading it destroys replay evidence (require authorization and recovery
 planning on populated databases).
 
-This is not authorization, dispatcher/handler/model readiness or an execution
-claim. No role/default principal or source path is accepted. No node intents,
-workflow HTTP/CRUD, scheduling, workers or external effects are implemented.
-P1-08 implementation/default/model pinning remains an EXECUTION prerequisite.
+This service is not authorization, dispatcher/handler/model readiness or an
+execution claim. No role/default principal or source path is accepted. It adds
+no node intents, scheduling, workers or external effects. The separate
+owner-only P1-09i HTTP route requests a run against an existing revision through
+this service but does not execute or dispatch it. P1-08
+implementation/default/model pinning remains an EXECUTION prerequisite.
 Privileged SQL tampering is outside the trust boundary. See the
 [internal contract](../docs/SPEC-workflow-runtime.md#bounded-internal-p1-09a-contract).
 
