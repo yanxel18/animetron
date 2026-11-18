@@ -348,6 +348,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   pending. The proposal adds no worker, execution or external effects.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #94 through #97. Nested slices do not change the project counts.
+  This reconciliation is in review in
+  [#98](https://github.com/yanxel18/animetron/pull/98).
 
 ## Phase 0 - Plan and shared foundations
 
