@@ -188,6 +188,10 @@ verification. This checklist remains the only current progress source.
   found no PR for this branch; PR creation and review submission are unavailable
   through the read-only integration. Keep unchecked and use the
   [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-09i-workflow-run-create?expand=1).
+- P1-10 production dispatch remains gated on P1-08 runtime enforcement. The
+  approved runtime spec explicitly says the P1-10b sample evaluator does not
+  verify pinned handler artifacts or model readiness and does not satisfy that
+  prerequisite. No production dispatch or model acquisition was performed.
 - Reconciled with `181bf6c` on 2026-11-18. Progress remains 18/57 (31.6%),
   P0 4/9 and P1 7/12. P1-09e remains unchecked because its review/check gates
   are missing; P1-09f/g/h/i remain unmerged, so none changes the counts.
