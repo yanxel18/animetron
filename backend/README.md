@@ -7,8 +7,8 @@ plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
 CSRF, audit/readiness/WebSocket and review controls, and security limitations.
 Review HTTP access is owner-only and metadata/decision-only. The artifact API
-currently exposes only owner-only metadata reads; upload and content delivery,
-workflow CRUD, model/media and creator features are not implemented.
+currently exposes only owner-only metadata reads; upload and content delivery
+are not implemented.
 
 The internal workflow graph validator checks graph limits, node and edge IDs,
 allowlisted node types, port connections, required inputs, and cycles against

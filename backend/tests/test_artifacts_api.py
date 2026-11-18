@@ -1,7 +1,7 @@
 import hashlib
 import os
 import secrets
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -109,5 +109,22 @@ def test_owner_gets_not_found_for_unknown_artifact(artifact_context):
     client, _, _, _ = artifact_context
 
     response = client.get(f"/api/v1/artifacts/{uuid4()}")
+
+    assert_error(response, 404, "ARTIFACT_NOT_FOUND")
+
+
+def test_owner_cannot_read_with_unsupported_query_parameters(artifact_context):
+    client, _, engine, _ = artifact_context
+    record = create_artifact(engine)
+
+    response = client.get(f"/api/v1/artifacts/{record.id}?include=bytes")
+
+    assert_error(response, 422, "INVALID_REQUEST")
+
+
+def test_owner_gets_not_found_for_non_uuid4_identifier(artifact_context):
+    client, _, _, _ = artifact_context
+
+    response = client.get(f"/api/v1/artifacts/{UUID(int=0)}")
 
     assert_error(response, 404, "ARTIFACT_NOT_FOUND")
