@@ -36,7 +36,8 @@ verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 #94 and #95 verify P1-12d and P1-12e; #96 verifies persisted readiness.
 #97 merged the P1-10d contract; the owner approved implementation on
 2026-11-18. The implementation merged in #99 and does not change these counts.
-The P1-10e outcome contract is proposed in #100, not approved.
+The owner approved the P1-10e outcome contract in #100 for implementation on
+2026-11-18; #100 remains open.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -357,12 +358,19 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   checks passed 25 tests with 22 database cases skipped. GitGuardian passed,
   but independent review is not recorded and combined status is pending;
   keep unchecked.
-- P1-10e proposes recording confirmed node outcomes without unlocking
-  downstream work or retrying unknown effects. The contract is in review in
-  [#100](https://github.com/yanxel18/animetron/pull/100); owner approval is
-  required before implementation.
+- P1-10e records confirmed node outcomes without unlocking downstream work or
+  retrying unknown effects. The owner approved the contract on 2026-11-18;
+  its proposal remains in review in
+  [#100](https://github.com/yanxel18/animetron/pull/100). Implementation is
+  in review and depends on #100; it is not credited before merge and checks.
+  The owned PostgreSQL harness passed 24 admission/outcome tests and seven
+  migration tests, including migration drift, Ruff and Linux-target mypy.
+  Adjacent no-database workflow tests passed 25 with six skips.
+  Inverting the replay-conflict check failed three cases; the restored code
+  passed. Independent static source review found no significant defects, but
+  GitHub review and required checks must still be recorded before merge.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #98 and #99 and recording the P1-10e proposal. Nested slices do
+  reconciling #98 and #99 and recording the approved P1-10e slice. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -732,10 +740,12 @@ immutable workflow and recover its state without duplicate effects.
     in [#99](https://github.com/yanxel18/animetron/pull/99) at `5ae984e`.
     It does not authorize handler execution or automatic retries. Independent
     review is not recorded and combined status is pending; keep unchecked.
-  - [ ] P1-10e Implement confirmed node-outcome records after approval of the
-    [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10e-node-outcome-contract-not-approved).
-    In review in [#100](https://github.com/yanxel18/animetron/pull/100). This
-    does not execute handlers, store outputs, or unlock dependent nodes.
+  - [ ] P1-10e Implement confirmed node-outcome records under the
+    [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10e-node-outcome-contract).
+    The owner approved implementation on 2026-11-18; the specification remains
+    in review in [#100](https://github.com/yanxel18/animetron/pull/100).
+    The implementation is in review; it does not execute handlers, store
+    outputs, or unlock dependent nodes.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
