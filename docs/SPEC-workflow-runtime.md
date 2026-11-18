@@ -651,12 +651,12 @@ transmission or deployment are authorized.
 The internal `revalidate_admitted_node` service implements this point-in-time
 check; it is not an execution permit or a worker.
 
-## Proposed P1-10g one-shot sample execution contract (not approved)
+## Approved P1-10g one-shot sample execution contract
 
-This proposal advances from stored claims to an actual local handler call,
+This contract advances from stored claims to an actual local handler call,
 but only for the existing deterministic `sample.constant` root node. It is
 an internal one-shot operation, not a worker or production model execution.
-Owner approval is required before implementation. No arbitrary handler,
+The owner approved implementation on 2026-11-18. No arbitrary handler,
 model, filesystem, network or external effect is authorized.
 
 The trusted server owns the database transactions and selects the handler;
@@ -715,8 +715,14 @@ external effects. Test unexpected handler or result-storage failure leaves an
 unknown result or commit state with no retry. Preserve P1-10e and P1-10f
 behavior.
 
-**Approval needed:** Confirm this bounded sample execution contract before
-implementation, including the trusted artifact-binding prerequisite.
+**Implementation blocker:** The current injected readiness catalog reports
+an opaque handle and declared digest; it does not bind the loaded callable to
+a deployment-owned immutable artifact. No such trusted handler catalog or
+attestation mechanism is present in the current backend. The sample evaluator
+directly selects a Python function and does not verify its implementation pin.
+Design and establish a verifiable deployment-owned trust root before executing;
+the approved contract does not authorize deployment or artifact installation.
+Do not treat a hard-coded or caller-asserted digest as that proof.
 
 ## Bounded internal P1-10b sample evaluator
 
