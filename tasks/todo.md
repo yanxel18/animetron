@@ -37,7 +37,8 @@ verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
 #97 merged the P1-10d contract; the owner approved implementation on
 2026-11-18. The implementation merged in #99 and does not change these counts.
 The owner approved the P1-10e outcome contract for implementation on
-2026-11-18; #100 and #101 are merged. P1-10f is proposed for approval.
+2026-11-18; #100 and #101 are merged. The owner approved P1-10f implementation
+on 2026-11-18; its specification #102 remains open.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -368,16 +369,23 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   migration tests, including migration drift, Ruff and Linux-target mypy.
   Adjacent no-database workflow tests passed 25 with six skips.
   Inverting the replay-conflict check failed three cases; the restored code
-  passed. Independent static source review found no significant defects, but
+  passed. Independent static source review found no significant defects.
   GitGuardian passed, but no independent GitHub review is recorded and the
   combined status is pending; keep the slice unchecked.
-- P1-10f proposes read-only, whole-graph pin and plan revalidation for an
-  existing root-node claim. It is not approval to execute: owner approval is
-  required before implementation and a future executor needs separate
-  cancellation, fencing and unknown-effect contracts. The proposal is in
-  review in [#102](https://github.com/yanxel18/animetron/pull/102).
+- P1-10f implements read-only, whole-graph pin and plan revalidation for an
+  existing root-node claim. The owner approved the contract on 2026-11-18;
+  its proposal is in review in
+  [#102](https://github.com/yanxel18/animetron/pull/102). Implementation
+  [#103](https://github.com/yanxel18/animetron/pull/103) is in review and
+  depends on #102. It does not authorize execution; a future
+  executor needs separate cancellation, fencing and unknown-effect contracts.
+  The owned PostgreSQL harness passed 41 admission/outcome/revalidation tests,
+  including a persisted execution binding, nine queued-preflight tests and
+  nine dispatch tests. Alembic drift check, Ruff and Linux-target mypy passed.
+  Inverting the persisted-plan comparison failed eight cases; restoring it
+  passed. Independent static review reported no significant issues.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #100 and #101 and recording the P1-10f proposal. Nested slices do
+  reconciling #100 and #101 and recording the approved P1-10f slice. Nested slices do
   not change the project counts. The earlier reconciliation merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 
@@ -755,10 +763,13 @@ immutable workflow and recover its state without duplicate effects.
     independent GitHub review is recorded and combined status is pending;
     keep unchecked. It does not execute handlers, store outputs, or unlock
     dependent nodes.
-  - [ ] P1-10f Implement admitted-node revalidation only after owner approval of
-    the [proposed contract](../docs/SPEC-workflow-runtime.md#proposed-p1-10f-admitted-node-revalidation-contract-not-approved).
-    In review in [#102](https://github.com/yanxel18/animetron/pull/102).
-    This remains read-only and does not authorize execution.
+  - [ ] P1-10f Implement admitted-node revalidation under the
+    [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10f-admitted-node-revalidation-contract).
+    The owner approved implementation on 2026-11-18; the specification remains
+    in review in [#102](https://github.com/yanxel18/animetron/pull/102).
+    Implementation is in review in
+    [#103](https://github.com/yanxel18/animetron/pull/103) and remains
+    read-only; it does not authorize execution.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in

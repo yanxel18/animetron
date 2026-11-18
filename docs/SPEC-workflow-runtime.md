@@ -601,13 +601,13 @@ separate work.
 The internal implementation currently accepts `EXECUTION_FAILED` as its sole
 failure code. It must not be interpreted as a retry classification.
 
-## Proposed P1-10f admitted-node revalidation contract (not approved)
+## Approved P1-10f admitted-node revalidation contract
 
 The next step toward a worker is a read-only check for an already admitted
 root node in a prepared run. The existing preflight accepts only `QUEUED` runs
 and can transition them to `FAILED`; it cannot safely be reused unchanged on a
 `RUNNING` run. This proposal assumes the check is useful as a building block,
-not as permission to execute. Owner approval is required before implementation.
+not as permission to execute. The owner approved implementation on 2026-11-18.
 
 A trusted internal caller provides an exact claim ID, run ID and node ID, an
 explicit non-autocommit PostgreSQL transaction, server-owned graph/byte limits,
@@ -648,8 +648,8 @@ but becomes stale afterward. Tests must also verify the queued preflight
 remains unchanged. No model downloads, worker, handler invocation, external
 transmission or deployment are authorized.
 
-**Approval needed:** Confirm this read-only revalidation contract before
-implementation.
+The internal `revalidate_admitted_node` service implements this point-in-time
+check; it is not an execution permit or a worker.
 
 ## Bounded internal P1-10b sample evaluator
 
