@@ -297,6 +297,33 @@ def test_rollback_includes_other_transactional_work(engine) -> None:
         assert conn.scalar(text("SELECT to_regclass('artifact_atomicity_probe')")) is None
 
 
+def test_transaction_recovers_after_constraint_failure(engine) -> None:
+    rolled_back = artifact()
+    committed = artifact()
+    invalid = artifact()
+    with engine.connect() as conn:
+        with pytest.raises(IntegrityError), conn.begin():
+            save_artifact(conn, rolled_back)
+            conn.execute(
+                insert(artifacts).values(
+                    id=invalid.id,
+                    owner_id=invalid.owner_id,
+                    revision=invalid.revision,
+                    sha256=invalid.sha256,
+                    byte_size=-1,
+                    media_type=invalid.media_type,
+                    storage_locator=invalid.storage_locator,
+                )
+            )
+
+        with conn.begin():
+            assert save_artifact(conn, committed) == committed
+
+        with pytest.raises(ArtifactNotFound):
+            get_artifact(conn, rolled_back.id)
+        assert get_artifact(conn, committed.id) == committed
+
+
 def test_writes_require_transaction_and_reject_autocommit(engine) -> None:
     with engine.connect() as conn, pytest.raises(RuntimeError, match="transaction"):
         save_artifact(conn, artifact())
