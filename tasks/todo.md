@@ -323,10 +323,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   [#96](https://github.com/yanxel18/animetron/pull/96). Its owned harness
   passed 9 readiness tests, migrations, Ruff and Linux-target mypy. Handler and
   model registries are fakes; installed readiness and execution are unverified.
-- P1-10d node-admission contract is proposed, not approved. It specifies a
-  durable, cancellation-serialized claim with no automatic reassignment of an
-  unknown outcome. Owner approval is required before implementation. This
-  proposal adds no worker, execution, or external effects.
+- P1-10d node-admission contract is proposed in
+  [#97](https://github.com/yanxel18/animetron/pull/97), not approved. It
+  specifies a durable, cancellation-serialized claim with no automatic
+  reassignment of an unknown outcome. Owner approval is required before
+  implementation. This proposal adds no worker, execution, or external effects.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #93 and recording the in-review slices and P1-10d proposal.
   Nested slices do not change the project counts.
@@ -685,7 +686,8 @@ immutable workflow and recover its state without duplicate effects.
     unchecked pending the required review and verification gates.
   - [ ] P1-10d Implement durable node admission after approval of the proposed
     contract in [the workflow runtime spec](../docs/SPEC-workflow-runtime.md#proposed-p1-10d-node-admission-contract-not-approved).
-    The proposal does not authorize handler execution or automatic retries.
+    In review in [#97](https://github.com/yanxel18/animetron/pull/97); the
+    proposal does not authorize handler execution or automatic retries.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
   - [x] P1-11a Merged in
