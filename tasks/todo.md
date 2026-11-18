@@ -224,10 +224,15 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   P1-08c. The slice persists validated node dependencies and a distinct
   run-ready outbox record atomically with the run transition; readiness
   failures do not create executable intents. Focused dispatch/readiness tests
-  pass (12), Ruff passes, Linux-target strict mypy passes (47 app files), and
-  Alembic reports the new revision as head. A live migration upgrade/check is
-  blocked by unavailable owned database configuration. No PR exists yet; keep
-  unchecked.
+  pass (147 passed, 111 skipped), full backend Ruff passes, Linux-target strict
+  mypy passes (47 app files), and Alembic reports the new revision as head.
+  The full backend suite returned 420 passed, 341 skipped, 3 failures and 48
+  errors; the failures are database-ownership tests and the errors are
+  auth/database/Keycloak setup cases blocked by absent owned harness
+  configuration, including `ANIMETRON_TEST_DATABASE_URL`. Mutating the
+  duplicate-state guard made its regression test fail as expected. A live
+  migration upgrade/check is likewise blocked by unavailable owned database
+  configuration. No PR exists yet; keep unchecked.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12. Unmerged slices do not
   change the project counts.
 
@@ -454,7 +459,7 @@ immutable workflow and recover its state without duplicate effects.
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is
     pending.
-    - [x] P1-09e1 Update migration downgrade integration-test expectations for
+    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
       `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
       `task/p1-09e-migration-downgrade-tests`; merged through
       [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
