@@ -726,15 +726,16 @@ Do not treat a hard-coded or caller-asserted digest as that proof.
 
 ## Proposed P1-10g deployment-backed handler binding
 
-**Status: design proposal, not approved for implementation or deployment.**
+**Status: owner approval expressed; implementation and deployment remain blocked.**
 The revised design needs further independent review; three adversarial review
 cycles found substantive issues. The amendments below have not yet been
 independently verified.
-The owner selected a deployment-backed trust root on 2026-11-18; that choice
-does not approve this specific mechanism. P1-10g remains blocked until this
-design is approved, the trust root is independently established, and the
-binding is verified. This section does not authorize installing artifacts,
-starting a deployment, signing releases, fetching models, or calling a handler.
+The owner selected a deployment-backed trust root and explicitly approved
+proceeding on 2026-11-18. That approval does not waive independent review
+or the prerequisites below. P1-10g remains blocked until the trust root is
+independently established and the binding is verified. This section does not
+authorize installing artifacts, starting a deployment, signing releases,
+fetching models, or calling a handler.
 
 The proposed artifact is the exact UTF-8 source bytes of a single built-in
 sample-handler module: the deployed built-in `sample_evaluator.py`, including
