@@ -26,9 +26,10 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after master commit `181bf6c`; merged
-subtask slices do not complete top-level tasks. P1-09f/g/h/i remain unmerged,
-so the percentage and per-phase counts remain unchanged.
+percentage is unchanged. Recalculated after integrating and pushing P1-09i
+commit `3593744` against master `181bf6c`; merged subtask slices do not
+complete top-level tasks. P1-09f/g/h/i remain unmerged, so the percentage and
+per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -181,8 +182,9 @@ verification. This checklist remains the only current progress source.
   PostgreSQL/Keycloak harness is also blocked by Windows Application Control.
   Separate latest-master artifact and migration tests passed (36 passed, 55
   skipped); the auth API tests could not set up without the database URL
-  (34 errors). GitHub search found no PR for this branch, and the integration
-  is read-only. Keep unchecked and use the
+  (34 errors). Pushed merge and verification commit `3593744`. GitHub search
+  found no PR for this branch; PR creation and review submission are unavailable
+  through the read-only integration. Keep unchecked and use the
   [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-09i-workflow-run-create?expand=1).
 - Reconciled with `181bf6c` on 2026-11-18. Progress remains 18/57 (31.6%),
   P0 4/9 and P1 7/12. P1-09e remains unchecked because its review/check gates
@@ -422,9 +424,10 @@ immutable workflow and recover its state without duplicate effects.
     tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy passed.
     PostgreSQL-backed persistence tests were skipped because
     `ANIMETRON_TEST_DATABASE_URL` is unavailable; the PostgreSQL/Keycloak
-    harness is blocked by Windows Application Control. GitHub search found no
-    PR for this branch, and the integration is read-only; keep unchecked and
-    target master with the
+    harness is blocked by Windows Application Control. Pushed merge and
+    verification commit `3593744`; GitHub search found no PR, and PR creation
+    or review submission is unavailable through the read-only integration.
+    Keep unchecked and target master with the
     [compare page](https://github.com/yanxel18/animetron/compare/master...task/p1-09i-workflow-run-create?expand=1).
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
