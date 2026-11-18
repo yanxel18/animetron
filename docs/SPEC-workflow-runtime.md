@@ -501,6 +501,53 @@ intents, scheduler/due slots, relay/consumer, handlers, inference or external
 effects. P1-08 handler implementation, configuration-default and model-revision
 pinning remain prerequisites to EXECUTION; a stored request proves none of them.
 
+## Proposed P1-10d node admission contract (not approved)
+
+This proposal is for the first durable worker-facing building block, not a
+running worker. It requires owner approval before implementation. The existing
+run-request notification remains non-executable; this proposal does not add a
+consumer for it or change the meaning of any outbox topic.
+
+A caller-owned PostgreSQL transaction may claim one node from an already
+prepared run. Admission locks the run row before examining or changing node
+state, so it serializes with cancellation. It admits a node only while the run
+is `RUNNING`, the node belongs to the persisted plan, and every predecessor has
+a persisted successful outcome. Initially only nodes without predecessors are
+eligible; this slice does not introduce outcome recording.
+
+The database records a stable caller-supplied UUID4 admission identity and its
+run and node association, with uniqueness enforced atomically for both the
+identity and node. Reusing the identity for the same association reports an
+existing claim, even after cancellation, not permission to invoke the handler
+again. Reusing it for a different association fails. A different identity
+cannot claim an already claimed node. Cancellation committed before admission
+prevents a new claim; admission committed first does not mean that
+cancellation has terminated any in-flight work.
+
+No claim expires or is automatically reassigned in this slice. If a claimant
+disappears, its outcome is unknown: leave it claimed and require a separately
+designed reconciliation path. A database claim or fencing token alone cannot
+prove that an external effect did not happen. The caller must commit the claim
+before any future execution attempt; the claim itself does not authorize
+execution, verify installed handler/model pins, or release a worker from
+checking cancellation. A future executor must revalidate exact pins and define
+how an already-admitted attempt is stopped or reconciled before it invokes
+handlers or effects.
+
+The implementation must use an additive migration, caller-owned transactions,
+parameterized queries and bounded lock/statement timeouts supplied by the
+caller. Failed operations must not leave partial claims, even if the caller
+catches the error and commits unrelated work. PostgreSQL tests must cover
+duplicate identities, competing claimants, rollback, prerequisite gating,
+and both cancellation/admission lock orderings. No handler invocation, broker,
+model download, external transmission, retry or production deployment is
+authorized by this slice.
+
+**Approval needed:** Confirm this conservative no-automatic-retry admission
+contract before implementation. Completion, failure, skip propagation,
+fencing of actual execution, and recovery of unknown effects need separate
+contracts and are not solved by this proposal.
+
 ## Bounded internal P1-10b sample evaluator
 
 `app.services.workflows.sample_evaluator.evaluate_sample_graph(data)` is a
