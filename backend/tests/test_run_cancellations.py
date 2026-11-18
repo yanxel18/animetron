@@ -1,9 +1,14 @@
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.engine import URL
 
+from app.core.database import create_database_engine
 from app.core.outbox import metadata as outbox_metadata
 from app.core.outbox import outbox
 from app.services.workflows import run_cancellations
@@ -60,6 +65,66 @@ def test_cancellation_request_transitions_once_and_deduplicates_outbox(
     assert second.last_sequence == 2
     with engine.connect() as connection:
         assert get_run_status(connection, run_id).state is RunState.CANCELLING
+
+
+def test_concurrent_cancellation_waits_and_reuses_committed_intent():
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
+    engine = create_database_engine(url)
+    run_id = uuid4()
+    contender_pid = Queue()
+    try:
+        with engine.begin() as connection:
+            create_run(connection, run_id)
+
+        def contender():
+            with engine.begin() as connection:
+                connection.execute(text("SET LOCAL lock_timeout = '10s'"))
+                contender_pid.put(connection.scalar(text("SELECT pg_backend_pid()")))
+                return run_cancellations.request_run_cancellation(connection, run_id)
+
+        with ThreadPoolExecutor(max_workers=1) as pool, engine.connect() as winner:
+            transaction = winner.begin()
+            try:
+                winner_pid = winner.scalar(text("SELECT pg_backend_pid()"))
+                first = run_cancellations.request_run_cancellation(winner, run_id)
+                future = pool.submit(contender)
+                pid = contender_pid.get(timeout=5)
+                deadline = time.monotonic() + 5
+                with engine.connect() as observer:
+                    while time.monotonic() < deadline:
+                        blockers = observer.scalar(
+                            text("SELECT pg_blocking_pids(:pid)"), {"pid": pid},
+                        )
+                        if winner_pid in blockers:
+                            break
+                        time.sleep(0.02)
+                    else:
+                        pytest.fail("Cancellation contender never waited on the winner")
+                assert not future.done()
+                transaction.commit()
+            finally:
+                if transaction.is_active:
+                    transaction.rollback()
+            second = future.result(timeout=10)
+
+        with engine.begin() as connection:
+            status = get_run_status(connection, run_id)
+            events = list_events(connection, run_id, 0)
+            topics = connection.execute(
+                select(outbox.c.topic).where(outbox.c.resource_id == run_id)
+            ).scalars().all()
+    finally:
+        engine.dispose()
+
+    assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED
+    assert second.outcome is run_cancellations.CancellationOutcome.ALREADY_REQUESTED
+    assert first.last_sequence == second.last_sequence == 2
+    assert status.state is RunState.CANCELLING
+    assert status.last_sequence == 2
+    assert [event.state for event in events] == [RunState.QUEUED, RunState.CANCELLING]
+    assert topics == [run_cancellations.CANCELLATION_TOPIC]
 
 
 @pytest.mark.parametrize(
