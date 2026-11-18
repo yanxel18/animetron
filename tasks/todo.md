@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `4cce20c` on 2026-11-18. #53 and #54 merged
+verified remote `master` at `b92bcc6` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -27,9 +27,9 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`4cce20c`; #82, #83, #84, #86, #87, #88 and #89 are merged but are not credited without
+`b92bcc6`; #82, #83, #84, #86, #87, #88, #89 and #90 are merged but are not credited without
 independent review and required checks. #86 includes P1-08c and P1-10c;
-#87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b. P1-09f reached master via
+#87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d. P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
 
@@ -184,8 +184,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-18
 
-- Reconciled with verified `master` at `4cce20c`. PRs #75, #78, #79, #81,
-  #82, #83, #84, #86, #87, #88 and #89 merged. #75 includes the
+- Reconciled with verified `master` at `b92bcc6`. PRs #75, #78, #79, #81,
+  #82, #83, #84, #86, #87, #88, #89 and #90 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked pending independent review and remaining
   integration verification. #79 includes #80 and P1-09e1; P1-09e1 stays unchecked because
@@ -278,10 +278,16 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   recorded and the combined status is pending; keep it unchecked.
   Full P1-12 end-to-end verification still requires the workflow dispatch
   consumer/worker, which is not present in the current backend.
-- P0-07d metadata reads are in review in
-  [#90](https://github.com/yanxel18/animetron/pull/90). P0-07c PostgreSQL
-  audit verification is in review in [#91](https://github.com/yanxel18/animetron/pull/91).
-  Both remain unchecked pending independent review, required checks and merge.
+- P0-07d merged in [#90](https://github.com/yanxel18/animetron/pull/90) at
+  `b92bcc6`. Its owned PostgreSQL harness passed 7 artifact API tests,
+  migrations, Ruff and Linux-target mypy. Both non-owner tests failed when
+  the owner dependency was weakened, then passed after restoration. The
+  OpenAPI export test, generated API type drift check, frontend typecheck,
+  113 frontend tests and build passed. It exposes metadata only, not bytes or
+  uploads. GitGuardian passed; no independent review is recorded and the
+  combined status is pending, so keep unchecked.
+- P0-07c PostgreSQL audit verification is in review in
+  [#91](https://github.com/yanxel18/animetron/pull/91); it remains unchecked.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
@@ -292,7 +298,7 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   The slice is in [#92](https://github.com/yanxel18/animetron/pull/92),
   pending independent review, required checks and merge.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #89 and recording P1-12c. Nested slices do not change the project
+  reconciling #90 and recording P1-12c. Nested slices do not change the project
   counts.
 
 ## Phase 0 - Plan and shared foundations
@@ -378,8 +384,11 @@ have the security and recovery guarantees below.
     storage locators or artifact bytes. Implemented in `6ccd3c2` on
     `task/p0-07d-artifact-metadata-read`; PR #77 merged into the #76 branch, not
     `master`. Reapplied in [#90](https://github.com/yanxel18/animetron/pull/90)
-    on current master; keep unchecked until the PR is reviewed, passes its
-    gates, and merges.
+    from `4cce20c`, and merged at `b92bcc6`. Seven owned PostgreSQL
+    authorization/API tests, migrations, Ruff and mypy passed. OpenAPI export,
+    frontend type drift, typecheck, 113 tests and build passed. GitGuardian
+    passed, but independent review is not recorded and combined status is
+    pending; keep unchecked.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL

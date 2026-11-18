@@ -5,6 +5,36 @@ export type ClientOptions = {
 };
 
 /**
+ * ArtifactMetadataOutput
+ */
+export type ArtifactMetadataOutput = {
+    /**
+     * Bytesize
+     */
+    byteSize: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Mediatype
+     */
+    mediaType: string;
+    /**
+     * Ownerid
+     */
+    ownerId: string;
+    /**
+     * Revision
+     */
+    revision: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+};
+
+/**
  * AuditEventResponse
  */
 export type AuditEventResponse = {
@@ -749,6 +779,52 @@ export type WorkflowValidationOutput = {
      */
     workflowId: string;
 };
+
+export type ReadMetadataApiV1ArtifactsIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/artifacts/{id}';
+};
+
+export type ReadMetadataApiV1ArtifactsIdGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ReadMetadataApiV1ArtifactsIdGetError = ReadMetadataApiV1ArtifactsIdGetErrors[keyof ReadMetadataApiV1ArtifactsIdGetErrors];
+
+export type ReadMetadataApiV1ArtifactsIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ArtifactMetadataOutput;
+};
+
+export type ReadMetadataApiV1ArtifactsIdGetResponse = ReadMetadataApiV1ArtifactsIdGetResponses[keyof ReadMetadataApiV1ArtifactsIdGetResponses];
 
 export type AuditHistoryApiV1AuditEventsGetData = {
     body?: never;

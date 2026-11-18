@@ -6,8 +6,9 @@ The API provides minimal public liveness and a bounded authenticated control
 plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
 CSRF, audit/readiness/WebSocket and review controls, and security limitations.
-Review HTTP access is owner-only and metadata/decision-only. It does not
-implement artifact HTTP, workflow CRUD, model/media or creator features.
+Review HTTP access is owner-only and metadata/decision-only. The artifact API
+currently exposes only owner-only metadata reads; upload and content delivery
+are not implemented.
 
 The internal workflow graph validator checks graph limits, node and edge IDs,
 allowlisted node types, port connections, required inputs, and cycles against
@@ -207,8 +208,10 @@ by the bounded keyset queue.
 ## Internal artifact metadata (bounded Phase 0 slice)
 
 `app.core.artifacts` provides internal `ArtifactMetadata`, `save_artifact` and
-`get_artifact` interfaces, not HTTP endpoints. One immutable row represents one
-revision; changed revisions need new IDs. There is no lineage or "latest".
+`get_artifact` interfaces. `GET /api/v1/artifacts/{id}` exposes one metadata
+record to an authenticated owner; it omits the internal storage locator and
+artifact bytes. One immutable row represents one revision; changed revisions
+need new IDs. There is no lineage or "latest".
 
 Trusted server-side code must generate UUID4 IDs once and retain them for retries.
 Python and PostgreSQL enforce version 4 and RFC variant bits, but **UUID4 shape
@@ -226,11 +229,13 @@ Callers own commit/rollback, timeouts and whole-transaction retries.
 Identical retries succeed; changes raise `ArtifactConflict` without overwriting;
 missing IDs raise `ArtifactNotFound`. Database errors propagate.
 
-**Limits:** no authentication/authorization or filesystem access/deletion.
-Digest/size/media type are assertions, not verified bytes; locators do not prove
-containment or safe access. Privileged SQL can change/delete rows. No lifecycle,
-retention/privacy policy, audit, run/review binding, byte/metadata atomicity or
-backup/restore coordination exists. This establishes no security or readiness.
+**Limits:** core helpers do not enforce authentication/authorization or perform
+filesystem access/deletion; the metadata route is owner-role-only. Digest/size/
+media type are assertions, not verified bytes; locators do not prove containment
+or safe access. Privileged SQL can change/delete rows. No upload or content
+route, lifecycle, retention/privacy policy, audit, run/review binding,
+byte/metadata atomicity or backup/restore coordination exists. This establishes
+no security or readiness.
 
 The `0005_artifact_metadata` migration creates the table. Downgrade to `0004_run_revisions`
 drops **all artifact metadata**: require authorization and a recovery plan for
