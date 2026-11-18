@@ -25,7 +25,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after P1-09e1 entered draft PR #79:
+percentage is unchanged. Recalculated after P0-09c entered draft PR #80:
 no open work is credited, so the percentage and per-phase counts remain
 unchanged.
 The branch includes master commit `8d10be9`; counts remain unchanged because
@@ -166,6 +166,12 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   the checklist conflict. GitGuardian passed; combined status is pending and no
   GitHub review is recorded. The P1-09e migration remains in master; the
   correction only updates integration-test expectations.
+- P0-09c OIDC provider-token redaction coverage is in draft
+  [#80](https://github.com/yanxel18/animetron/pull/80), stacked on #79 because
+  the full auth/integration suite includes its migration-test correction.
+  GitGuardian passed; combined status is pending and no GitHub review is
+  recorded. Keep unchecked until the dependency is merged and independent
+  review/check gates pass.
 - Reconciled against `df80d91` on 2026-11-18. Open PRs are not credited:
   progress remains 18/57 (31.6%), P0 4/9 and P1 7/12.
 
@@ -287,6 +293,17 @@ have the security and recovery guarantees below.
     review is recorded. Keep unchecked until required checks, independent
     review and merge. This slice does not cover malformed uploads, transaction
     recovery or backup/restore.
+  - [ ] P0-09c Assert that OIDC callback failure responses never reflect
+    provider-returned access or ID tokens. Implemented in commit `2c8af75` on
+    `task/p0-09c-oidc-token-redaction`; open draft
+    [#80](https://github.com/yanxel18/animetron/pull/80), stacked on #79.
+    The owned auth/integration harness passed 733 tests with 20 skips; Ruff,
+    Linux-target mypy and Alembic upgrade/check passed. Inverting the assertion
+    made all 12 invalid-claim/signature variants fail, then the correct
+    assertion was restored. GitGuardian passed; combined status is pending and
+    no GitHub review is recorded. Keep unchecked until #79 merges and required
+    review/check gates pass. This does not resolve upload or production backup
+    policy.
 
 ## Phase 1 - Workflow runtime
 
