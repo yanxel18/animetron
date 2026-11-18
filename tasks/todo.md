@@ -25,7 +25,8 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged.
+percentage is unchanged. Recalculated after the P0-08a test slice: no open
+work is credited, so the percentage and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -219,6 +220,21 @@ have the security and recovery guarantees below.
     writers to be stopped; it does not repair or adopt files.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
+  - [ ] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
+    metadata and artifact bytes. Verify restored metadata matches restored bytes
+    by SHA-256, PostgreSQL is not host-published, and the test gateway binds to
+    loopback. The harness must use uniquely labeled resources and clean up only
+    resources it created. This does not select production networking, a
+    persistent backup target or encryption, retention duration, or deletion
+    behavior. The task branch depends on draft PR #75 and must remain unchecked
+    until its checks pass, independent review is recorded, and it is merged.
+    Local evidence on `task/p0-08-local-recovery-test`: the disposable Docker
+    test restored a synthetic metadata row and artifact into fresh resources
+    with a matching SHA-256; it verified private PostgreSQL networking and a
+    loopback-only test endpoint. Ruff passed; the backend suite outside
+    owner-gated auth files passed (352 passed, 340 skipped). Reversing the
+    restored-hash assertion failed as expected, then the restored check passed.
+    This does not prove a production backup procedure or actual gateway setup.
 - [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.

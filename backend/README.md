@@ -345,6 +345,23 @@ Syscall references: [linkat](https://man7.org/linux/man-pages/man2/link.2.html),
 [flock](https://man7.org/linux/man-pages/man2/flock.2.html),
 [fsync](https://man7.org/linux/man-pages/man2/fsync.2.html).
 
+## Disposable local backup/restore check
+
+Run `python tests/run_platform_recovery_checks.py` from `backend` with Docker
+and the cached `postgres:18` and `python:3.12-slim` images. The check creates
+synthetic metadata and artifact bytes, backs them up, restores them into fresh
+database and byte-store resources, and verifies the restored SHA-256 and
+metadata match. It also checks that PostgreSQL has no published host port and
+that a minimal test-only gateway is reachable only through a loopback binding.
+
+Explicitly created Docker containers, named volumes and networks carry unique
+owner labels; cleanup verifies those labels before removing them. The database's
+anonymous volume is removed only with its verified test container. Backup files
+live in a temporary directory created by the check. No existing project files
+or application data are modified. This proves only a local test arrangement; it
+does not configure or deploy product services, select a persistent or encrypted
+backup target, define retention, or implement preview/confirmed deletion.
+
 `GET /api/v1/health` returns `{"status":"ok"}` when the process responds.
 It is a liveness check, not a readiness or security check. Interactive API
 documentation is disabled to avoid loading third-party assets.
