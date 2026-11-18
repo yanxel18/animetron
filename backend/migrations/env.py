@@ -13,6 +13,7 @@ from app.services.workflows.drafts import metadata as draft_metadata
 from app.services.workflows.execution_bindings import (
     metadata as execution_binding_metadata,
 )
+from app.services.workflows.node_admission import metadata as admission_metadata
 from app.services.workflows.revisions import metadata as revision_metadata
 from app.services.workflows.run_dispatch import metadata as run_metadata
 from app.services.workflows.run_requests import metadata as request_metadata
@@ -31,6 +32,7 @@ try:
             connection=connection,
             target_metadata=[
                 run_metadata,
+                admission_metadata,
                 outbox_metadata,
                 revision_metadata,
                 binding_metadata,
