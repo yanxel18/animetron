@@ -231,8 +231,8 @@ have the security and recovery guarantees below.
     Implemented in commit `3fde341` on
     `task/p0-08-local-recovery-test`; open draft
     [#76](https://github.com/yanxel18/animetron/pull/76), based on #75.
-    GitGuardian passed, but the combined status is pending and no GitHub review
-    is recorded; do not merge. The disposable Docker test restored a synthetic
+    No independent review is recorded; keep unchecked and do not merge until
+    required checks and review pass. The disposable Docker test restored a synthetic
     metadata row and artifact into fresh resources with a matching SHA-256,
     verified private PostgreSQL networking and a loopback-only test endpoint,
     and left no labeled resources. Ruff and Python compilation passed; the
