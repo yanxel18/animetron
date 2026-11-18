@@ -135,6 +135,27 @@ All responses retain shared security headers and `Cache-Control: no-store`.
 This is discovery only, with no writes, execution, scheduling, model, or
 publication behavior.
 
+## Owner-only mutable workflow draft read (P1-09f)
+
+`GET /api/v1/workflows/{id}/draft` reads one stored draft and returns exactly
+`{ "workflowId": "<UUID>", "document": "<UTF-8 draft text>",
+"version": <positive integer> }`. `document` is the stored UTF-8 bytes decoded
+as text; it is not parsed, normalized, validated, or required to be complete.
+The version supports later compare-and-swap updates but this endpoint does not
+write drafts.
+
+The route accepts no query parameters and reuses the fresh-session,
+exact-origin owner dependency. A malformed workflow UUID or any query parameter
+returns the standard generic `422`; unauthenticated or stale sessions return
+`401`; non-owner roles return `403` before draft lookup; an absent draft returns
+`404`. Database failures or invalid stored draft metadata fail closed with the
+generic `503` envelope. Successful and error responses retain the shared
+security headers and `Cache-Control: no-store`.
+
+This endpoint exposes only an existing mutable draft. It adds no workflow
+creation, update, deletion, validation, immutable revision, execution,
+scheduling, publishing, or model-readiness behavior.
+
 ## Authenticated read-only run status and event replay (P1-11a)
 
 The owner-only, authenticated HTTP contract exposes only persisted workflow-run

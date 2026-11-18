@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `edb4858` on 2026-11-15. #53 and #54 merged
+verified remote `master` at `df80d91` on 2026-11-18. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -9,13 +9,15 @@ and #58, #59 and #60 merged the schedule list, preview and pause/resume.
 #62 merged owner-only reads of known immutable workflow revisions.
 #63 merged bounded revision discovery for a known workflow ID.
 #64 merged owner-only discovery of workflow IDs with persisted revisions.
-The historical #33 scanner failure remains unresolved.
+The historical #33 scanner failure remains unresolved. #73 merged at
+`df80d91`, but is not credited until its missing GitHub review and check gates
+are satisfied.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
 
-## Overall progress snapshot - 2026-11-15
+## Overall progress snapshot - 2026-11-18
 
 **31.6%: 18 of 57 top-level P0-P9 checklist tasks are complete.** This is an
 unweighted task count, not a measure of effort, functionality or production
@@ -23,7 +25,8 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged.
+percentage is unchanged. Recalculated after P1-09f was prepared on a task
+branch; it is not merged, so progress and per-phase counts remain unchanged.
 
 | Phase | Top-level tasks complete |
 | --- | ---: |
@@ -136,6 +139,40 @@ verification. This checklist remains the only current progress source.
   no top-level task or phase is complete from this work.
 P0-P9 and owner-involved P9 acceptance remain incomplete.
 Slices not yet merged to master remain unchecked. No external publishing was done.
+
+### Current work - 2026-11-18
+
+- [#74](https://github.com/yanxel18/animetron/pull/74) updates the P1-09e
+  merge reconciliation. GitGuardian passed; combined status is pending and no
+  GitHub review is recorded.
+- P0-07c, P0-08a and P0-07d are open in stacked drafts
+  [#75](https://github.com/yanxel18/animetron/pull/75),
+  [#76](https://github.com/yanxel18/animetron/pull/76) and
+  [#77](https://github.com/yanxel18/animetron/pull/77). #76 depends on #75;
+  #77 depends on #76. GitGuardian passed for all three; combined status is
+  pending and no GitHub review is recorded.
+- P0-09b bearer-token redaction is in draft
+  [#78](https://github.com/yanxel18/animetron/pull/78), based on `master` at
+  `df80d91`. GitGuardian passed; combined status is pending and no GitHub
+  review is recorded.
+- P1-09e1 migration downgrade test correction is in draft
+  [#79](https://github.com/yanxel18/animetron/pull/79), based on `master` at
+  `df80d91`. The P1-09e migration remains in master; only test expectations
+  change. GitGuardian passed; combined status is pending and no GitHub review
+  is recorded.
+- P0-09c OIDC provider-token redaction is in draft
+  [#80](https://github.com/yanxel18/animetron/pull/80), stacked on #79 because
+  the full auth/integration suite includes its migration-test correction.
+  GitGuardian passed; combined status is pending and no GitHub review is
+  recorded.
+- P0-09d artifact transaction recovery is in draft
+  [#81](https://github.com/yanxel18/animetron/pull/81), based independently on
+  `master` at `df80d91`. GitGuardian passed; combined status is pending and no
+  GitHub review is recorded.
+- Reconciled with `df80d91` on 2026-11-18. Open PRs are not credited:
+  progress remains 18/57 (31.6%), P0 4/9 and P1 7/12.
+P0-P9 and owner-involved P9 acceptance remain incomplete. No external
+publishing was done.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -272,9 +309,23 @@ immutable workflow and recover its state without duplicate effects.
     [Binding verification](execution-revision-bindings-report.md).
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09e Internal mutable draft persistence is implemented in
-    [#73](https://github.com/yanxel18/animetron/pull/73) and in review; keep it
-    unchecked until required gates pass and it merges.
+  - [ ] P1-09e Internal mutable draft persistence merged in
+    [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
+    unchecked because GitHub has no review record and the combined status is
+    pending.
+    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
+      `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
+      `task/p1-09e-migration-downgrade-tests`; open draft
+      [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
+      harness passed all 5 migration tests; the full backend auth/integration
+      harness passed 733 tests with 20 skips. Alembic upgrade/check, Ruff and
+      Linux-target mypy passed. No migration or production behavior changed.
+      GitGuardian passed; combined status is pending and no GitHub review is
+      recorded. Keep unchecked until the required gates and merge.
+  - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
+    preserving its stored UTF-8 text and version. Implemented on
+    `task/p1-09f-workflow-draft-read`; pending PR creation and review. It adds
+    no draft write, validation or execution capability.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.

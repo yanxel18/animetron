@@ -16,6 +16,11 @@ from app.api.auth import ErrorResponse
 from app.api.dependencies import auth_dependencies
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 from app.services.workflows.document import validate_revision_identifier
+from app.services.workflows.drafts import (
+    WorkflowDraftCorrupt,
+    WorkflowDraftNotFound,
+    get_draft,
+)
 from app.services.workflows.revisions import (
     RevisionCorrupt,
     RevisionCursor,
@@ -71,6 +76,14 @@ class WorkflowIdListOutput(BaseModel):
 
     data: list[WorkflowIdOutput]
     next_cursor: str | None = Field(alias="nextCursor")
+
+
+class WorkflowDraftOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    workflow_id: UUID = Field(alias="workflowId")
+    document: str
+    version: int = Field(ge=1)
 
 
 def _encode_workflow_cursor(workflow_id: UUID) -> str:
@@ -238,6 +251,36 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
         return WorkflowIdListOutput(
             data=[WorkflowIdOutput(workflowId=workflow_id) for workflow_id in page],
             nextCursor=_encode_workflow_cursor(page[-1]) if len(ids) > page_size else None,
+        )
+
+    @router.get(
+        "/{id}/draft",
+        response_model=WorkflowDraftOutput,
+        responses={
+            404: {
+                "model": ErrorResponse,
+                "description": "Request could not be completed",
+            }
+        },
+    )
+    def read_workflow_draft(
+        id: UUID,
+        request: Request,
+        _: Annotated[Principal, Depends(owner)],
+    ) -> WorkflowDraftOutput:
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        try:
+            with persistence().transaction() as connection:
+                draft = get_draft(connection, id)
+        except WorkflowDraftNotFound:
+            raise AuthDenied("WORKFLOW_DRAFT_NOT_FOUND", 404) from None
+        except (WorkflowDraftCorrupt, RuntimeError, SQLAlchemyError):
+            raise AuthDenied("DEPENDENCY_UNAVAILABLE", 503) from None
+        return WorkflowDraftOutput(
+            workflowId=draft.workflow_id,
+            document=draft.document.decode("utf-8"),
+            version=draft.version,
         )
 
     @router.get("/{id}/revisions", response_model=RevisionListOutput)

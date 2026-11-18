@@ -141,11 +141,13 @@ Privileged SQL tampering is outside the trust boundary. See the
 preserving exact bytes without parsing or validating the document. `save_draft`
 creates a draft when `expected_version` is `None`, or replaces it only when the
 supplied version matches; every update increments that version. `get_draft`
-returns the stored bytes and version. Both operations are internal persistence
-only: they add no HTTP/authorization, workflow validation, immutable revision,
-readiness, execution, or external-effect behavior. Writes require a caller-owned
-transaction. The migration downgrade removes all draft data and requires
-authorization/recovery planning for populated databases.
+returns the stored bytes and version. The persistence operations themselves add
+no HTTP or authorization. The owner-only
+`GET /api/v1/workflows/{id}/draft` read is documented in the
+[workflow-runtime contract](../docs/SPEC-workflow-runtime.md#owner-only-mutable-workflow-draft-read-p1-09f);
+HTTP draft writes and workflow validation remain unimplemented. Writes require
+a caller-owned transaction. The migration downgrade removes all draft data and
+requires authorization/recovery planning for populated databases.
 
 The internal transactional outbox stores intent IDs, topics, and resource IDs
 in a caller-managed transaction. Claims use expiring database leases and a
