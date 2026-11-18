@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.engine import URL
 
 from app.core.outbox import metadata as outbox_metadata
 from app.core.outbox import outbox
@@ -7,7 +10,10 @@ from app.services.workflows import run_cancellations
 from app.services.workflows.runs import (
     RunConflict,
     RunState,
+    create_run,
     get_run_status,
+    list_events,
+    runs,
     transition_run,
 )
 
@@ -169,3 +175,46 @@ def test_cancellation_requires_a_caller_owned_transaction(cancellation_run):
         RuntimeError, match="explicit transaction"
     ):
         run_cancellations.request_run_cancellation(connection, run_id)
+
+
+def test_cancellation_intent_survives_database_reconnect(tmp_path):
+    database_url = URL.create(
+        "sqlite+pysqlite",
+        database=str(tmp_path / "workflow.db"),
+    )
+    run_id = uuid4()
+    engine = create_engine(database_url)
+    try:
+        runs.metadata.create_all(engine)
+        outbox_metadata.create_all(engine)
+        with engine.begin() as connection:
+            create_run(connection, run_id)
+            first = run_cancellations.request_run_cancellation(connection, run_id)
+    finally:
+        engine.dispose()
+
+    reconnected_engine = create_engine(database_url)
+    try:
+        with reconnected_engine.begin() as connection:
+            status = get_run_status(connection, run_id)
+            events = list_events(connection, run_id, after_sequence=0)
+            retry = run_cancellations.request_run_cancellation(connection, run_id)
+            intent_count = connection.scalar(
+                select(func.count()).select_from(outbox).where(
+                    outbox.c.resource_id == run_id,
+                    outbox.c.topic == run_cancellations.CANCELLATION_TOPIC,
+                )
+            )
+    finally:
+        reconnected_engine.dispose()
+
+    assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED
+    assert status.state is RunState.CANCELLING
+    assert status.last_sequence == 2
+    assert [event.state for event in events] == [
+        RunState.QUEUED,
+        RunState.CANCELLING,
+    ]
+    assert retry.outcome is run_cancellations.CancellationOutcome.ALREADY_REQUESTED
+    assert retry.last_sequence == status.last_sequence
+    assert intent_count == 1
