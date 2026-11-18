@@ -286,9 +286,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   tests, migrations, Ruff and Linux-target mypy. Classifying corrupt content
   as consistent made both SQLite and PostgreSQL audit regressions fail; the
   restored code passed. Actual filesystem/byte-store integration is not
-  covered by the new test. This verification is on
-  `task/p0-07c-postgres-audit-verification`, pending review and merge:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p0-07c-postgres-audit-verification?expand=1).
+  covered by the new test. This verification is in
+  [#91](https://github.com/yanxel18/animetron/pull/91), pending review and merge.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
   reconciling #89 and recording the P0-07c verification. Nested slices do not change the project
   counts.
