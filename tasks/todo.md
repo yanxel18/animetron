@@ -797,7 +797,8 @@ immutable workflow and recover its state without duplicate effects.
     independent GitHub review of the final amendments is recorded. An existing
     sample draft of 16,125 bytes validated without issues but produced 48,112
     canonical bytes, supporting the separate 32-KiB canonical bound.
-    Implementation adds the owner-only endpoint, locked draft validation,
+    Implementation [#112](https://github.com/yanxel18/animetron/pull/112) is
+    **in review** and adds the owner-only endpoint, locked draft validation,
     immutable replay and conflict handling; it does not create runs, execution
     bindings or authorize handler execution. The isolated PostgreSQL suite
     passed 204 tests including both update/create lock orderings, duplicate
