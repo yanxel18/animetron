@@ -294,14 +294,13 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   mypy. GitGuardian passed, but the combined status is pending. A post-merge
   independent review identified three test gaps: shared-row isolation,
   transaction ownership and separate digest/size mismatches.
-- The P0-07c review follow-up on `task/p0-07c-audit-review-followup` adds
+- The P0-07c review follow-up in [#93](https://github.com/yanxel18/animetron/pull/93) adds
   temporary-table isolation, verifies rollback and tests the two mismatches
   separately. The owned harness passed 61 tests, migrations, Ruff and
   Linux-target mypy. Individually removing isolation, committing the caller
   transaction, or omitting either comparison caused the new regression to
   fail; restored code passed. Actual filesystem/byte-store integration remains
-  outside this test. Keep unchecked pending review, required checks and merge:
-  [compare page](https://github.com/yanxel18/animetron/compare/master...task/p0-07c-audit-review-followup?expand=1).
+  outside this test. Keep unchecked pending review, required checks and merge.
 - P1-12c verifies that a concurrent PostgreSQL cancellation request waits for
   the first transaction and reuses its committed cancellation intent. The
   owned PostgreSQL harness passed 13 cancellation tests, migrations, Ruff and
