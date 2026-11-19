@@ -53,9 +53,9 @@ percentage is unchanged. Recalculated after reconciling latest verified master
 without a passing independent review and required checks. #117 is also merged
 but is not credited because its independent-review and combined-status gates
 remain unmet. P7-02e is in review in
-[#118](https://github.com/yanxel18/animetron/pull/118); GitGuardian passed, but
-there is no independent review and the combined status is pending, so it is not
-counted.
+[#118](https://github.com/yanxel18/animetron/pull/118); GitGuardian is running
+on its latest head, there is no independent review, and the combined status is
+pending, so it is not counted.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
@@ -1378,9 +1378,9 @@ accessibility checks pass, not merely when mock screens exist.
     console or page errors; it did not run a workflow. A disabled-boundary
     mutation was caught by the regression test and restored. Keep unchecked
     in review in [#118](https://github.com/yanxel18/animetron/pull/118).
-    GitGuardian passed, but no independent review is recorded and the combined
-    status is pending. Keep unchecked pending review, required checks and
-    merge; progress remains 18/57 (31.6%), P7 1/6.
+    GitGuardian is running on the latest head; no independent review is
+    recorded and the combined status is pending. Keep unchecked pending review,
+    required checks and merge; progress remains 18/57 (31.6%), P7 1/6.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
