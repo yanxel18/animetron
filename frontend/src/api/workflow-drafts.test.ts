@@ -1,10 +1,12 @@
 import { afterEach, expect, it, vi } from "vitest";
 import {
-  createDraftRevision, readWorkflowDraft, saveWorkflowDraft, validateWorkflowDraft,
+  acknowledgeDraftCreation, createDraftRevision, createWorkflowDraft, readPendingDraftCreation, reconcileDraftCreation,
+  readWorkflowDraft, saveWorkflowDraft, validateWorkflowDraft,
 } from "./workflow-drafts";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
+const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 
@@ -21,6 +23,7 @@ function installLocks() {
 afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.removeItem(pendingKey);
+  localStorage.removeItem(creationKey);
   Reflect.deleteProperty(navigator, "locks");
 });
 
@@ -32,6 +35,93 @@ it("reads a draft and validates the server response", async () => {
     `/api/v1/workflows/${id}/draft`,
     expect.objectContaining({ method: "GET", credentials: "same-origin", cache: "no-store" }),
   );
+});
+
+it("creates a draft without overwriting an existing version", async () => {
+  installLocks();
+  const document = "";
+  const created = { workflowId: id, document, version: 1 };
+  const fetcher = vi.fn().mockResolvedValueOnce(json(session)).mockImplementationOnce(() => {
+    expect(readPendingDraftCreation()).toBe(id);
+    return Promise.resolve(json(created));
+  });
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(createWorkflowDraft(id)).resolves.toEqual(created);
+  expect(readPendingDraftCreation()).toBe(id);
+  await acknowledgeDraftCreation(id);
+  expect(readPendingDraftCreation()).toBeNull();
+  expect(fetcher.mock.calls[1][0]).toBe(`/api/v1/workflows/${id}/draft`);
+  expect(fetcher.mock.calls[1][1]).toEqual(expect.objectContaining({
+    method: "PUT", headers: expect.objectContaining({ "X-CSRF-Token": "test-csrf" }),
+    body: JSON.stringify({ document, expectedVersion: null }),
+  }));
+});
+
+it("reports unknown draft creation outcomes and does not send for non-owners", async () => {
+  installLocks();
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockRejectedValueOnce(new Error("lost response"))
+    .mockResolvedValueOnce(json({ role: "viewer", csrfToken: "test-csrf" }));
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(createWorkflowDraft(id)).rejects.toMatchObject({ uncertain: true });
+  expect(readPendingDraftCreation()).toBe(id);
+  await expect(createWorkflowDraft(id)).rejects.toThrow(/check.*previous/i);
+  await expect(createWorkflowDraft(id, { retryAfterCheck: true })).rejects.toMatchObject({ status: 403, uncertain: false });
+  expect(fetcher).toHaveBeenCalledTimes(3);
+});
+
+it("keeps the original workflow ID until a pending creation is reconciled", async () => {
+  installLocks();
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(new Response("", { status: 409 }))
+    .mockResolvedValueOnce(new Response("", { status: 404 }))
+    .mockResolvedValueOnce(json({ workflowId: id, document: "existing", version: 3 }));
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(createWorkflowDraft(id)).rejects.toMatchObject({ status: 409 });
+  expect(readPendingDraftCreation()).toBe(id);
+  await expect(createWorkflowDraft("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")).rejects.toThrow();
+  await expect(reconcileDraftCreation(id)).rejects.toMatchObject({ status: 404 });
+  expect(readPendingDraftCreation()).toBe(id);
+  await expect(reconcileDraftCreation(id)).resolves.toEqual({ workflowId: id, document: "existing", version: 3 });
+  expect(readPendingDraftCreation()).toBe(id);
+  await acknowledgeDraftCreation(id);
+  expect(readPendingDraftCreation()).toBeNull();
+  expect(fetcher).toHaveBeenCalledTimes(4);
+});
+
+it("clears a new recovery marker after a definitive rejection but preserves earlier uncertainty", async () => {
+  installLocks();
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(new Response("", { status: 422 }))
+    .mockResolvedValueOnce(json(session))
+    .mockRejectedValueOnce(new Error("lost response"))
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(new Response("", { status: 422 }));
+  vi.stubGlobal("fetch", fetcher);
+
+  await expect(createWorkflowDraft(id)).rejects.toMatchObject({ status: 422 });
+  expect(readPendingDraftCreation()).toBeNull();
+  await expect(createWorkflowDraft(id)).rejects.toMatchObject({ uncertain: true });
+  await expect(createWorkflowDraft(id, { retryAfterCheck: true })).rejects.toMatchObject({ status: 422 });
+  expect(readPendingDraftCreation()).toBe(id);
+});
+
+it("does not submit a creation without browser coordination or durable recovery", async () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  await expect(createWorkflowDraft(id)).rejects.toThrow(/coordinate/i);
+  installLocks();
+  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("storage"); });
+  fetcher.mockResolvedValueOnce(json(session));
+  await expect(createWorkflowDraft(id)).rejects.toThrow(/recovery/i);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  vi.restoreAllMocks();
 });
 
 it("saves an edited document using the owner CSRF token and expected version", async () => {

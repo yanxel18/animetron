@@ -5,6 +5,97 @@ const second = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const revision = { workflowId: id, revision: "saved-revision-1", createdAt: "2025-01-02T03:04:05Z" };
 const canonicalJson = '{"revision":"saved-revision-1","text":"<script>inert</script>"}';
 
+test("recovers an uncertain empty draft creation and loads the same ID", async ({ page }, testInfo) => {
+  let attempts = 0;
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/v1/workflows") {
+      await route.fulfill({ json: { data: [], nextCursor: null } });
+    } else if (path === "/api/v1/auth/session") {
+      await route.fulfill({ json: { role: "owner", csrfToken: "fixture-csrf" } });
+    } else if (path === `/api/v1/workflows/${id}/draft` && request.method() === "PUT") {
+      expect(request.postDataJSON()).toEqual({ document: "", expectedVersion: null });
+      attempts++;
+      if (attempts === 1) await route.fulfill({ status: 503 });
+      else await route.fulfill({ json: { workflowId: id, document: "", version: 1 } });
+    } else if (path === `/api/v1/workflows/${id}/draft` && request.method() === "GET") {
+      if (attempts === 1) await route.fulfill({ status: 404 });
+      else await route.fulfill({ json: { workflowId: id, document: "", version: 1 } });
+    } else {
+      await route.fulfill({ status: 404 });
+    }
+  });
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/#workflows");
+  await page.getByLabel("New workflow ID").fill(id);
+  await page.getByRole("button", { name: "Create empty draft" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("alert")).toContainText(/may have been created/i);
+  await page.reload();
+  await expect(page.getByLabel("New workflow ID")).toHaveValue(id);
+  await expect(page.getByRole("button", { name: "Create empty draft" })).toBeDisabled();
+  await page.getByRole("button", { name: "Check draft creation" }).click();
+  await expect(page.getByRole("alert")).toContainText(/not found.*same id/i);
+  await page.getByRole("button", { name: "Create empty draft" }).click();
+  await expect(page.getByText(/empty draft created/i)).toContainText(id);
+  await page.reload();
+  await expect(page.getByLabel("New workflow ID")).toHaveValue(id);
+  await page.getByRole("button", { name: "Check draft creation" }).click();
+  await expect(page.getByText(/draft found/i)).toContainText(id);
+  await page.getByRole("button", { name: "I recorded this ID" }).click();
+  await page.getByLabel("Workflow ID", { exact: true }).fill(id);
+  await page.getByRole("button", { name: "Load draft" }).click();
+  await expect(page.getByLabel("Workflow draft JSON")).toHaveValue("");
+  expect(attempts).toBe(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath("draft-creation-375.png"), fullPage: true });
+});
+
+test("coordinates draft creation across two tabs", async ({ page, context }) => {
+  let attempts = 0;
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await context.route((url) => url.pathname.startsWith("/api/"), async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/v1/workflows") {
+      await route.fulfill({ json: { data: [], nextCursor: null } });
+    } else if (path === "/api/v1/auth/session") {
+      await route.fulfill({ json: { role: "owner", csrfToken: "fixture-csrf" } });
+    } else if (request.method() === "PUT" && path === `/api/v1/workflows/${id}/draft`) {
+      attempts++;
+      await held;
+      await route.fulfill({ json: { workflowId: id, document: "", version: 1 } });
+    } else {
+      await route.fulfill({ status: 404 });
+    }
+  });
+  const other = await context.newPage();
+  try {
+    await page.goto("/#workflows");
+    await other.goto("/#workflows");
+    await page.getByLabel("New workflow ID").fill(id);
+    await other.getByLabel("New workflow ID").fill(second);
+    await page.getByRole("button", { name: "Create empty draft" }).click();
+    await expect.poll(() => attempts).toBe(1);
+    await other.getByRole("button", { name: "Create empty draft" }).click();
+    await expect(other.getByRole("alert")).toContainText(/another draft creation.*in progress/i);
+    expect(attempts).toBe(1);
+    await expect(other.getByLabel("New workflow ID")).toHaveValue(id);
+    await expect(other.getByLabel("New workflow ID")).toBeDisabled();
+    release();
+    await expect(page.getByText(/empty draft created/i)).toContainText(id);
+    expect(attempts).toBe(1);
+  } finally {
+    release();
+    await other.close();
+  }
+});
+
 test("saves an edited draft before validation and revision creation with keyboard controls", async ({ page }, testInfo) => {
   const requests: string[] = [];
   const errors: string[] = [];
