@@ -488,8 +488,10 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 - Remaining P7 work is gated: P7-03b implements known-ID metadata lookup via
-  the existing owner-only endpoint; full artifact enumeration and preview
-  remain gated by the incomplete authorized artifact lifecycle (P0-07).
+  the existing owner-only endpoint in open
+  [#116](https://github.com/yanxel18/animetron/pull/116); full artifact
+  enumeration and preview remain gated by the incomplete
+  authorized artifact lifecycle (P0-07).
   Remaining model, connection and
   publication screens depend on backend services not yet available; full
   non-drag editor/accessibility verification and the 100-node performance test
@@ -1348,10 +1350,10 @@ accessibility checks pass, not merely when mock screens exist.
     plus keyboard and responsive browser coverage. Implemented on
     `task/p7-03b-artifact-metadata`; 147 frontend tests, TypeScript/build and all
     23 Playwright cases pass. Browser coverage checks the skip target,
-    375/768/1024/1440px widths and removal of metadata on access denial. These browser
-    cases use fixtures; live authenticated backend and screen-reader use remain
-    unverified. PR is not yet open; keep unchecked until merge, independent
-    review and required checks pass.
+    375/768/1024/1440px widths and removal of metadata on access denial. These
+    browser cases use fixtures; live authenticated backend and screen-reader use remain
+    unverified. Open in [#116](https://github.com/yanxel18/animetron/pull/116);
+    awaiting independent review and required checks. Keep unchecked until merge.
 - [ ] P7-04 Implement review, models, schedules, connections and publication
   screens against their authorized services; explain blocked actions.
   - [x] P7-04e Create schedule descriptors from persisted workflows and
