@@ -41,6 +41,8 @@ numbers. The lossless correction merged in
 [#119](https://github.com/yanxel18/animetron/pull/119) at `9716ad3`.
 GitGuardian passed, but no independent GitHub review is recorded and combined
 status is pending; keep P7-02e unchecked.
+This reconciliation is in review in
+[#120](https://github.com/yanxel18/animetron/pull/120).
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
