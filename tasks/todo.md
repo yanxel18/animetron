@@ -103,9 +103,8 @@ check. Keep the nested slice unchecked; top-level counts remain 18/57 (31.6%)
 and P7 1/6.
 P7-05c is open in
 [#117](https://github.com/yanxel18/animetron/pull/117). GitGuardian passed,
-on the initial head; the latest observed run was in progress after the
-tracker-only update. No independent review is recorded and the combined status
-is pending. Keep the slice unchecked; it does not change the counts.
+but no independent review is recorded and the combined status is pending.
+Keep the slice unchecked; it does not change the counts.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -523,9 +522,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   focused regression, all 24 Playwright cases, 147 frontend
   unit tests, TypeScript/build and `git diff --check` pass. Screenshot review
   found no horizontal overflow in metadata or denied states. PR #117 is open;
-  GitGuardian passed on the initial head, but the latest observed run after
-  the tracker-only update was in progress. No independent review is recorded
-  and the combined status is pending. Keep unchecked pending required review,
+  GitGuardian passed, but no independent review is recorded and the combined
+  status is pending. Keep unchecked pending required review,
   checks and merge. Project progress remains 18/57 (31.6%), P7 1/6.
 
 ## Phase 0 - Plan and shared foundations
@@ -1476,11 +1474,9 @@ accessibility checks pass, not merely when mock screens exist.
     The screenshots were visually checked and the reduced-motion assertion
     was mutation-tested. Committed as `f54caba` and pushed to
     `task/p7-05c-library-accessibility`. Open in
-    [#117](https://github.com/yanxel18/animetron/pull/117). GitGuardian passed
-    on the initial head; the latest observed run was in progress after the
-    tracker-only update. No independent review is recorded and the combined
-    status is pending. Keep unchecked pending the required review, checks and
-    merge.
+    [#117](https://github.com/yanxel18/animetron/pull/117). GitGuardian passed;
+    no independent review is recorded and the combined status is pending.
+    Keep unchecked pending the required review, checks and merge.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
