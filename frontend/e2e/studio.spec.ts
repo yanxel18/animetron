@@ -691,3 +691,134 @@ test("looks up owner-only artifact metadata without listing or previewing bytes"
   ]);
   expect(browserErrors).toEqual([]);
 });
+
+test("keeps the Library accessible at a 200 percent effective viewport with reduced motion", async ({
+  browser,
+}, testInfo) => {
+  const artifactId = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
+  const context = await browser.newContext({
+    viewport: { width: 720, height: 900 },
+    deviceScaleFactor: 2,
+    reducedMotion: "reduce",
+  });
+  let releaseLookup!: () => void;
+  let signalLookupStarted!: () => void;
+  const lookupStarted = new Promise<void>((resolve) => {
+    signalLookupStarted = resolve;
+  });
+  const lookupReleased = new Promise<void>((resolve) => {
+    releaseLookup = resolve;
+  });
+
+  try {
+    const page = await context.newPage();
+    const browserErrors: string[] = [];
+    page.on("console", (message) => {
+      if (
+        (message.type() === "error" || message.type() === "warning") &&
+        !message.text().includes("status of 403 (Forbidden)")
+      ) {
+        browserErrors.push(message.text());
+      }
+    });
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+    let lookups = 0;
+    await page.route(`**/api/v1/artifacts/${artifactId}`, async (route) => {
+      lookups += 1;
+      if (lookups === 1) {
+        signalLookupStarted();
+        await lookupReleased;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: artifactId,
+            ownerId: "owner-1",
+            revision: "revision-7",
+            sha256: "a".repeat(64),
+            byteSize: 1_024,
+            mediaType: "image/png",
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 403,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "forbidden" }),
+      });
+    });
+
+    await page.goto("/#library");
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("link", { name: "Skip to workspace" }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+    const library = page.getByRole("region", { name: "Library" });
+    await expect(page.getByRole("heading", { name: "Library" })).toBeFocused();
+    await expect(page.getByLabel("Artifact ID")).toBeVisible();
+
+    const transition = await page
+      .getByRole("button", { name: "Look up metadata" })
+      .evaluate((element) => getComputedStyle(element).transitionDuration);
+    expect(Number.parseFloat(transition)).toBeLessThan(0.001);
+
+    await page.getByLabel("Artifact ID").fill(artifactId);
+    await page.getByRole("button", { name: "Look up metadata" }).click();
+    await lookupStarted;
+    await expect(page.getByRole("status")).toContainText(
+      "Looking up artifact metadata...",
+    );
+    await expect(library).toHaveAttribute("aria-busy", "true");
+    await expect(
+      page.getByRole("button", { name: "Looking up..." }),
+    ).toBeDisabled();
+    releaseLookup();
+
+    await expect(
+      page.getByRole("heading", { name: "Artifact metadata" }),
+    ).toBeVisible();
+    await expect(library).toHaveAttribute("aria-busy", "false");
+    const metadataDimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(
+      metadataDimensions.contentWidth,
+      `horizontal overflow while showing metadata: ${JSON.stringify(metadataDimensions)}`,
+    ).toBeLessThanOrEqual(metadataDimensions.viewportWidth);
+    await page.screenshot({
+      path: testInfo.outputPath("library-effective-200-percent-metadata.png"),
+      fullPage: true,
+    });
+
+    await page.getByRole("button", { name: "Look up metadata" }).click();
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText(/owner access is required/i);
+    await expect(alert).toBeFocused();
+    await expect(
+      page.getByRole("heading", { name: "Artifact metadata" }),
+    ).toHaveCount(0);
+
+    const dimensions = await page.evaluate(() => ({
+      devicePixelRatio: window.devicePixelRatio,
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.devicePixelRatio).toBe(2);
+    expect(dimensions.viewportWidth).toBe(720);
+    expect(
+      dimensions.contentWidth,
+      `horizontal overflow at the 200 percent effective viewport: ${JSON.stringify(dimensions)}`,
+    ).toBeLessThanOrEqual(dimensions.viewportWidth);
+    expect(browserErrors).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath("library-effective-200-percent.png"),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+  }
+});
