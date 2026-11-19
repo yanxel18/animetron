@@ -1429,7 +1429,7 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-02g Offer explicit secure UUID generation for draft creation,
     retaining manual entry when unavailable and preventing regeneration during
     recovery or unsaved edits. Depends on open #121; implementation is in review
-    on `task/p7-02g-generate-draft-id` (PR link pending). Local verification:
+    in [#122](https://github.com/yanxel18/animetron/pull/122). Local verification:
     163 frontend tests, TypeScript/build, 27 fixture-backed Chromium tests
     and `git diff --check`. Browser coverage generates an ID and restores the
     same ID after an uncertain response and reload. Live authenticated backend
