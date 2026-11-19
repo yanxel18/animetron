@@ -52,7 +52,10 @@ percentage is unchanged. Recalculated after reconciling latest verified master
 #94, #95, #96, #99, #101, #103 and #116 are merged but are not credited
 without a passing independent review and required checks. #117 is also merged
 but is not credited because its independent-review and combined-status gates
-remain unmet.
+remain unmet. P7-02e is in review in
+[#118](https://github.com/yanxel18/animetron/pull/118); GitGuardian passed, but
+there is no independent review and the combined status is pending, so it is not
+counted.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
@@ -495,7 +498,7 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9, P1 7/12 and P7 1/6, recalculated after
   reconciling #117 on `64eee39`. The nested P1-09j, P7-02c,
-  P7-02d, P7-03b and P7-05c
+  P7-02d, P7-03b, P7-05c and P7-02e
   slices do not change the project counts. The P7-02c recovery correction was implemented on
   `task/p7-02c-draft-recovery` and merged via #114; it persists only the workflow
   ID and version
@@ -1374,8 +1377,10 @@ accessibility checks pass, not merely when mock screens exist.
     session on the tailnet preview reordered and saved a fixture draft without
     console or page errors; it did not run a workflow. A disabled-boundary
     mutation was caught by the regression test and restored. Keep unchecked
-    pending independent review, required checks and merge; progress remains
-    18/57 (31.6%), P7 1/6.
+    in review in [#118](https://github.com/yanxel18/animetron/pull/118).
+    GitGuardian passed, but no independent review is recorded and the combined
+    status is pending. Keep unchecked pending review, required checks and
+    merge; progress remains 18/57 (31.6%), P7 1/6.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
