@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
+import { moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
@@ -68,7 +69,7 @@ it("reorders a loaded draft node with the keyboard and saves the unchanged graph
   const reorderedDocument = JSON.stringify({
     ...parsed,
     nodes: [parsed.nodes[1], parsed.nodes[0]],
-  }, null, 2);
+  });
   const fetcher = vi.fn()
     .mockResolvedValueOnce(json({ ...draft, document }))
     .mockResolvedValueOnce(json(session))
@@ -107,6 +108,45 @@ it("keeps duplicate-key drafts editable without offering lossy node reordering",
   expect(await screen.findByLabelText("Workflow draft JSON")).toHaveValue(document);
   expect(screen.queryByRole("list", { name: "Workflow node order" })).not.toBeInTheDocument();
   expect(screen.getByRole("note")).toHaveTextContent(/does not contain a readable workflow node list/i);
+});
+
+it("preserves exact JSON values and unrelated text when reordering and saving", async () => {
+  const first = '{"id":"node-a","type":"sample.constant","config":{"n":9007199254740993,"negativeZero":-0,"exp":1e400}}';
+  const second = '{"id":"node-b","type":"sample.constant","config":{"text":"}, [\\\\\\""}}';
+  const prefix = '{ "schemaVersion": 1, "revision":"r1", "extra":9007199254740993, "nodes":[ ';
+  const separator = ',\n    ';
+  const suffix = ' ],"edges":[] }';
+  const document = `${prefix}${first}${separator}${second}${suffix}`;
+  const expected = `${prefix}${second}${separator}${first}${suffix}`;
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json({ ...draft, document }))
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(json({ ...draft, document: expected, version: 4 }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  await user.click(await screen.findByRole("button", { name: "Move node-b up" }));
+  expect(screen.getByLabelText("Workflow draft JSON")).toHaveValue(expected);
+  await user.click(screen.getByRole("button", { name: "Save draft" }));
+  expect(await screen.findByText(/saved as version 4/i)).toBeInTheDocument();
+  expect(fetcher.mock.calls[2][1].body).toBe(
+    JSON.stringify({ document: expected, expectedVersion: 3 }),
+  );
+});
+
+it("reorders only top-level nodes despite nested node arrays and escaped keys", () => {
+  const a = '{"id":"a","type":"t","config":{"nodes":[{"x":1}]}}';
+  const b = '{"id":"b","type":"t","config":{"nested":[[],{"nodes":[2,3]}]}}';
+  const c = '{"id":"c","type":"t","config":{}}';
+  const prefix = '{"schemaVersion":1,"revision":"r1","metadata":{"nodes":[0]},"no\\u0064es":[';
+  const suffix = '],"edges":[]}';
+  const document = `${prefix}${a}, ${b},\n${c}${suffix}`;
+  const moved = `${prefix}${a}, ${c},\n${b}${suffix}`;
+  expect(moveWorkflowNode(document, "b", "down")).toBe(moved);
+  expect(moveWorkflowNode(moved, "b", "up")).toBe(document);
+  expect(readWorkflowNodeOrder(document.replace('"edges":[]', '"edges":[],"e\\u0064ges":[]'))).toBeNull();
 });
 
 it("saves edits before validating or creating a revision", async () => {

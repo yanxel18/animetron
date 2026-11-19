@@ -4,17 +4,17 @@ export type WorkflowNodeOrderItem = {
 };
 
 type ParsedWorkflowDraft = {
-  document: Record<string, unknown>;
-  nodes: Record<string, unknown>[];
   order: WorkflowNodeOrderItem[];
+  nodeRanges: { start: number; end: number }[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function hasUniqueObjectKeys(json: string): boolean {
+function findNodeRanges(json: string): { start: number; end: number }[] | null {
   let index = 0;
+  let nodeRanges: { start: number; end: number }[] | null = null;
   const whitespace = /\s/;
   const skipWhitespace = () => {
     while (whitespace.test(json[index] ?? "")) index += 1;
@@ -27,7 +27,7 @@ function hasUniqueObjectKeys(json: string): boolean {
     return -1;
   };
 
-  function readValue(): boolean {
+  function readValue(depth = 0, captureNodes = false): boolean {
     skipWhitespace();
     if (json[index] === "\"") {
       const end = stringEnd(index);
@@ -56,7 +56,7 @@ function hasUniqueObjectKeys(json: string): boolean {
         skipWhitespace();
         if (json[index] !== ":") return false;
         index += 1;
-        if (!readValue()) return false;
+        if (!readValue(depth + 1, depth === 0 && key === "nodes")) return false;
         skipWhitespace();
         if (json[index] === "}") {
           index += 1;
@@ -69,16 +69,22 @@ function hasUniqueObjectKeys(json: string): boolean {
     }
     if (json[index] === "[") {
       index += 1;
+      const ranges: { start: number; end: number }[] = [];
       skipWhitespace();
       if (json[index] === "]") {
         index += 1;
+        if (captureNodes) nodeRanges = ranges;
         return true;
       }
       while (index < json.length) {
-        if (!readValue()) return false;
+        skipWhitespace();
+        const start = index;
+        if (!readValue(depth + 1)) return false;
+        if (captureNodes) ranges.push({ start, end: index });
         skipWhitespace();
         if (json[index] === "]") {
           index += 1;
+          if (captureNodes) nodeRanges = ranges;
           return true;
         }
         if (json[index] !== ",") return false;
@@ -93,12 +99,12 @@ function hasUniqueObjectKeys(json: string): boolean {
   }
 
   try {
-    // JSON.parse accepts duplicate keys, but stringifying them would silently discard data.
-    if (!readValue()) return false;
+    // JSON.parse hides duplicate keys, making the visible node order ambiguous.
+    if (!readValue()) return null;
     skipWhitespace();
-    return index === json.length;
+    return index === json.length ? nodeRanges : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -109,13 +115,13 @@ function parseWorkflowDraft(document: string): ParsedWorkflowDraft | null {
   } catch {
     return null;
   }
-  if (!hasUniqueObjectKeys(document) || !isRecord(value) || value.schemaVersion !== 1 ||
+  const nodeRanges = findNodeRanges(document);
+  if (nodeRanges === null || !isRecord(value) || value.schemaVersion !== 1 ||
     typeof value.revision !== "string" || !Array.isArray(value.nodes) ||
     !Array.isArray(value.edges)) {
     return null;
   }
 
-  const nodes: Record<string, unknown>[] = [];
   const order: WorkflowNodeOrderItem[] = [];
   const ids = new Set<string>();
   for (const candidate of value.nodes) {
@@ -125,10 +131,10 @@ function parseWorkflowDraft(document: string): ParsedWorkflowDraft | null {
       return null;
     }
     ids.add(candidate.id);
-    nodes.push(candidate);
     order.push({ id: candidate.id, type: candidate.type });
   }
-  return { document: value, nodes, order };
+  if (nodeRanges.length !== order.length) return null;
+  return { nodeRanges, order };
 }
 
 export function readWorkflowNodeOrder(document: string): WorkflowNodeOrderItem[] | null {
@@ -143,11 +149,13 @@ export function moveWorkflowNode(
   const parsed = parseWorkflowDraft(document);
   if (!parsed) return null;
 
-  const index = parsed.nodes.findIndex((node) => node.id === nodeId);
+  const index = parsed.order.findIndex((node) => node.id === nodeId);
   const nextIndex = index + (direction === "up" ? -1 : 1);
-  if (index < 0 || nextIndex < 0 || nextIndex >= parsed.nodes.length) return null;
+  if (index < 0 || nextIndex < 0 || nextIndex >= parsed.order.length) return null;
 
-  const nodes = [...parsed.nodes];
-  [nodes[index], nodes[nextIndex]] = [nodes[nextIndex], nodes[index]];
-  return JSON.stringify({ ...parsed.document, nodes }, null, 2);
+  const first = parsed.nodeRanges[Math.min(index, nextIndex)];
+  const second = parsed.nodeRanges[Math.max(index, nextIndex)];
+  return document.slice(0, first.start) + document.slice(second.start, second.end) +
+    document.slice(first.end, second.start) + document.slice(first.start, first.end) +
+    document.slice(second.end);
 }

@@ -69,12 +69,12 @@ test("reorders saved-draft nodes with pointer controls at responsive widths", as
       target: "node-b", targetPort: "value",
     }],
   };
-  const workflowDocument = JSON.stringify(workflow);
+  const workflowDocument = JSON.stringify(workflow).replace('"value":"A"', '"value":9007199254740993');
   const expectedDocument = JSON.stringify({
     ...workflow,
     nodes: [workflow.nodes[1], workflow.nodes[0]],
-  }, null, 2);
-  const restoredDocument = JSON.stringify(workflow, null, 2);
+  }).replace('"value":"A"', '"value":9007199254740993');
+  const restoredDocument = workflowDocument;
   const savedDocuments: string[] = [];
   await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
     const request = route.request();
