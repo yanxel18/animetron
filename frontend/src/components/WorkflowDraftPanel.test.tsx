@@ -36,6 +36,7 @@ it("loads, validates and creates a revision of the exact saved draft", async () 
   await user.type(screen.getByLabelText("Workflow ID"), id);
   await user.click(screen.getByRole("button", { name: "Load draft" }));
   expect(await screen.findByLabelText("Workflow draft JSON")).toHaveValue(draft.document);
+  expect(screen.queryByRole("list", { name: "Workflow node order" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Validate saved draft" }));
   expect(await screen.findByText(/valid for version 3/i)).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Create immutable revision" }));
@@ -43,6 +44,69 @@ it("loads, validates and creates a revision of the exact saved draft", async () 
   expect(screen.getByText("a".repeat(64))).toBeInTheDocument();
   expect(screen.getByLabelText("Created revision canonical JSON")).toHaveTextContent("{}");
   expect(fetcher.mock.calls[4][1].body).toBe('{"expectedVersion":3}');
+});
+
+it("reorders a loaded draft node with the keyboard and saves the unchanged graph", async () => {
+  const document = JSON.stringify({
+    schemaVersion: 1,
+    revision: "r1",
+    nodes: [
+      { id: "node-a", type: "sample.constant", config: { value: "A", options: [1, 2] } },
+      { id: "node-b", type: "sample.constant", config: { value: "B" } },
+    ],
+    edges: [{
+      id: "edge-a-b", source: "node-a", sourcePort: "value",
+      target: "node-b", targetPort: "value",
+    }],
+  });
+  const parsed = JSON.parse(document) as {
+    schemaVersion: number;
+    revision: string;
+    nodes: { id: string; type: string; config: Record<string, unknown> }[];
+    edges: unknown[];
+  };
+  const reorderedDocument = JSON.stringify({
+    ...parsed,
+    nodes: [parsed.nodes[1], parsed.nodes[0]],
+  }, null, 2);
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json({ ...draft, document }))
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(json({ ...draft, document: reorderedDocument, version: 4 }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+
+  const moveUp = await screen.findByRole("button", { name: "Move node-b up" });
+  moveUp.focus();
+  await user.keyboard("{Enter}");
+
+  expect(screen.getByLabelText("Workflow draft JSON")).toHaveValue(reorderedDocument);
+  expect(screen.getByRole("button", { name: "Move node-b up" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Move node-b down" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Move node-a up" })).toBeEnabled();
+  expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Save draft" }));
+  expect(await screen.findByText(/saved as version 4/i)).toBeInTheDocument();
+  expect(fetcher.mock.calls[2][1].body).toBe(
+    JSON.stringify({ document: reorderedDocument, expectedVersion: 3 }),
+  );
+});
+
+it("keeps duplicate-key drafts editable without offering lossy node reordering", async () => {
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"nodes":[],"edges":[]}';
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json({ ...draft, document })));
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+
+  expect(await screen.findByLabelText("Workflow draft JSON")).toHaveValue(document);
+  expect(screen.queryByRole("list", { name: "Workflow node order" })).not.toBeInTheDocument();
+  expect(screen.getByRole("note")).toHaveTextContent(/does not contain a readable workflow node list/i);
 });
 
 it("saves edits before validating or creating a revision", async () => {

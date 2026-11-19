@@ -4,6 +4,7 @@ import {
   clearPendingWorkflowRevision, createDraftRevision, readPendingWorkflowRevision,
   readWorkflowDraft, saveWorkflowDraft, validateWorkflowDraft, WorkflowDraftError,
 } from "../api/workflow-drafts";
+import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
 
 type LoadedWorkflowDraftProps = {
   draft: WorkflowDraftOutput;
@@ -31,6 +32,8 @@ function LoadedWorkflowDraft({
   const unsavedChanges = document !== draft.document;
   return <>
     <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
+    <WorkflowNodeOrder document={document} disabled={busy || reloadRequired}
+      onDocumentChange={onDocumentChange} />
     <label className="workflow-document-label" htmlFor="workflow-draft-document">Workflow draft JSON</label>
     <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved.</p>
     <textarea id="workflow-draft-document" className="workflow-json workflow-json-editor"
