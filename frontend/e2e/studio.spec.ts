@@ -531,7 +531,8 @@ test("opens and closes the mobile navigation without enabling unavailable screen
     page.getByRole("navigation", { name: "Studio sections" }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Runs" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Library" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Library" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Models" })).toBeDisabled();
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Studio" })).toBeFocused();
@@ -594,4 +595,99 @@ test("honors reduced motion and remains usable at a 200 percent effective viewpo
   } finally {
     await zoomContext.close();
   }
+});
+
+test("looks up owner-only artifact metadata without listing or previewing bytes", async ({
+  page,
+}, testInfo) => {
+  const artifactId = "c4f7bcac-39e8-47a5-a9e1-ecb6b1db8a53";
+  const requests: { method: string; pathname: string }[] = [];
+  const browserErrors: string[] = [];
+  let lookups = 0;
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      !message.text().includes("status of 403 (Forbidden)")
+    ) {
+      browserErrors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith("/api/v1/artifacts/")) {
+      requests.push({ method: request.method(), pathname: url.pathname });
+    }
+  });
+  await page.route(`**/api/v1/artifacts/${artifactId}`, async (route) => {
+    lookups += 1;
+    if (lookups === 1) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: artifactId,
+          ownerId: "owner-1",
+          revision: "revision-7",
+          sha256: "a".repeat(64),
+          byteSize: 1_024,
+          mediaType: "image/png",
+        }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 403,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: "forbidden" }),
+    });
+  });
+
+  await page.goto("/#library");
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Skip to workspace" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#artifact-library-title$/);
+  await expect(page.getByRole("heading", { name: "Library" })).toBeFocused();
+  await page.getByLabel("Artifact ID").fill(artifactId);
+  await page.getByRole("button", { name: "Look up metadata" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Artifact metadata" }),
+  ).toBeVisible();
+  await expect(page.getByText("owner-1")).toBeVisible();
+  await expect(
+    page.getByText(/does not list artifacts or preview bytes/i),
+  ).toBeVisible();
+  await expect(page.locator("img, video, audio")).toHaveCount(0);
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    const dimensions = await page.evaluate(() => ({
+      viewportWidth: document.documentElement.clientWidth,
+      contentWidth: document.documentElement.scrollWidth,
+    }));
+    expect(
+      dimensions.contentWidth,
+      `horizontal overflow at ${viewport.width}px: ${JSON.stringify(dimensions)}`,
+    ).toBeLessThanOrEqual(dimensions.viewportWidth);
+    await page.screenshot({
+      path: testInfo.outputPath(`library-${viewport.width}.png`),
+      fullPage: true,
+    });
+  }
+
+  await page.getByRole("button", { name: "Look up metadata" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    /owner access is required/i,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Artifact metadata" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("owner-1")).toHaveCount(0);
+  expect(requests).toEqual([
+    { method: "GET", pathname: `/api/v1/artifacts/${artifactId}` },
+    { method: "GET", pathname: `/api/v1/artifacts/${artifactId}` },
+  ]);
+  expect(browserErrors).toEqual([]);
 });
