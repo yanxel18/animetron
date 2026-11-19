@@ -2,14 +2,80 @@ import { useState, type FormEvent } from "react";
 import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "../api/generated";
 import {
   clearPendingWorkflowRevision, createDraftRevision, readPendingWorkflowRevision,
-  readWorkflowDraft, validateWorkflowDraft, WorkflowDraftError,
+  readWorkflowDraft, saveWorkflowDraft, validateWorkflowDraft, WorkflowDraftError,
 } from "../api/workflow-drafts";
+
+type LoadedWorkflowDraftProps = {
+  draft: WorkflowDraftOutput;
+  document: string;
+  saveNotice: string | null;
+  busy: boolean;
+  reloadRequired: boolean;
+  validation: WorkflowValidationOutput | null;
+  revision: RevisionOutput | null;
+  uncertain: boolean;
+  acknowledged: boolean;
+  onDocumentChange: (value: string) => void;
+  onSave: () => Promise<void>;
+  onDiscard: () => void;
+  onValidate: () => Promise<void>;
+  onCreateRevision: () => Promise<void>;
+};
+
+function LoadedWorkflowDraft({
+  draft, document, saveNotice, busy, reloadRequired, validation, revision,
+  uncertain, acknowledged, onDocumentChange, onSave, onDiscard, onValidate,
+  onCreateRevision,
+}: LoadedWorkflowDraftProps) {
+  const usableVersion = draft.version < 2_147_483_647;
+  const unsavedChanges = document !== draft.document;
+  return <>
+    <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
+    <label className="workflow-document-label" htmlFor="workflow-draft-document">Workflow draft JSON</label>
+    <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved.</p>
+    <textarea id="workflow-draft-document" className="workflow-json workflow-json-editor"
+      aria-describedby="workflow-draft-editor-help" value={document}
+      disabled={busy || reloadRequired} spellCheck={false}
+      onChange={(event) => onDocumentChange(event.target.value)} />
+    {unsavedChanges && <p role="status">Unsaved changes. Save before validating or creating a revision.</p>}
+    {saveNotice && <p role="status">{saveNotice}</p>}
+    {!usableVersion && <p role="note">This draft version cannot be validated or saved as a revision by the current API.</p>}
+    <div className="workflow-draft-actions">
+      {unsavedChanges && !reloadRequired && <button className="button button--secondary" type="button"
+        onClick={onDiscard}>Discard edits</button>}
+      <button className="button button--secondary" type="button" onClick={() => void onSave()}
+        disabled={busy || reloadRequired || !usableVersion || !unsavedChanges}>Save draft</button>
+      <button className="button button--secondary" type="button" onClick={() => void onValidate()}
+        disabled={busy || reloadRequired || !usableVersion || unsavedChanges}>Validate saved draft</button>
+      <button className="button button--primary" type="button" onClick={() => void onCreateRevision()}
+        disabled={busy || reloadRequired || (uncertain && !acknowledged) ||
+          !usableVersion || unsavedChanges || !validation?.isValid || revision !== null}>Create immutable revision</button>
+    </div>
+    {validation?.isValid && <p role="status">Draft is valid for version {validation.draftVersion}.</p>}
+    {validation && !validation.isValid && <div role="status">
+      <p>Draft validation found {validation.issues.length} issue(s).</p>
+      <ul>{validation.issues.map((issue, index) => <li key={`${issue.code}-${index}`}>
+        <strong>{issue.code}</strong>: {issue.message}
+        {issue.nodeId && <> (node: <code>{issue.nodeId}</code>)</>}
+        {issue.edgeId && <> (edge: <code>{issue.edgeId}</code>)</>}
+      </li>)}</ul>
+    </div>}
+    {revision && <div role="status">
+      <p>Revision saved: <code>{revision.revision}</code>. Execution readiness is not established.</p>
+      <p>Returned SHA-256: <code className="workflow-digest">{revision.sha256}</code></p>
+      <p>Returned canonical JSON:</p>
+      <pre className="workflow-json" tabIndex={0} aria-label="Created revision canonical JSON"><code>{revision.canonicalJson}</code></pre>
+    </div>}
+  </>;
+}
 
 export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDraftError) => void }) {
   const [recovery, setRecovery] = useState(readPendingWorkflowRevision);
   const [id, setId] = useState(() =>
     recovery !== null && recovery !== "unavailable" ? recovery.workflowId : "");
   const [draft, setDraft] = useState<WorkflowDraftOutput | null>(null);
+  const [editorDocument, setEditorDocument] = useState("");
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [validation, setValidation] = useState<WorkflowValidationOutput | null>(null);
   const [revision, setRevision] = useState<RevisionOutput | null>(null);
   const [busy, setBusy] = useState(false);
@@ -24,9 +90,10 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   const [uncertain, setUncertain] = useState(recovery !== null);
   const [acknowledged, setAcknowledged] = useState(false);
 
-  function failure(value: unknown, action: "load" | "validate" | "revision") {
+  function failure(value: unknown, action: "load" | "save" | "validate" | "revision") {
     if (value instanceof WorkflowDraftError && (value.status === 401 || value.status === 403)) {
       setDraft(null);
+      setEditorDocument("");
       setValidation(null);
       setRevision(null);
       setId("");
@@ -47,6 +114,9 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
       setReloadRequired(true);
       setAcknowledged(false);
       setError("The revision may have been created. Reload the draft and inspect saved revisions before explicitly acknowledging a possible duplicate. Do not assume it failed.");
+    } else if (value instanceof WorkflowDraftError && value.uncertain && action === "save") {
+      setReloadRequired(true);
+      setError("The draft may have been saved. Reload the saved draft to reconcile its version before continuing.");
     } else if (value instanceof WorkflowDraftError && value.status === 409) {
       setRecovery(readPendingWorkflowRevision());
       setReloadRequired(true);
@@ -72,6 +142,8 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
       const currentRecovery = readPendingWorkflowRevision();
       setRecovery(currentRecovery);
       setDraft(result);
+      setEditorDocument(result.document);
+      setSaveNotice(null);
       if (currentRecovery === "unavailable") {
         setUncertain(true);
         setReloadRequired(true);
@@ -85,15 +157,33 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
           : null);
       }
     } catch (value) {
-      setDraft(null);
       failure(value, "load");
     } finally {
       setBusy(false);
     }
   }
 
+  async function save() {
+    if (!draft || busy || reloadRequired || editorDocument === draft.document) return;
+    setBusy(true);
+    setError(null);
+    setSaveNotice(null);
+    setValidation(null);
+    setRevision(null);
+    try {
+      const saved = await saveWorkflowDraft(draft.workflowId, editorDocument, draft.version);
+      setDraft(saved);
+      setEditorDocument(saved.document);
+      setSaveNotice(`Draft saved as version ${saved.version}.`);
+    } catch (value) {
+      failure(value, "save");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function validate() {
-    if (!draft || busy || reloadRequired) return;
+    if (!draft || busy || reloadRequired || editorDocument !== draft.document) return;
     setBusy(true);
     setError(null);
     setValidation(null);
@@ -108,7 +198,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   }
 
   async function createRevision() {
-    if (!draft || busy || reloadRequired || !validation?.isValid) return;
+    if (!draft || busy || reloadRequired || editorDocument !== draft.document || !validation?.isValid) return;
     setBusy(true);
     setError(null);
     try {
@@ -136,17 +226,19 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
     }
   }
 
-  const usableVersion = draft !== null && draft.version < 2_147_483_647;
+  const unsavedChanges = draft !== null && editorDocument !== draft.document;
   return <section className="workflow-draft-panel" aria-labelledby="workflow-draft-title" aria-busy={busy}>
     <h2 id="workflow-draft-title">Saved draft</h2>
-    <p>Load a draft by workflow ID, validate its saved version, and create an immutable revision. This does not run the workflow.</p>
+    <p>Edit a saved JSON document and save it as a new draft version. Validation and immutable revision creation use the saved version only; this does not run the workflow.</p>
     <form onSubmit={(event) => void load(event)} className="workflow-draft-form">
       <div className="schedule-create-field">
         <label htmlFor="workflow-draft-id">Workflow ID</label>
-        <input id="workflow-draft-id" value={id} disabled={busy || uncertain}
+        <input id="workflow-draft-id" value={id} disabled={busy || uncertain || unsavedChanges || reloadRequired}
           onChange={(event) => {
             setId(event.target.value);
             setDraft(null);
+            setEditorDocument("");
+            setSaveNotice(null);
             setValidation(null);
             setRevision(null);
             setError(null);
@@ -154,7 +246,9 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
           }} placeholder="00000000-0000-0000-0000-000000000000" required />
       </div>
       <button className="button button--secondary" type="submit"
-        disabled={busy}>Load draft</button>
+        disabled={busy || (unsavedChanges && !reloadRequired)}>
+        {reloadRequired ? "Reload saved draft" : "Load draft"}
+      </button>
     </form>
     {busy && <p role="status">Working with the saved draft...</p>}
     {error && <div className="review-error" role="alert"><p>{error}</p></div>}
@@ -162,32 +256,25 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
       <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
       I understand the prior attempt may have created a revision and a new attempt could create a duplicate.
     </label>}
-    {draft && <>
-      <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
-      <pre className="workflow-json" tabIndex={0} aria-label="Saved draft document"><code>{draft.document}</code></pre>
-      {!usableVersion && <p role="note">This draft version cannot be validated or saved as a revision by the current API.</p>}
-      <div className="workflow-draft-actions">
-        <button className="button button--secondary" type="button" onClick={() => void validate()}
-          disabled={busy || reloadRequired || !usableVersion}>Validate saved draft</button>
-        <button className="button button--primary" type="button" onClick={() => void createRevision()}
-          disabled={busy || reloadRequired || (uncertain && !acknowledged) ||
-            !usableVersion || !validation?.isValid || revision !== null}>Create immutable revision</button>
-      </div>
-      {validation?.isValid && <p role="status">Draft is valid for version {validation.draftVersion}.</p>}
-      {validation && !validation.isValid && <div role="status">
-        <p>Draft validation found {validation.issues.length} issue(s).</p>
-        <ul>{validation.issues.map((issue, index) => <li key={`${issue.code}-${index}`}>
-          <strong>{issue.code}</strong>: {issue.message}
-          {issue.nodeId && <> (node: <code>{issue.nodeId}</code>)</>}
-          {issue.edgeId && <> (edge: <code>{issue.edgeId}</code>)</>}
-        </li>)}</ul>
-      </div>}
-      {revision && <div role="status">
-        <p>Revision saved: <code>{revision.revision}</code>. Execution readiness is not established.</p>
-        <p>Returned SHA-256: <code className="workflow-digest">{revision.sha256}</code></p>
-        <p>Returned canonical JSON:</p>
-        <pre className="workflow-json" tabIndex={0} aria-label="Created revision canonical JSON"><code>{revision.canonicalJson}</code></pre>
-      </div>}
-    </>}
+    {draft && <LoadedWorkflowDraft draft={draft} document={editorDocument} saveNotice={saveNotice}
+      busy={busy} reloadRequired={reloadRequired} validation={validation} revision={revision}
+      uncertain={uncertain} acknowledged={acknowledged}
+      onDocumentChange={(value) => {
+        setEditorDocument(value);
+        setSaveNotice(null);
+        setValidation(null);
+        setRevision(null);
+        setError(null);
+      }}
+      onSave={save}
+      onDiscard={() => {
+        setEditorDocument(draft.document);
+        setSaveNotice("Unsaved changes were discarded. The saved version is unchanged.");
+        setValidation(null);
+        setRevision(null);
+        setError(null);
+      }}
+      onValidate={validate}
+      onCreateRevision={createRevision} />}
   </section>;
 }

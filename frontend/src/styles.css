@@ -1269,6 +1269,21 @@ h1 {
   color: var(--color-text-primary);
 }
 
+.workflow-document-label {
+  display: block;
+  margin-block: var(--space-3) var(--space-2);
+}
+
+.workflow-json-editor {
+  display: block;
+  width: 100%;
+  min-height: 18rem;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

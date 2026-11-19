@@ -1,4 +1,6 @@
-import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "./generated";
+import type {
+  RevisionOutput, WorkflowDraftInput, WorkflowDraftOutput, WorkflowValidationOutput,
+} from "./generated";
 import { revisionValid } from "./workflows";
 
 export const PENDING_WORKFLOW_REVISION_KEY = "animetron.workflow-revision.pending.v1";
@@ -75,27 +77,35 @@ export function clearPendingWorkflowRevision(): boolean {
   }
 }
 
-async function request(path: string, options: RequestInit, mutation = false): Promise<unknown> {
+async function request(
+  path: string,
+  options: RequestInit,
+  mutation = false,
+  uncertainMessage = "The revision request outcome is unknown.",
+): Promise<unknown> {
   let response: Response;
   try {
     response = await fetch(path, { ...options, credentials: "same-origin", cache: "no-store" });
   } catch {
     throw new WorkflowDraftError(
-      mutation ? "The revision request outcome is unknown." : "The workflow service could not be reached.",
+      mutation ? uncertainMessage : "The workflow service could not be reached.",
       null, mutation,
     );
   }
   if (!response.ok) {
     const uncertain = mutation && ![401, 403, 404, 409, 422].includes(response.status);
     throw new WorkflowDraftError(
-      uncertain ? "The revision request outcome is unknown." : `The workflow service returned HTTP ${response.status}.`,
+      uncertain ? uncertainMessage : `The workflow service returned HTTP ${response.status}.`,
       response.status, uncertain,
     );
   }
   try {
     return await response.json() as unknown;
   } catch {
-    throw new WorkflowDraftError("The workflow service returned an invalid response.", response.status, mutation);
+    throw new WorkflowDraftError(
+      mutation ? uncertainMessage : "The workflow service returned an invalid response.",
+      response.status, mutation,
+    );
   }
 }
 
@@ -113,10 +123,10 @@ async function ownerCsrf(): Promise<string> {
   return session.csrfToken;
 }
 
-function draft(value: unknown, id: string): WorkflowDraftOutput {
+function draft(value: unknown, id: string, uncertain = false): WorkflowDraftOutput {
   const item = record(value);
   if (!item || item.workflowId !== id || typeof item.document !== "string" || !version(item.version)) {
-    throw new WorkflowDraftError("The workflow service returned an invalid response.", 200);
+    throw new WorkflowDraftError("The workflow service returned an invalid response.", 200, uncertain);
   }
   return { workflowId: id, document: item.document, version: item.version };
 }
@@ -130,6 +140,32 @@ export async function readWorkflowDraft(id: string): Promise<WorkflowDraftOutput
   return draft(await request(`/api/v1/workflows/${id}/draft`, {
     method: "GET", headers: { Accept: "application/json" },
   }), id);
+}
+
+export async function saveWorkflowDraft(
+  id: string,
+  document: string,
+  expectedVersion: number,
+): Promise<WorkflowDraftOutput> {
+  checkId(id);
+  if (!version(expectedVersion) || expectedVersion >= 2_147_483_647) {
+    throw new WorkflowDraftError("The draft version cannot be saved.", 422);
+  }
+  const token = await ownerCsrf();
+  const body: WorkflowDraftInput = { document, expectedVersion };
+  const result = draft(await request(`/api/v1/workflows/${id}/draft`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-CSRF-Token": token,
+    },
+    body: JSON.stringify(body),
+  }, true, "The draft save outcome is unknown."), id, true);
+  if (result.document !== document || result.version !== expectedVersion + 1) {
+    throw new WorkflowDraftError("The draft save response could not be verified.", 200, true);
+  }
+  return result;
 }
 
 async function postVersion(id: string, endpoint: string, expectedVersion: number, mutation: boolean): Promise<unknown> {

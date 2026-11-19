@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `33e9c7e` on 2026-11-19. #53 and #54 merged
+verified remote `master` at `51d56e8` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -14,7 +14,11 @@ The historical #33 scanner failure remains unresolved. #73 merged at
 are satisfied. #84, #86 and #87 also merged; their only reported check is
 GitGuardian and none has an independent GitHub review record. #113 merged at
 `33e9c7e`, but no independent GitHub review is recorded and its only check is
-GitGuardian; its recovery-on-reload gap is addressed in open PR #114.
+GitGuardian. The reload-recovery correction merged in #114 at `51d56e8`; it
+also has no independent GitHub review record, only a passing GitGuardian check,
+and pending combined status. Its API type-drift check was blocked by Windows
+Application Control preventing psycopg's PostgreSQL DLL from loading. Keep
+P7-02c unchecked pending the required review and checks.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -29,7 +33,7 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`33e9c7e`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`51d56e8`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101 and #103 are merged but are not credited without a passing independent
 review and required checks.
 #86 includes P1-08c and P1-10c;
@@ -64,11 +68,23 @@ merged at `5f4ce66`; GitGuardian passed, no independent GitHub review is
 recorded and combined status is pending.
 P1-09j implementation [#112](https://github.com/yanxel18/animetron/pull/112)
 merged at `f5f29fc`; GitGuardian passed, no independent GitHub review is
-recorded and combined status is pending. P7-02c merged via
-[#113](https://github.com/yanxel18/animetron/pull/113) at `33e9c7e`; GitGuardian
-passed, no independent GitHub review is recorded, and its combined status is
-pending. The merge does not change the top-level count; keep P7-02c unchecked
-until its recovery gap and required review/check gates are resolved.
+recorded and combined status is pending. P7-02c's initial implementation
+merged via [#113](https://github.com/yanxel18/animetron/pull/113) at `33e9c7e`.
+Its reload-recovery correction merged in
+[#114](https://github.com/yanxel18/animetron/pull/114) at `51d56e8`. #114 has
+no independent GitHub review record, only a passing GitGuardian check, and a
+pending combined status; its API type-drift check was blocked by Windows
+Application Control preventing psycopg's PostgreSQL DLL from loading. The
+correction does not change the top-level count; keep P7-02c unchecked until
+the required review and checks pass.
+P7-02d is in open PR [#115](https://github.com/yanxel18/animetron/pull/115)
+from `task/p7-02d-draft-editor`. Local verification passed: 138 frontend
+tests, the TypeScript check and production build, and all 7 workflow Playwright
+cases. GitGuardian passed on PR head `348b70c`; the combined status is pending
+and no independent GitHub review is recorded. A subsequent tracker-only update
+may cause the check to rerun on a new head. Keep the slice unchecked until
+required review and checks pass. This nested slice does not change the
+top-level count or P7 count.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -449,16 +465,18 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   GitGuardian passed, but no independent GitHub review is recorded and the
   combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9 and P1 7/12, recalculated after
-  reconciling #113 on `33e9c7e`. The nested P1-09j and P7-02c slices do not
-  change the project counts. The P7-02c recovery correction is in progress on
-  `task/p7-02c-draft-recovery`; it persists only the workflow ID and version
+  reconciling #114 on `51d56e8`. The nested P1-09j and P7-02c slices do not
+  change the project counts. The P7-02c recovery correction was implemented on
+  `task/p7-02c-draft-recovery` and merged via #114; it persists only the workflow
+  ID and version
   before revision submission, restores the warning after reload, and requires
   fresh explicit acknowledgement before a retry. The full frontend suite
   passed (130 tests), production build passed, and all 22 Chromium tests passed.
   API type-drift validation is blocked because Windows Application Control
-  prevents psycopg's PostgreSQL DLL from loading. The correction is open in
-  [#114](https://github.com/yanxel18/animetron/pull/114); keep P7-02c unchecked
-  pending independent review and required gates. The earlier reconciliation
+  prevents psycopg's PostgreSQL DLL from loading. #114's only check is
+  GitGuardian; no independent GitHub review is recorded and the combined
+  status is pending. Keep P7-02c unchecked pending the required review and
+  gates. The earlier reconciliation
   merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
 - Remaining P7 work is gated: the artifact library/preview needs the incomplete
@@ -1274,16 +1292,29 @@ accessibility checks pass, not merely when mock screens exist.
     the PR has no independent GitHub review record and only its GitGuardian
     check is recorded; its combined status is pending. Its recovery state was
     lost if the panel was unmounted or the page closed during creation. The
-    correction is in progress on `task/p7-02c-draft-recovery`: persist only
+    correction merged in
+    [#114](https://github.com/yanxel18/animetron/pull/114) at `51d56e8`:
+    persist only
     workflow ID/version before the request, restore context after reload,
     require acknowledgement before a retry, and coordinate same-origin
     attempts with Web Locks. Local full frontend suite (130 tests), production
     build and 22 Chromium tests passed. API type-drift validation is blocked
     because Windows Application Control prevents psycopg's PostgreSQL DLL from
-    loading. Live authenticated backend and screen-reader use remain
-    unverified. The recovery correction is open in
-    [#114](https://github.com/yanxel18/animetron/pull/114); keep unchecked
-    until it is merged and all required gates pass.
+    loading. #114 has no independent GitHub review record, only a passing
+    GitGuardian check, and a pending combined status. Live authenticated
+    backend and screen-reader use remain unverified. Keep unchecked until the
+    required review and checks pass.
+  - [ ] P7-02d Edit a loaded draft document and save it through the owner-only
+    compare-and-swap API. Mark unsaved edits clearly; disable validation and
+    revision creation until the exact edited document is saved; require reload
+    after conflicts or uncertain save outcomes. This is a document editor slice,
+    not the complete visual node canvas/palette/inspector or workflow creation UX.
+    Local implementation verified: 138 frontend tests, TypeScript check and
+    production build, 7 workflow Playwright cases, and `git diff --check`.
+    Owner authorized external transmission on 2026-11-19; open in
+    [#115](https://github.com/yanxel18/animetron/pull/115). GitGuardian passed
+    on head `348b70c`; combined status is pending and no independent GitHub
+    review is recorded. Remains unchecked pending required review and checks.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
