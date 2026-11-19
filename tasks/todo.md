@@ -1423,9 +1423,19 @@ accessibility checks pass, not merely when mock screens exist.
     independent local review found creation denial could discard unsaved
     editor changes; a regression failed before shared busy/dirty guards were
     added. The retry guard mutation was caught and restored. Live authenticated
-    backend and screen-reader verification remain unavailable. Independent
-    GitHub review and required checks remain outstanding. Counts remain
-    18/57 (31.6%), P7 1/6.
+    backend and screen-reader verification remain unavailable. GitGuardian
+    passed on head `07f2784`; no independent GitHub review is recorded and
+    combined status is pending. Counts remain 18/57 (31.6%), P7 1/6.
+  - [ ] P7-02g Offer explicit secure UUID generation for draft creation,
+    retaining manual entry when unavailable and preventing regeneration during
+    recovery or unsaved edits. Depends on open #121; implementation is in review
+    in [#122](https://github.com/yanxel18/animetron/pull/122). Local verification:
+    163 frontend tests, TypeScript/build, 27 fixture-backed Chromium tests
+    and `git diff --check`. Browser coverage generates an ID and restores the
+    same ID after an uncertain response and reload. Live authenticated backend
+    and screen-reader verification are unavailable. Independent GitHub review
+    and required checks remain outstanding. This nested slice does not change
+    the 18/57 (31.6%) or P7 1/6 counts.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status

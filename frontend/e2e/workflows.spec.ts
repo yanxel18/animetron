@@ -7,6 +7,7 @@ const canonicalJson = '{"revision":"saved-revision-1","text":"<script>inert</scr
 
 test("recovers an uncertain empty draft creation and loads the same ID", async ({ page }, testInfo) => {
   let attempts = 0;
+  let createdId = "";
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
@@ -16,37 +17,40 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
       await route.fulfill({ json: { data: [], nextCursor: null } });
     } else if (path === "/api/v1/auth/session") {
       await route.fulfill({ json: { role: "owner", csrfToken: "fixture-csrf" } });
-    } else if (path === `/api/v1/workflows/${id}/draft` && request.method() === "PUT") {
+    } else if (path === `/api/v1/workflows/${createdId}/draft` && request.method() === "PUT") {
       expect(request.postDataJSON()).toEqual({ document: "", expectedVersion: null });
       attempts++;
       if (attempts === 1) await route.fulfill({ status: 503 });
-      else await route.fulfill({ json: { workflowId: id, document: "", version: 1 } });
-    } else if (path === `/api/v1/workflows/${id}/draft` && request.method() === "GET") {
+      else await route.fulfill({ json: { workflowId: createdId, document: "", version: 1 } });
+    } else if (path === `/api/v1/workflows/${createdId}/draft` && request.method() === "GET") {
       if (attempts === 1) await route.fulfill({ status: 404 });
-      else await route.fulfill({ json: { workflowId: id, document: "", version: 1 } });
+      else await route.fulfill({ json: { workflowId: createdId, document: "", version: 1 } });
     } else {
       await route.fulfill({ status: 404 });
     }
   });
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/#workflows");
-  await page.getByLabel("New workflow ID").fill(id);
+  await page.getByRole("button", { name: "Generate workflow ID" }).click();
+  createdId = await page.getByLabel("New workflow ID").inputValue();
+  expect(createdId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   await page.getByRole("button", { name: "Create empty draft" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("alert")).toContainText(/may have been created/i);
   await page.reload();
-  await expect(page.getByLabel("New workflow ID")).toHaveValue(id);
+  await expect(page.getByLabel("New workflow ID")).toHaveValue(createdId);
+  await expect(page.getByRole("button", { name: "Generate workflow ID" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Create empty draft" })).toBeDisabled();
   await page.getByRole("button", { name: "Check draft creation" }).click();
   await expect(page.getByRole("alert")).toContainText(/not found.*same id/i);
   await page.getByRole("button", { name: "Create empty draft" }).click();
-  await expect(page.getByText(/empty draft created/i)).toContainText(id);
+  await expect(page.getByText(/empty draft created/i)).toContainText(createdId);
   await page.reload();
-  await expect(page.getByLabel("New workflow ID")).toHaveValue(id);
+  await expect(page.getByLabel("New workflow ID")).toHaveValue(createdId);
   await page.getByRole("button", { name: "Check draft creation" }).click();
-  await expect(page.getByText(/draft found/i)).toContainText(id);
+  await expect(page.getByText(/draft found/i)).toContainText(createdId);
   await page.getByRole("button", { name: "I recorded this ID" }).click();
-  await page.getByLabel("Workflow ID", { exact: true }).fill(id);
+  await page.getByLabel("Workflow ID", { exact: true }).fill(createdId);
   await page.getByRole("button", { name: "Load draft" }).click();
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue("");
   expect(attempts).toBe(2);
