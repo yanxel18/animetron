@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `42e9da1` on 2026-11-19. #53 and #54 merged
+verified remote `master` at `9716ad3` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -37,8 +37,10 @@ the required gates.
 P7-02e merged in [#118](https://github.com/yanxel18/animetron/pull/118) at
 `42e9da1`; GitGuardian passed, but no independent GitHub review is recorded and
 the combined status is pending. Reordering also silently changed large JSON
-numbers. A lossless correction is in review in
-[#119](https://github.com/yanxel18/animetron/pull/119); keep P7-02e unchecked.
+numbers. The lossless correction merged in
+[#119](https://github.com/yanxel18/animetron/pull/119) at `9716ad3`.
+GitGuardian passed, but no independent GitHub review is recorded and combined
+status is pending; keep P7-02e unchecked.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -53,13 +55,14 @@ parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
 percentage is unchanged. Recalculated after reconciling latest verified master
-`42e9da1`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+`9716ad3`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 are merged but are not credited
 without a passing independent review and required checks. #117 is also merged
 but is not credited because its independent-review and combined-status gates
 remain unmet. P7-02e merged in
-[#118](https://github.com/yanxel18/animetron/pull/118), but remains unchecked
-pending its review/check gates and a correction for lossy JSON reordering.
+[#118](https://github.com/yanxel18/animetron/pull/118); the correction merged
+in [#119](https://github.com/yanxel18/animetron/pull/119). P7-02e remains
+unchecked pending the required independent reviews and checks.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
@@ -274,7 +277,13 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-19
 
-- Reconciled with verified `master` at `42e9da1`. PRs #75, #78, #79, #81,
+- Local preview check: the tailnet UI returned HTTP 200, but its session API
+  path returned HTML rather than the expected API response and no backend
+  listened on `127.0.0.1:8000`. This is not an authenticated or operational
+  end-to-end service. Actual workflow execution remains blocked by the
+  independently verified deployment trust-root prerequisite described below;
+  no deployment, model download or external execution was performed.
+- Reconciled with verified `master` at `9716ad3`. PRs #75, #78, #79, #81,
   #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 merged. #75 includes the
   P0-08a recovery harness from #76;
   P0-07c remains unchecked pending independent review and remaining
@@ -501,7 +510,7 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   GitGuardian passed, but no independent GitHub review is recorded and the
   combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9, P1 7/12 and P7 1/6, recalculated after
-  reconciling #118 on `42e9da1`. The nested P1-09j, P7-02c,
+  reconciling #119 on `9716ad3`. The nested P1-09j, P7-02c,
   P7-02d, P7-03b, P7-05c and P7-02e
   slices do not change the project counts. The P7-02c recovery correction was implemented on
   `task/p7-02c-draft-recovery` and merged via #114; it persists only the workflow
@@ -519,9 +528,9 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   GitHub review is recorded and the combined status is pending.
   #117 merged at `64eee39`; keep P7-05c unchecked because no independent
   GitHub review is recorded and the combined status is pending.
-  #118 merged at `42e9da1`; keep P7-02e unchecked because no independent review
-  is recorded, combined status is pending, and its lossless correction is not
-  yet merged.
+  #118 merged at `42e9da1` and its lossless correction #119 merged at `9716ad3`;
+  keep P7-02e unchecked because no independent GitHub reviews are recorded and
+  their combined statuses are pending.
   The earlier reconciliation
   merged in
   [#98](https://github.com/yanxel18/animetron/pull/98) at `eb6e801`.
@@ -1391,10 +1400,11 @@ accessibility checks pass, not merely when mock screens exist.
     without changing other document bytes. The regression failed before the
     fix; 151 frontend tests, TypeScript/build and all 25 Playwright cases pass
     afterward, including a large-number browser save using fixtures. The
-    correction is in review in
-    [#119](https://github.com/yanxel18/animetron/pull/119). Keep unchecked
-    pending independent review, required checks and merge; progress remains
-    18/57 (31.6%), P7 1/6.
+    correction merged in
+    [#119](https://github.com/yanxel18/animetron/pull/119) at `9716ad3`;
+    GitGuardian passed, but no independent GitHub review is recorded and
+    combined status is pending. Keep unchecked pending independent reviews and
+    required checks; progress remains 18/57 (31.6%), P7 1/6.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
