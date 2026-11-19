@@ -37,7 +37,8 @@ the required gates.
 P7-02e merged in [#118](https://github.com/yanxel18/animetron/pull/118) at
 `42e9da1`; GitGuardian passed, but no independent GitHub review is recorded and
 the combined status is pending. Reordering also silently changed large JSON
-numbers. A lossless correction is in progress; keep P7-02e unchecked.
+numbers. A lossless correction is in review in
+[#119](https://github.com/yanxel18/animetron/pull/119); keep P7-02e unchecked.
 The owner approved the
 [module specifications](../docs/SPECIFICATIONS.md) for implementation and version
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
@@ -1390,8 +1391,10 @@ accessibility checks pass, not merely when mock screens exist.
     without changing other document bytes. The regression failed before the
     fix; 151 frontend tests, TypeScript/build and all 25 Playwright cases pass
     afterward, including a large-number browser save using fixtures. The
-    correction is unmerged. Keep unchecked pending independent review, required
-    checks and merge; progress remains 18/57 (31.6%), P7 1/6.
+    correction is in review in
+    [#119](https://github.com/yanxel18/animetron/pull/119). Keep unchecked
+    pending independent review, required checks and merge; progress remains
+    18/57 (31.6%), P7 1/6.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
