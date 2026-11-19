@@ -101,6 +101,10 @@ production build and 23 Playwright cases. No independent GitHub review is
 recorded and the combined status is pending; GitGuardian is the only reported
 check. Keep the nested slice unchecked; top-level counts remain 18/57 (31.6%)
 and P7 1/6.
+P7-05c is open in
+[#117](https://github.com/yanxel18/animetron/pull/117). GitGuardian passed,
+but no independent review is recorded and the combined status is pending.
+Keep the slice unchecked; it does not change the counts.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -483,7 +487,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   GitGuardian passed, but no independent GitHub review is recorded and the
   combined status is pending.
 - Recount remains 18/57 (31.6%), P0 4/9, P1 7/12 and P7 1/6, recalculated after
-  reconciling #116 on `50201fd`. The nested P1-09j, P7-02c, P7-02d and P7-03b
+  reconciling #116 on `50201fd` and opening #117. The nested P1-09j, P7-02c,
+  P7-02d, P7-03b and P7-05c
   slices do not change the project counts. The P7-02c recovery correction was implemented on
   `task/p7-02c-draft-recovery` and merged via #114; it persists only the workflow
   ID and version
@@ -513,13 +518,13 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   require the workflow editor and reference machine. No P7 completion or
   external publishing is claimed.
 - P7-05c is committed as `f54caba` and pushed to
-  `task/p7-05c-library-accessibility`. The focused regression, all 24 Playwright
-  cases, 147 frontend unit tests, TypeScript/build and `git diff --check` pass;
-  screenshot review found no horizontal overflow in metadata or denied states.
-  GitHub confirms no PR exists. PR creation is blocked by the read-only GitHub
-  integration and unavailable write-capable CLI/token path; the branch is
-  ready at the [create-PR link](https://github.com/yanxel18/animetron/pull/new/task/p7-05c-library-accessibility).
-  P7-05c remains unchecked and project progress remains 18/57 (31.6%), P7 1/6.
+  `task/p7-05c-library-accessibility`; the tracker now records PR #117. The
+  focused regression, all 24 Playwright cases, 147 frontend
+  unit tests, TypeScript/build and `git diff --check` pass. Screenshot review
+  found no horizontal overflow in metadata or denied states. PR #117 is open;
+  GitGuardian passed, but no independent review is recorded
+  and the combined status is pending. Keep unchecked pending required review,
+  checks and merge. Project progress remains 18/57 (31.6%), P7 1/6.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -1468,11 +1473,11 @@ accessibility checks pass, not merely when mock screens exist.
     147 frontend unit tests, TypeScript/build and all 24 Playwright cases.
     The screenshots were visually checked and the reduced-motion assertion
     was mutation-tested. Committed as `f54caba` and pushed to
-    `task/p7-05c-library-accessibility`. No PR exists; PR creation is blocked
-    because the available GitHub integration is read-only and no write-capable
-    CLI/token path is configured. Use the
-    [create-PR link](https://github.com/yanxel18/animetron/pull/new/task/p7-05c-library-accessibility).
-    Keep unchecked pending PR review, required checks and merge.
+    `task/p7-05c-library-accessibility`. Open in
+    [#117](https://github.com/yanxel18/animetron/pull/117). GitGuardian passed;
+    no independent review is recorded and the
+    combined status is pending. Keep unchecked pending the required review,
+    checks and merge.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
