@@ -1417,7 +1417,7 @@ accessibility checks pass, not merely when mock screens exist.
     conflict or uncertain result, check the same ID before any retry, and keep
     it until the owner records it. Use the existing compare-and-swap API and
     browser lock; no workflow entity or execution is created. Implementation
-    is in review on `task/p7-02f-create-draft` (PR link pending). Local
+    is in review in [#121](https://github.com/yanxel18/animetron/pull/121). Local
     verification: 160 frontend tests, TypeScript/build, 27 fixture-backed
     Chromium tests (including two-tab locking) and `git diff --check`. An
     independent local review found creation denial could discard unsaved
