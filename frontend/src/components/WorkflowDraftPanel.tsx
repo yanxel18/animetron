@@ -18,6 +18,7 @@ function WorkflowDraftCreation({ onDenied, busy, setBusy, blocked }: {
   const [retryAllowed, setRetryAllowed] = useState(false);
   const [found, setFound] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const canGenerateId = typeof globalThis.crypto?.randomUUID === "function";
   const [error, setError] = useState<string | null>(() =>
     pending === "unavailable"
       ? "Draft creation recovery is unavailable in this browser. No new draft can be created."
@@ -100,8 +101,9 @@ function WorkflowDraftCreation({ onDenied, busy, setBusy, blocked }: {
 
   return <section aria-labelledby="workflow-create-title" aria-busy={busy}>
     <h3 id="workflow-create-title">Create an empty draft</h3>
-    <p>Choose a lowercase UUID and record it before creating. Drafts without revisions are not listed.
+    <p>Generate or enter a lowercase UUID and record it before creating. Drafts without revisions are not listed.
       The draft starts empty and must be edited and validated; this does not run a workflow.</p>
+    {!canGenerateId && <p role="note">Secure ID generation is unavailable. Enter a lowercase UUID manually.</p>}
     {blocked && <p role="status">Save or discard unsaved edits before working with another draft.</p>}
     <form className="workflow-draft-form" onSubmit={(event) => void create(event)}>
       <div className="schedule-create-field">
@@ -110,6 +112,17 @@ function WorkflowDraftCreation({ onDenied, busy, setBusy, blocked }: {
           onChange={(event) => { setId(event.target.value); setError(null); setNotice(null); }}
           placeholder="00000000-0000-0000-0000-000000000000" required />
       </div>
+      <button className="button button--secondary" type="button"
+        disabled={busy || blocked || pending !== null || !canGenerateId}
+        onClick={() => {
+          try {
+            setId(crypto.randomUUID());
+            setError(null);
+            setNotice(null);
+          } catch {
+            setError("A secure workflow ID could not be generated. Enter a lowercase UUID manually.");
+          }
+        }}>Generate workflow ID</button>
       <button className="button button--secondary" type="submit"
         disabled={busy || blocked || pending === "unavailable" || (pending !== null && !retryAllowed)}>
         Create empty draft

@@ -20,10 +20,39 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   localStorage.removeItem(pendingKey);
   localStorage.removeItem(creationKey);
   Reflect.deleteProperty(navigator, "locks");
+});
+
+it("generates a workflow ID only on explicit request", async () => {
+  const generate = vi.spyOn(crypto, "randomUUID").mockReturnValue(id);
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  expect(generate).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Generate workflow ID" }));
+  expect(screen.getByLabelText("New workflow ID")).toHaveValue(id);
+  expect(generate).toHaveBeenCalledTimes(1);
+});
+
+it("keeps manual ID entry available when secure UUID generation is unavailable", () => {
+  vi.stubGlobal("crypto", {});
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  expect(screen.getByRole("button", { name: "Generate workflow ID" })).toBeDisabled();
+  expect(screen.getByLabelText("New workflow ID")).toBeEnabled();
+  expect(screen.getByText(/secure ID generation is unavailable/i)).toBeInTheDocument();
+});
+
+it("reports a generator failure without replacing the entered ID", async () => {
+  vi.spyOn(crypto, "randomUUID").mockImplementation(() => { throw new Error("unavailable"); });
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("New workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Generate workflow ID" }));
+  expect(screen.getByRole("alert")).toHaveTextContent(/could not be generated/i);
+  expect(screen.getByLabelText("New workflow ID")).toHaveValue(id);
 });
 
 it("creates an empty draft for an explicit ID without starting a workflow", async () => {
@@ -62,6 +91,7 @@ it("restores an uncertain creation after reload and only retries the same ID aft
   render(<WorkflowDraftPanel onDenied={vi.fn()} />);
   expect(screen.getByLabelText("New workflow ID")).toHaveValue(id);
   expect(screen.getByLabelText("New workflow ID")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Generate workflow ID" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Create empty draft" })).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Check draft creation" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/not found.*same id/i);
@@ -104,6 +134,7 @@ it("blocks draft creation while there are unsaved edits and editing during creat
   await user.clear(editor);
   await user.paste("unsaved");
   expect(screen.getByRole("button", { name: "Create empty draft" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Generate workflow ID" })).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Discard edits" }));
   await user.type(screen.getByLabelText("New workflow ID"), id);
   await user.click(screen.getByRole("button", { name: "Create empty draft" }));
