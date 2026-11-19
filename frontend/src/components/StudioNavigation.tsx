@@ -1,9 +1,16 @@
 import { Icon, type IconName } from "./Icon";
 
 interface StudioNavigationProps {
-  activeSection: "studio" | "review" | "runs" | "schedules" | "workflows";
+  activeSection:
+    | "studio"
+    | "library"
+    | "review"
+    | "runs"
+    | "schedules"
+    | "workflows";
   mobileOpen: boolean;
   onStudioNavigate: () => void;
+  onLibraryNavigate: () => void;
   onReviewNavigate: () => void;
   onRunsNavigate: () => void;
   onSchedulesNavigate: () => void;
@@ -11,7 +18,6 @@ interface StudioNavigationProps {
 }
 
 const unavailableAreas: { label: string; icon: IconName }[] = [
-  { label: "Library", icon: "library" },
   { label: "Models", icon: "models" },
   { label: "Connections", icon: "connections" },
   { label: "Settings", icon: "settings" },
@@ -21,6 +27,7 @@ export function StudioNavigation({
   activeSection,
   mobileOpen,
   onStudioNavigate,
+  onLibraryNavigate,
   onReviewNavigate,
   onRunsNavigate,
   onSchedulesNavigate,
@@ -53,6 +60,15 @@ export function StudioNavigation({
           <span>Workflows</span>
         </a>
         <a
+          className={`navigation-link${activeSection === "library" ? " navigation-link--current" : ""}`}
+          href="#library"
+          aria-current={activeSection === "library" ? "page" : undefined}
+          onClick={onLibraryNavigate}
+        >
+          <Icon name="library" />
+          <span>Library</span>
+        </a>
+        <a
           className={`navigation-link${activeSection === "review" ? " navigation-link--current" : ""}`}
           href="#review"
           aria-current={activeSection === "review" ? "page" : undefined}
@@ -80,8 +96,10 @@ export function StudioNavigation({
           <span>Schedules</span>
         </a>
         <p id="navigation-availability" className="navigation-explanation">
-          Workflows can validate saved drafts and create revisions; Review is read-only. Runs shows persisted history. Schedules supports
-          previews and pause or resume. Other sections are not implemented.
+          Library looks up metadata for known artifact IDs only. Workflows can
+          validate saved drafts and create revisions; Review is read-only. Runs
+          shows persisted history. Schedules supports previews and pause or
+          resume. Other sections are not implemented.
         </p>
         <ul className="navigation-list">
           {unavailableAreas.map(({ label, icon }) => (

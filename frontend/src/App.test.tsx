@@ -18,7 +18,8 @@ describe("creator studio foundation", () => {
       "page",
     );
     expect(screen.getByRole("link", { name: "Runs" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Library" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Library" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Models" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "Review" })).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "Run workflow" }),
@@ -26,6 +27,32 @@ describe("creator studio foundation", () => {
     expect(
       screen.getByRole("button", { name: "Run workflow" }),
     ).toHaveAccessibleDescription(/not implemented in P7-01/i);
+  });
+
+  it("opens the metadata-only Library from navigation without querying until requested", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+
+    await user.click(screen.getByRole("link", { name: "Library" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Library", level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("main", { name: "Library workspace" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Skip to workspace" })).toHaveAttribute(
+      "href",
+      "#artifact-library-title",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("link", { name: "Skip to workspace" }));
+    expect(window.location.hash).toBe("#artifact-library-title");
   });
 
   it("shows a truthful workflow empty state and links to persisted run history", () => {

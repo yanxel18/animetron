@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { Icon } from "./components/Icon";
+import { ArtifactLibrary } from "./components/ArtifactLibrary";
 import { ReviewQueue } from "./components/ReviewQueue";
 import { RunMonitor } from "./components/RunMonitor";
 import { ScheduleList } from "./components/ScheduleList";
 import { StudioNavigation } from "./components/StudioNavigation";
 import { WorkflowDiscovery } from "./components/WorkflowDiscovery";
 
-type StudioSection = "studio" | "review" | "runs" | "schedules" | "workflows";
+type StudioSection =
+  | "studio"
+  | "library"
+  | "review"
+  | "runs"
+  | "schedules"
+  | "workflows";
 
 const skipTargets: Record<StudioSection, string> = {
   studio: "#workspace",
+  library: "#artifact-library-title",
   review: "#review-queue-title",
   runs: "#run-monitor-title",
   schedules: "#schedule-list-title",
@@ -19,6 +27,7 @@ const skipTargets: Record<StudioSection, string> = {
 
 const workspaceLabels: Record<StudioSection, string> = {
   studio: "Creator workspace",
+  library: "Library workspace",
   review: "Review workspace",
   runs: "Run monitoring workspace",
   schedules: "Schedules workspace",
@@ -26,6 +35,7 @@ const workspaceLabels: Record<StudioSection, string> = {
 };
 
 function studioSectionFromHash(hash: string): StudioSection {
+  if (hash === "#library" || hash === "#artifact-library-title") return "library";
   if (hash === "#review" || hash === "#review-queue-title") return "review";
   if (hash === "#runs" || hash === "#run-monitor-title") return "runs";
   if (hash === "#schedules" || hash === "#schedule-list-title") return "schedules";
@@ -100,6 +110,7 @@ export function App() {
           activeSection={activeSection}
           mobileOpen={mobileNavigationOpen}
           onStudioNavigate={() => navigateTo("studio")}
+          onLibraryNavigate={() => navigateTo("library")}
           onReviewNavigate={() => navigateTo("review")}
           onRunsNavigate={() => navigateTo("runs")}
           onSchedulesNavigate={() => navigateTo("schedules")}
@@ -112,6 +123,7 @@ export function App() {
           aria-label={workspaceLabels[activeSection]}
           tabIndex={-1}
         >
+          {activeSection === "library" && <ArtifactLibrary />}
           {activeSection === "review" && <ReviewQueue />}
           {activeSection === "runs" && <RunMonitor />}
           {activeSection === "schedules" && <ScheduleList />}
