@@ -512,6 +512,14 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   non-drag editor/accessibility verification and the 100-node performance test
   require the workflow editor and reference machine. No P7 completion or
   external publishing is claimed.
+- P7-05c is committed as `f54caba` and pushed to
+  `task/p7-05c-library-accessibility`. The focused regression, all 24 Playwright
+  cases, 147 frontend unit tests, TypeScript/build and `git diff --check` pass;
+  screenshot review found no horizontal overflow in metadata or denied states.
+  GitHub confirms no PR exists. PR creation is blocked by the read-only GitHub
+  integration and unavailable write-capable CLI/token path; the branch is
+  ready at the [create-PR link](https://github.com/yanxel18/animetron/pull/new/task/p7-05c-library-accessibility).
+  P7-05c remains unchecked and project progress remains 18/57 (31.6%), P7 1/6.
 
 ## Phase 0 - Plan and shared foundations
 
@@ -1459,7 +1467,12 @@ accessibility checks pass, not merely when mock screens exist.
     assistive-technology behavior remain unverified. Verification passed:
     147 frontend unit tests, TypeScript/build and all 24 Playwright cases.
     The screenshots were visually checked and the reduced-motion assertion
-    was mutation-tested. This slice is in progress and does not change counts.
+    was mutation-tested. Committed as `f54caba` and pushed to
+    `task/p7-05c-library-accessibility`. No PR exists; PR creation is blocked
+    because the available GitHub integration is read-only and no write-capable
+    CLI/token path is configured. Use the
+    [create-PR link](https://github.com/yanxel18/animetron/pull/new/task/p7-05c-library-accessibility).
+    Keep unchecked pending PR review, required checks and merge.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
