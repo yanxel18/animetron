@@ -80,9 +80,11 @@ the required review and checks pass.
 P7-02d is in open PR [#115](https://github.com/yanxel18/animetron/pull/115)
 from `task/p7-02d-draft-editor`. Local verification passed: 138 frontend
 tests, the TypeScript check and production build, and all 7 workflow Playwright
-cases. GitGuardian passed; the combined status is pending and no independent
-GitHub review is recorded. Keep the slice unchecked until required review and
-checks pass. This nested slice does not change the top-level count or P7 count.
+cases. GitGuardian passed on initial PR head `b4eb915`; latest head `bb2b6db`
+has no reported check runs yet and its combined status is pending. No
+independent GitHub review is recorded. Keep the slice unchecked until required
+review and checks pass. This nested slice does not change the top-level count
+or P7 count.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -1310,9 +1312,10 @@ accessibility checks pass, not merely when mock screens exist.
     Local implementation verified: 138 frontend tests, TypeScript check and
     production build, 7 workflow Playwright cases, and `git diff --check`.
     Owner authorized external transmission on 2026-11-19; open in
-    [#115](https://github.com/yanxel18/animetron/pull/115). GitGuardian passed,
-    combined status is pending, and no independent GitHub review is recorded.
-    Remains unchecked pending required review and checks.
+    [#115](https://github.com/yanxel18/animetron/pull/115). GitGuardian passed
+    on the initial head; latest head has no reported check runs, combined status
+    is pending, and no independent GitHub review is recorded. Remains unchecked
+    pending required review and checks.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
