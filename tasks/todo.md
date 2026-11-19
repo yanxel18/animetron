@@ -80,9 +80,10 @@ the required review and checks pass.
 P7-02d's local implementation is verified on `task/p7-02d-draft-editor`:
 138 frontend tests, the TypeScript check and production build, and all 7
 workflow Playwright cases pass. The slice is not yet on GitHub; the tracker
-does not authorize external transmission, so push and PR creation are blocked
-pending explicit authorization. This nested slice does not change the top-level
-count or P7 count.
+does not authorize external transmission by itself. The owner explicitly
+authorized pushing this branch and opening a PR on 2026-11-19; merge remains
+gated on independent review and required checks. This nested slice does not
+change the top-level count or P7 count.
 P1-09f reached master via
 #82, and P1-09i via #84. These slices do not complete their parent tasks; the
 percentage and per-phase counts remain unchanged.
@@ -1309,8 +1310,9 @@ accessibility checks pass, not merely when mock screens exist.
     not the complete visual node canvas/palette/inspector or workflow creation UX.
     Local implementation verified: 138 frontend tests, TypeScript check and
     production build, 7 workflow Playwright cases, and `git diff --check`.
-    Remains unchecked and in progress on `task/p7-02d-draft-editor`; no PR was
-    created because external-transmission authorization is not recorded.
+    Owner explicitly authorized external transmission on 2026-11-19. Remains
+    unchecked and in progress on `task/p7-02d-draft-editor` pending push, PR,
+    independent review and required checks.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
