@@ -1260,6 +1260,43 @@ h1 {
   margin-block: var(--space-4);
 }
 
+.workflow-node-order {
+  margin-block: var(--space-4);
+}
+
+.workflow-node-order-list {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-node-order-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.workflow-node-order-details,
+.workflow-node-order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.workflow-node-order-details code {
+  overflow-wrap: anywhere;
+}
+
 .workflow-draft-form,
 .workflow-draft-actions {
   display: flex;

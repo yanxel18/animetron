@@ -56,6 +56,67 @@ test("saves an edited draft before validation and revision creation with keyboar
   await page.screenshot({ path: testInfo.outputPath("draft-revision-320.png"), fullPage: true });
 });
 
+test("reorders saved-draft nodes with pointer controls at responsive widths", async ({ page }, testInfo) => {
+  const workflow = {
+    schemaVersion: 1,
+    revision: "r1",
+    nodes: [
+      { id: "node-a", type: "sample.constant", config: { value: "A", options: [1, 2] } },
+      { id: "node-b", type: "sample.constant", config: { value: "B" } },
+    ],
+    edges: [{
+      id: "edge-a-b", source: "node-a", sourcePort: "value",
+      target: "node-b", targetPort: "value",
+    }],
+  };
+  const workflowDocument = JSON.stringify(workflow);
+  const expectedDocument = JSON.stringify({
+    ...workflow,
+    nodes: [workflow.nodes[1], workflow.nodes[0]],
+  }, null, 2);
+  const restoredDocument = JSON.stringify(workflow, null, 2);
+  const savedDocuments: string[] = [];
+  await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/v1/workflows") {
+      await route.fulfill({ json: { data: [], nextCursor: null } });
+    } else if (path === "/api/v1/auth/session") {
+      await route.fulfill({ json: { role: "owner", csrfToken: "fixture-csrf" } });
+    } else if (request.method() === "GET" && path.endsWith("/draft")) {
+      await route.fulfill({ json: { workflowId: id, version: 3, document: workflowDocument } });
+    } else if (request.method() === "PUT" && path.endsWith("/draft")) {
+      const body = request.postDataJSON() as { document: string; expectedVersion: number };
+      expect(body.expectedVersion).toBe(3);
+      savedDocuments.push(body.document);
+      await route.fulfill({ json: { workflowId: id, version: 4, document: body.document } });
+    } else {
+      await route.fulfill({ status: 404 });
+    }
+  });
+
+  for (const [index, width] of [375, 768, 1024, 1440].entries()) {
+    await page.setViewportSize({ width, height: 900 });
+    if (index === 0) await page.goto("/#workflows");
+    else await page.reload();
+    await page.getByRole("textbox", { name: "Workflow ID", exact: true }).fill(id);
+    await page.getByRole("button", { name: "Load draft" }).click();
+    await expect(page.getByRole("list", { name: "Workflow node order" })).toContainText("node-a");
+    await page.getByRole("button", { name: "Move node-b up" }).click();
+    await expect(page.getByText("Moved node-b to position 1 of 2.")).toBeVisible();
+    await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(expectedDocument);
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByText("Draft saved as version 4.")).toBeVisible();
+    await page.getByRole("button", { name: "Move node-b down" }).click();
+    await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(restoredDocument);
+    await expect(page.getByRole("button", { name: "Move node-b down" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Move node-b up" })).toBeFocused();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`workflow-node-order-${width}.png`), fullPage: true });
+  }
+  expect(savedDocuments).toEqual(Array(4).fill(expectedDocument));
+});
+
 test("restores an uncertain revision attempt after reload without retrying it", async ({ page }) => {
   let revisionAttempts = 0;
   await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
