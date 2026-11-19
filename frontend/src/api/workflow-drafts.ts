@@ -5,6 +5,8 @@ import { revisionValid } from "./workflows";
 
 export const PENDING_WORKFLOW_REVISION_KEY = "animetron.workflow-revision.pending.v1";
 const REVISION_LOCK_NAME = "animetron-workflow-revision-v1";
+const PENDING_DRAFT_CREATION_KEY = "animetron.workflow-draft-creation.pending.v1";
+const DRAFT_CREATION_LOCK_NAME = "animetron-workflow-draft-creation-v1";
 
 export type PendingWorkflowRevision = {
   workflowId: string;
@@ -135,6 +137,44 @@ function checkId(id: string): void {
   if (!uuid(id)) throw new WorkflowDraftError("Enter a valid lowercase workflow ID.", 422);
 }
 
+export function readPendingDraftCreation(): string | null | "unavailable" {
+  try {
+    const id = window.localStorage.getItem(PENDING_DRAFT_CREATION_KEY);
+    return id === null || uuid(id) ? id : "unavailable";
+  } catch {
+    return "unavailable";
+  }
+}
+
+function storePendingDraftCreation(id: string): void {
+  try {
+    window.localStorage.setItem(PENDING_DRAFT_CREATION_KEY, id);
+    if (readPendingDraftCreation() !== id) throw new Error("recovery marker mismatch");
+  } catch {
+    throw new WorkflowDraftError("The draft creation recovery marker could not be saved; no request was sent.");
+  }
+}
+
+function clearPendingDraftCreation(): void {
+  try {
+    window.localStorage.removeItem(PENDING_DRAFT_CREATION_KEY);
+    if (readPendingDraftCreation() !== null) throw new Error("recovery marker remains");
+  } catch {
+    throw new WorkflowDraftError("The draft creation recovery marker could not be cleared.", null, true);
+  }
+}
+
+async function withDraftCreationLock<T>(callback: () => Promise<T>): Promise<T> {
+  const locks = navigator.locks;
+  if (!locks || typeof locks.request !== "function") {
+    throw new WorkflowDraftError("Safe draft creation is unavailable because this browser cannot coordinate attempts; no request was sent.");
+  }
+  return locks.request(DRAFT_CREATION_LOCK_NAME, { ifAvailable: true }, async (lock) => {
+    if (!lock) throw new WorkflowDraftError("Another draft creation or recovery is in progress.");
+    return callback();
+  });
+}
+
 export async function readWorkflowDraft(id: string): Promise<WorkflowDraftOutput> {
   checkId(id);
   return draft(await request(`/api/v1/workflows/${id}/draft`, {
@@ -151,7 +191,62 @@ export async function saveWorkflowDraft(
   if (!version(expectedVersion) || expectedVersion >= 2_147_483_647) {
     throw new WorkflowDraftError("The draft version cannot be saved.", 422);
   }
-  const token = await ownerCsrf();
+  return writeWorkflowDraft(id, document, expectedVersion, await ownerCsrf());
+}
+
+export async function createWorkflowDraft(
+  id: string,
+  options: { retryAfterCheck?: boolean } = {},
+): Promise<WorkflowDraftOutput> {
+  checkId(id);
+  return withDraftCreationLock(async () => {
+    const pending = readPendingDraftCreation();
+    if (pending === "unavailable" || (pending !== null && pending !== id)) {
+      throw new WorkflowDraftError("Resolve the previous draft creation before starting another.");
+    }
+    if (pending !== null && !options.retryAfterCheck) {
+      throw new WorkflowDraftError("Check the previous draft creation before retrying.");
+    }
+    const token = await ownerCsrf();
+    if (pending === null) storePendingDraftCreation(id);
+    try {
+      return await writeWorkflowDraft(id, "", null, token);
+    } catch (error) {
+      if (pending === null && error instanceof WorkflowDraftError &&
+          [401, 403, 404, 422].includes(error.status ?? 0)) {
+        clearPendingDraftCreation();
+      }
+      throw error;
+    }
+  });
+}
+
+export async function reconcileDraftCreation(id: string): Promise<WorkflowDraftOutput> {
+  checkId(id);
+  return withDraftCreationLock(async () => {
+    if (readPendingDraftCreation() !== id) {
+      throw new WorkflowDraftError("The draft creation recovery marker does not match.");
+    }
+    return readWorkflowDraft(id);
+  });
+}
+
+export async function acknowledgeDraftCreation(id: string): Promise<void> {
+  checkId(id);
+  return withDraftCreationLock(async () => {
+    if (readPendingDraftCreation() !== id) {
+      throw new WorkflowDraftError("The draft creation recovery marker does not match.");
+    }
+    clearPendingDraftCreation();
+  });
+}
+
+async function writeWorkflowDraft(
+  id: string,
+  document: string,
+  expectedVersion: number | null,
+  token: string,
+): Promise<WorkflowDraftOutput> {
   const body: WorkflowDraftInput = { document, expectedVersion };
   const result = draft(await request(`/api/v1/workflows/${id}/draft`, {
     method: "PUT",
@@ -162,7 +257,7 @@ export async function saveWorkflowDraft(
     },
     body: JSON.stringify(body),
   }, true, "The draft save outcome is unknown."), id, true);
-  if (result.document !== document || result.version !== expectedVersion + 1) {
+  if (result.document !== document || result.version !== (expectedVersion === null ? 1 : expectedVersion + 1)) {
     throw new WorkflowDraftError("The draft save response could not be verified.", 200, true);
   }
   return result;

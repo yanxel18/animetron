@@ -6,6 +6,7 @@ import { moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-docume
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
+const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 const draft = { workflowId: id, version: 3, document: '{"revision":"r1"}' };
@@ -21,7 +22,95 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.removeItem(pendingKey);
+  localStorage.removeItem(creationKey);
   Reflect.deleteProperty(navigator, "locks");
+});
+
+it("creates an empty draft for an explicit ID without starting a workflow", async () => {
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(json({ workflowId: id, document: "", version: 1 }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("New workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Create empty draft" }));
+  expect(await screen.findByText(/empty draft created/i)).toHaveTextContent(id);
+  expect(localStorage.getItem(creationKey)).toBe(id);
+  await user.click(screen.getByRole("button", { name: "I recorded this ID" }));
+  expect(localStorage.getItem(creationKey)).toBeNull();
+  expect(fetcher.mock.calls[1][1].body).toBe('{"document":"","expectedVersion":null}');
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("restores an uncertain creation after reload and only retries the same ID after a read", async () => {
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(session))
+    .mockRejectedValueOnce(new Error("lost response"))
+    .mockResolvedValueOnce(new Response("", { status: 404 }))
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(new Response("", { status: 409 }))
+    .mockResolvedValueOnce(json({ workflowId: id, document: "other document", version: 2 }));
+  vi.stubGlobal("fetch", fetcher);
+  const { unmount } = render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("New workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Create empty draft" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/may have been created/i);
+  unmount();
+
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  expect(screen.getByLabelText("New workflow ID")).toHaveValue(id);
+  expect(screen.getByLabelText("New workflow ID")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Create empty draft" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Check draft creation" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/not found.*same id/i);
+  await user.click(screen.getByRole("button", { name: "Create empty draft" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/check.*same id/i);
+  await user.click(screen.getByRole("button", { name: "Check draft creation" }));
+  expect(await screen.findByText(/draft found/i)).toHaveTextContent(id);
+  expect(localStorage.getItem(creationKey)).toBe(id);
+  await user.click(screen.getByRole("button", { name: "I recorded this ID" }));
+  expect(localStorage.getItem(creationKey)).toBeNull();
+  expect(fetcher.mock.calls.filter((call) => call[1]?.method === "PUT")).toHaveLength(2);
+});
+
+it("preserves revision recovery when draft creation is denied", async () => {
+  const marker = JSON.stringify({ workflowId: id, expectedVersion: 3 });
+  localStorage.setItem(pendingKey, marker);
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json({ role: "viewer", csrfToken: "test-csrf" })));
+  const onDenied = vi.fn();
+  render(<WorkflowDraftPanel onDenied={onDenied} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("New workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Create empty draft" }));
+  await waitFor(() => expect(onDenied).toHaveBeenCalledTimes(1));
+  expect(localStorage.getItem(pendingKey)).toBe(marker);
+});
+
+it("blocks draft creation while there are unsaved edits and editing during creation", async () => {
+  let finish: (value: Response) => void = () => { throw new Error("request not started"); };
+  const pending = new Promise<Response>((resolve) => { finish = resolve; });
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(json(draft))
+    .mockResolvedValueOnce(json(session))
+    .mockReturnValueOnce(pending);
+  vi.stubGlobal("fetch", fetcher);
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  const editor = await screen.findByLabelText("Workflow draft JSON");
+  await user.clear(editor);
+  await user.paste("unsaved");
+  expect(screen.getByRole("button", { name: "Create empty draft" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Discard edits" }));
+  await user.type(screen.getByLabelText("New workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Create empty draft" }));
+  await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+  expect(editor).toBeDisabled();
+  finish(new Response("", { status: 403 }));
+  await waitFor(() => expect(screen.queryByLabelText("Workflow draft JSON")).not.toBeInTheDocument());
 });
 
 it("loads, validates and creates a revision of the exact saved draft", async () => {

@@ -147,7 +147,7 @@ export function WorkflowDiscovery() {
         <p className="page-description">Browse saved workflow IDs and inspect immutable revisions.</p>
       </div></header>
       <p className="review-blocked-note" role="note">
-        Immutable, read-only revision discovery and inspection. Saved drafts can be validated and made into revisions below; editing, execution, scheduling, model readiness and publishing are not offered here.
+        Browse immutable, read-only revisions or create, edit and validate a draft below. Workflow execution, scheduling, model readiness and publishing are not offered here.
       </p>
       {!(workflowError instanceof WorkflowDiscoveryError || workflowError instanceof WorkflowDraftError) ||
        (workflowError.status !== 401 && workflowError.status !== 403)

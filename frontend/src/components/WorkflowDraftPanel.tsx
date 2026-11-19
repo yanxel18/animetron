@@ -1,10 +1,129 @@
 import { useState, type FormEvent } from "react";
 import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "../api/generated";
 import {
-  clearPendingWorkflowRevision, createDraftRevision, readPendingWorkflowRevision,
+  acknowledgeDraftCreation, clearPendingWorkflowRevision, createDraftRevision, createWorkflowDraft,
+  readPendingDraftCreation, readPendingWorkflowRevision, reconcileDraftCreation,
   readWorkflowDraft, saveWorkflowDraft, validateWorkflowDraft, WorkflowDraftError,
 } from "../api/workflow-drafts";
 import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
+
+function WorkflowDraftCreation({ onDenied, busy, setBusy, blocked }: {
+  onDenied: (error: WorkflowDraftError) => void;
+  busy: boolean;
+  setBusy: (value: boolean) => void;
+  blocked: boolean;
+}) {
+  const [pending, setPending] = useState(readPendingDraftCreation);
+  const [id, setId] = useState(() => pending && pending !== "unavailable" ? pending : "");
+  const [retryAllowed, setRetryAllowed] = useState(false);
+  const [found, setFound] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    pending === "unavailable"
+      ? "Draft creation recovery is unavailable in this browser. No new draft can be created."
+      : pending ? "A draft may have been created. Check the same ID before continuing." : null);
+
+  function failure(value: unknown, action: "create" | "check") {
+    const current = readPendingDraftCreation();
+    setPending(current);
+    setRetryAllowed(false);
+    setFound(false);
+    if (current && current !== "unavailable") setId(current);
+    if (value instanceof WorkflowDraftError && (value.status === 401 || value.status === 403)) {
+      setError("Owner access is required to work with drafts.");
+      onDenied(value);
+    } else if (current === "unavailable") {
+      setError("Draft creation recovery is unavailable in this browser. No new draft can be created.");
+    } else if (action === "check" && value instanceof WorkflowDraftError && value.status === 404) {
+      setRetryAllowed(true);
+      setError("Draft not found. The earlier request may still complete; you may retry only the same ID.");
+    } else if (current && value instanceof WorkflowDraftError && (value.uncertain || value.status === 409)) {
+      setError("A draft may have been created or already exists. Check the same ID before continuing.");
+    } else {
+      setError(value instanceof Error ? value.message : "The workflow service could not be reached.");
+    }
+  }
+
+  async function create(event: FormEvent) {
+    event.preventDefault();
+    if (busy || blocked || pending === "unavailable" || (pending !== null && !retryAllowed)) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const retryAfterCheck = retryAllowed;
+    setRetryAllowed(false);
+    try {
+      const created = await createWorkflowDraft(id, { retryAfterCheck });
+      setPending(readPendingDraftCreation());
+      setFound(true);
+      setNotice(`Empty draft created for ${created.workflowId}. Load this ID below to edit it.`);
+    } catch (value) {
+      failure(value, "create");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function check() {
+    if (busy || blocked || !pending || pending === "unavailable") return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    setRetryAllowed(false);
+    try {
+      const found = await reconcileDraftCreation(pending);
+      setPending(readPendingDraftCreation());
+      setFound(true);
+      setNotice(`Draft found for ${found.workflowId}. Load this ID below to inspect it.`);
+    } catch (value) {
+      failure(value, "check");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function acknowledge() {
+    if (busy || blocked || !found || !pending || pending === "unavailable") return;
+    setBusy(true);
+    setError(null);
+    try {
+      await acknowledgeDraftCreation(pending);
+      setPending(null);
+      setFound(false);
+      setNotice(`ID ${pending} recorded. Load it below to edit the draft.`);
+    } catch (value) {
+      failure(value, "check");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <section aria-labelledby="workflow-create-title" aria-busy={busy}>
+    <h3 id="workflow-create-title">Create an empty draft</h3>
+    <p>Choose a lowercase UUID and record it before creating. Drafts without revisions are not listed.
+      The draft starts empty and must be edited and validated; this does not run a workflow.</p>
+    {blocked && <p role="status">Save or discard unsaved edits before working with another draft.</p>}
+    <form className="workflow-draft-form" onSubmit={(event) => void create(event)}>
+      <div className="schedule-create-field">
+        <label htmlFor="workflow-create-id">New workflow ID</label>
+        <input id="workflow-create-id" value={id} disabled={busy || blocked || pending !== null}
+          onChange={(event) => { setId(event.target.value); setError(null); setNotice(null); }}
+          placeholder="00000000-0000-0000-0000-000000000000" required />
+      </div>
+      <button className="button button--secondary" type="submit"
+        disabled={busy || blocked || pending === "unavailable" || (pending !== null && !retryAllowed)}>
+        Create empty draft
+      </button>
+      {pending && pending !== "unavailable" && <button className="button button--secondary"
+        type="button" disabled={busy || blocked} onClick={() => void check()}>Check draft creation</button>}
+      {found && pending && pending !== "unavailable" && <button className="button button--secondary"
+        type="button" disabled={busy || blocked} onClick={() => void acknowledge()}>I recorded this ID</button>}
+    </form>
+    {busy && <p role="status">Working with the draft...</p>}
+    {notice && <p role="status">{notice}</p>}
+    {error && <div className="review-error" role="alert"><p>{error}</p></div>}
+  </section>;
+}
 
 type LoadedWorkflowDraftProps = {
   draft: WorkflowDraftOutput;
@@ -232,6 +351,14 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   const unsavedChanges = draft !== null && editorDocument !== draft.document;
   return <section className="workflow-draft-panel" aria-labelledby="workflow-draft-title" aria-busy={busy}>
     <h2 id="workflow-draft-title">Saved draft</h2>
+    <WorkflowDraftCreation busy={busy} setBusy={setBusy} blocked={unsavedChanges} onDenied={(value) => {
+      setDraft(null);
+      setEditorDocument("");
+      setValidation(null);
+      setRevision(null);
+      setId("");
+      onDenied(value);
+    }} />
     <p>Edit a saved JSON document and save it as a new draft version. Validation and immutable revision creation use the saved version only; this does not run the workflow.</p>
     <form onSubmit={(event) => void load(event)} className="workflow-draft-form">
       <div className="schedule-create-field">
