@@ -22,8 +22,11 @@ test("shows sample validation metadata on request at a narrow viewport", async (
   });
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/#workflows");
-  for (const label of ["New workflow ID", "Workflow ID"]) {
-    const contrast = await page.getByLabel(label, { exact: true }).evaluate((element) => {
+  const checkFieldContrast = async (label: string) => {
+    const field = page.getByLabel(label, { exact: true });
+    await expect(field).toBeVisible();
+    await expect(field).toBeEnabled();
+    const contrast = await field.evaluate((element) => {
       let surface = element.parentElement;
       while (surface && getComputedStyle(surface).backgroundColor === "rgba(0, 0, 0, 0)") surface = surface.parentElement;
       if (!surface) throw new Error("Missing opaque workflow surface");
@@ -40,13 +43,17 @@ test("shows sample validation metadata on request at a narrow viewport", async (
       return (values[0]! + 0.05) / (values[1]! + 0.05);
     });
     expect(contrast, label).toBeGreaterThanOrEqual(3);
-  }
+  };
+  for (const label of ["New workflow ID", "Workflow ID"]) await checkFieldContrast(label);
   await page.getByRole("button", { name: "Load sample node types" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "sample.constant" })).toBeVisible();
   await expect(page.getByLabel("Configuration schema for sample.constant")).toContainText('"type": "object"');
   await page.getByLabel("Workflow ID", { exact: true }).fill(id);
   await page.getByRole("button", { name: "Load draft" }).click();
+  for (const label of ["Workflow draft JSON", "Node JSON", "Connection ID", "Source node ID", "Source port", "Target node ID", "Target port", "Sample node type"]) {
+    await checkFieldContrast(label);
+  }
   await page.getByLabel("Sample node type", { exact: true }).selectOption("sample.constant");
   await page.getByRole("button", { name: "Insert sample node" }).focus();
   await page.keyboard.press("Enter");
