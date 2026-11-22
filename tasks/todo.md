@@ -1651,11 +1651,14 @@ accessibility checks pass, not merely when mock screens exist.
     status is pending. Keep unchecked pending the required review and checks.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
-  - On `task/control-border-contrast`: improve Run ID and Artifact ID input
-    borders against their surrounding forms; browser regression coverage
-    measures both fields. PR creation was blocked by GitHub integration 403.
-    This is a limited control contrast slice, not a full accessibility audit.
-    Top-level progress remains 18/57 (31.6%), and P7 remains 1/6.
+  - [#146](https://github.com/yanxel18/animetron/pull/146) merged at
+    `dd9403d`, improving Run ID and Artifact ID input borders. The old border
+    measured 1.71:1; the browser regression requires 3:1. 191 frontend tests,
+    build and 29 fixture-backed browser tests passed. Self-review was posted
+    and GitHub reported one passing check. This is not a full accessibility
+    audit; top-level progress remains 18/57 (31.6%), and P7 remains 1/6.
+  - In progress on `task/schedule-control-contrast`: improve the four schedule
+    creation field borders and verify them against the rendered surface.
   - 2026-11-22: a partial static dark-theme color measurement is recorded in
     [contrast evidence](p7-06-contrast-evidence.md). The border token needs
     rendered-context investigation; browser and assistive-technology checks

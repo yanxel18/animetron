@@ -52,6 +52,24 @@ test("creates the owner form from persisted choices and fits the target widths",
   await page.getByLabel("Saved revision").selectOption(revision);
   await page.getByLabel("Five-field cron expression").fill("0 9 * * *");
   await page.getByLabel("IANA time zone").fill("Asia/Tokyo");
+  for (const label of ["Workflow ID", "Saved revision", "Five-field cron expression", "IANA time zone"]) {
+    const contrast = await page.getByLabel(label).evaluate((element) => {
+      const surface = element.closest(".schedule-create");
+      if (!surface) throw new Error("Missing schedule surface");
+      const luminance = (color: string) => {
+        const channels = color.match(/\d+/g)?.slice(0, 3).map(Number);
+        if (!channels || channels.length !== 3) throw new Error(`Unexpected color: ${color}`);
+        const values = channels.map((channel) => {
+          const value = channel / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * values[0]! + 0.7152 * values[1]! + 0.0722 * values[2]!;
+      };
+      const values = [luminance(getComputedStyle(element).borderTopColor), luminance(getComputedStyle(surface).backgroundColor)].sort((a, b) => b - a);
+      return (values[0]! + 0.05) / (values[1]! + 0.05);
+    });
+    expect(contrast, label).toBeGreaterThanOrEqual(3);
+  }
   await expect(page.getByText(/dispatch is not implemented/i).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Create schedule" })).toBeVisible();
 
