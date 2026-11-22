@@ -22,6 +22,7 @@ it("appends a node without altering existing JSON values or accepting duplicate 
   expect(readWorkflowNodeOrder(two!)).toEqual([{ id: "a", type: "sample.constant" }, { id: "b", type: "sample.constant" }]);
   expect(appendWorkflowNode(empty, '{"id":"a","id":"b","type":"x","config":{}}')).toBeNull();
   expect(appendWorkflowNode(empty, '{"id":"a"}')).toBeNull();
+  expect(appendWorkflowNode(empty, `${node}],"injected":[1`)).toBeNull();
 });
 it("adds a supplied node locally and reports invalid input", async () => {
   const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[]}';
