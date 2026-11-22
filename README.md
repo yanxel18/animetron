@@ -68,6 +68,38 @@ end-to-end readiness.
 The [specification index](docs/SPECIFICATIONS.md) describes the intended system;
 some paths and commands there are proposals rather than implemented services.
 
+## Navigating the code with Graphify
+
+Graphify can help developers find code, tests and call relationships before
+reading the relevant source. It is a development aid, not an AnimeTron runtime
+dependency. With Graphify installed and a local `graphify-out/graph.json`, run
+these from the repository root:
+
+```powershell
+graphify query "scene planning and subtitle generation" --budget 1800
+graphify explain "make_draft_srt"
+graphify path "make_draft_srt" "parse_scene_plan"
+graphify update .
+```
+
+The last command refreshes the local graph after code changes. Follow any local
+`AGENTS.md` instructions for when to query or update it. Graphify, its skill,
+and generated graph files are not currently included in the tracked checkout;
+these commands require an existing local installation and graph.
+
+In a local check on 2026-11-22 using Graphify 0.9.115, `explain` located the
+subtitle generator, its direct calls and tests, and `path` found its call to
+the scene-plan parser. The graph also located frontend workflow components.
+Broad queries returned unrelated matches and truncated results, so narrow the
+query or use `explain`/`path`, and verify conclusions in the source and tests.
+In this version `--budget` is not a hard output limit: a query can exceed it
+when all matched nodes fit and their edges are included.
+The checked graph was code-only and contained no Markdown source nodes; do not
+assume it covers the project specifications or decisions. Consult the linked
+specifications and checklist directly when they are absent from graph results.
+Graph data and generated HTML can include source content and local paths;
+review them before sharing.
+
 ## Local preview
 
 The following starts a loopback-only **development preview** on Windows. It
