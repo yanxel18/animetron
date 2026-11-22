@@ -1264,6 +1264,10 @@ h1 {
   margin-block: var(--space-4);
 }
 
+.workflow-connection-item {
+  overflow-wrap: anywhere;
+}
+
 .workflow-node-order-list {
   display: grid;
   gap: var(--space-2);

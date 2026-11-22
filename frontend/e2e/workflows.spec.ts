@@ -78,6 +78,12 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Node order" })).toBeFocused();
   await expect(page.getByRole("status").filter({ hasText: "Removed free locally" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove connection edge1" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Connections" })).toBeFocused();
+  await expect(page.getByRole("status").filter({ hasText: "Removed connection edge1 locally" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove first" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Removed first locally" })).toBeVisible();
   expect(attempts).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(errors).toEqual([]);
