@@ -655,6 +655,14 @@ have the security and recovery guarantees below.
     byte/metadata atomicity or automatic orphan recovery).
   - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
     byte inventories without changing either store.
+    In progress on `task/artifact-audit-postgres-filesystem`: the audit now
+    has a real Linux byte-store integration test with migrated PostgreSQL
+    metadata, an isolated temporary table and a rollback sentinel. A custom
+    disposable Linux runner passed 63 artifact tests and Alembic upgrade and
+    drift check; Ruff and Linux-target mypy passed. Inverting the corruption
+    assertion failed, and the restored test passed. Verified owned resources
+    were removed. P0-07c remains open pending review and reconciliation;
+    top-level progress remains 18/57 (31.6%), P0 4/9.
     [#152](https://github.com/yanxel18/animetron/pull/152) merged at
     `3f7d77d`: a real Linux byte-store and SQLite metadata integration check
     covers consistent, missing, corrupt and orphaned artifacts and compares
