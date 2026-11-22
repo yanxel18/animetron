@@ -287,6 +287,11 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   end-to-end service. Actual workflow execution remains blocked by the
   independently verified deployment trust-root prerequisite described below;
   no deployment, model download or external execution was performed.
+- 2026-11-22 local development: Vite now proxies `/api` to the loopback API
+  on port 8000 instead of returning the SPA HTML. Both UI and health endpoint
+  were checked locally; this is a development preview, not an authenticated
+  end-to-end deployment. Authentication still requires the configured HTTPS
+  origin, identity provider and database. No top-level task is completed.
 - Reconciled with verified `master` at `9716ad3`. PRs #75, #78, #79, #81,
   #82, #83, #84, #86, #87, #88, #89, #90, #91, #92 and #93 merged. #75 includes the
   P0-08a recovery harness from #76;
