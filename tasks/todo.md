@@ -1667,7 +1667,7 @@ accessibility checks pass, not merely when mock screens exist.
     `03936b3`: improved workflow creation and draft lookup ID borders. The
     original measured 1.92:1 against the first opaque surrounding surface;
     regression coverage requires 3:1. 191 frontend tests, build and 29
-    fixture-backed browser cases passed; self-review and GitGuardian passed.
+    fixture-backed browser cases passed; self-review was posted and GitGuardian passed.
     Combined status remained pending. Disabled controls and assistive
     technology remain unverified; P7-06 remains open. The top-level count is
     unchanged at 18/57 (31.6%) and P7 remains 1/6.
