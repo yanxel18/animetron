@@ -1651,10 +1651,15 @@ accessibility checks pass, not merely when mock screens exist.
     status is pending. Keep unchecked pending the required review and checks.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
-  - In progress on `task/workflow-editor-control-contrast`: improve draft and
-    node JSON editor, connection field and sample-node selector borders.
-    This is a partial contrast slice; the overall count remains 18/57 (31.6%)
-    and P7 remains 1/6.
+  - [#150](https://github.com/yanxel18/animetron/pull/150) merged at
+    `204de62`: improved draft and node JSON editor, connection field and
+    sample-node selector borders. The draft JSON border initially measured
+    1.92:1; browser checks require at least 3:1 for eight visible enabled
+    controls. 191 frontend tests, build and 29 fixture-backed browser cases
+    passed. Self-review was posted and GitGuardian passed; combined status
+    was pending. Disabled states, partial transparency, live authentication
+    and screen-reader use remain unverified. P7-06 stays open; the overall
+    count remains 18/57 (31.6%) and P7 remains 1/6.
   - [#146](https://github.com/yanxel18/animetron/pull/146) merged at
     `dd9403d`, improving Run ID and Artifact ID input borders. The old border
     measured 1.71:1; the browser regression requires 3:1. 191 frontend tests,
