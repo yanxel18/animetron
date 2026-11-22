@@ -735,6 +735,11 @@ h1 {
   font: inherit;
 }
 
+.schedule-create-form .schedule-create-field input,
+.schedule-create-form .schedule-create-field select {
+  border-color: var(--color-control-border);
+}
+
 .schedule-create-field input:disabled,
 .schedule-create-field select:disabled {
   opacity: 0.72;
