@@ -1142,10 +1142,14 @@ hardware and failures never appear ready.
     See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
-  - In progress on `task/model-manifest-catalog`: an internal catalog selects
-    manifests by exact reference from caller-supplied immutable values, with
-    duplicate-pin rejection. It does not establish trust or enforce acquisition.
-    P2-03 remains open; overall progress remains 18/57 (31.6%), P2 1/6.
+  - [#162](https://github.com/yanxel18/animetron/pull/162) merged at
+    `7ec815f`: an internal catalog selects manifests by exact reference from
+    caller-supplied immutable values and rejects duplicate pins. Model,
+    snapshot and readiness tests passed (132 passed, 2 PostgreSQL-gated skips);
+    Ruff and Linux-target mypy passed. Self-review was posted and GitGuardian
+    passed; combined status was pending. The catalog does not establish trust,
+    enforce acquisition or establish readiness. P2-03 remains open; overall
+    progress remains 18/57 (31.6%), P2 1/6.
   - [#160](https://github.com/yanxel18/animetron/pull/160) merged at
     `3e8f494`: a pure internal helper combines exact-pin, license, access and
     manifest-estimate checks using trusted caller-supplied facts. Model,
