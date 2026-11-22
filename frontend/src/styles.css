@@ -736,7 +736,8 @@ h1 {
 }
 
 .schedule-create-form .schedule-create-field input,
-.schedule-create-form .schedule-create-field select {
+.schedule-create-form .schedule-create-field select,
+.workflow-draft-form .schedule-create-field input {
   border-color: var(--color-control-border);
 }
 

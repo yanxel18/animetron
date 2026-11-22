@@ -22,6 +22,25 @@ test("shows sample validation metadata on request at a narrow viewport", async (
   });
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/#workflows");
+  for (const label of ["New workflow ID", "Workflow ID"]) {
+    const contrast = await page.getByLabel(label, { exact: true }).evaluate((element) => {
+      let surface = element.parentElement;
+      while (surface && getComputedStyle(surface).backgroundColor === "rgba(0, 0, 0, 0)") surface = surface.parentElement;
+      if (!surface) throw new Error("Missing opaque workflow surface");
+      const luminance = (color: string) => {
+        const channels = color.match(/\d+/g)?.slice(0, 3).map(Number);
+        if (!channels || channels.length !== 3) throw new Error(`Unexpected color: ${color}`);
+        const values = channels.map((channel) => {
+          const value = channel / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * values[0]! + 0.7152 * values[1]! + 0.0722 * values[2]!;
+      };
+      const values = [luminance(getComputedStyle(element).borderTopColor), luminance(getComputedStyle(surface).backgroundColor)].sort((a, b) => b - a);
+      return (values[0]! + 0.05) / (values[1]! + 0.05);
+    });
+    expect(contrast, label).toBeGreaterThanOrEqual(3);
+  }
   await page.getByRole("button", { name: "Load sample node types" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "sample.constant" })).toBeVisible();

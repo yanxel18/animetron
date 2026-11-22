@@ -1657,8 +1657,14 @@ accessibility checks pass, not merely when mock screens exist.
     build and 29 fixture-backed browser tests passed. Self-review was posted
     and GitHub reported one passing check. This is not a full accessibility
     audit; top-level progress remains 18/57 (31.6%), and P7 remains 1/6.
-  - In progress on `task/schedule-control-contrast`: improve the four schedule
-    creation field borders and verify them against the rendered surface.
+  - [#147](https://github.com/yanxel18/animetron/pull/147) merged at
+    `318e2a5`: improved four schedule creation field borders; 191 unit tests,
+    build and 29 fixture-backed browser tests passed. GitGuardian passed;
+    GitHub's combined status was pending and no active branch rules were
+    reported. Self-review was posted. Overall progress remains 18/57 and P7
+    remains 1/6.
+  - In progress on `task/workflow-control-contrast`: improve the workflow ID
+    fields and verify their contrast against the rendered workspace surface.
   - 2026-11-22: a partial static dark-theme color measurement is recorded in
     [contrast evidence](p7-06-contrast-evidence.md). The border token needs
     rendered-context investigation; browser and assistive-technology checks
