@@ -445,6 +445,13 @@ trusted configuration, validate a manifest's file metadata, grant access or
 license consent, initiate acquisition, or establish readiness. No runtime
 service currently uses this policy.
 
+`ModelManifestCatalog` selects an immutable manifest by exact pinned reference
+from a caller-supplied tuple, returning `None` for an absent pin and rejecting
+duplicate references. The caller must establish that catalog contents are
+trusted. The catalog does not load configuration, validate repository access
+or license acceptance, check installed files, acquire models or establish
+readiness. It is not yet connected to a runtime service.
+
 `check_manifest_acquisition` combines that exact-pin check with the existing
 license, access and storage preflight, using the supplied manifest's estimated
 size. The caller must supply a trusted manifest, trusted allowlist, acceptance
