@@ -655,22 +655,24 @@ have the security and recovery guarantees below.
     byte/metadata atomicity or automatic orphan recovery).
   - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
     byte inventories without changing either store.
-    In progress on `task/artifact-audit-postgres-filesystem`: the audit now
-    has a real Linux byte-store integration test with migrated PostgreSQL
-    metadata, an isolated temporary table and a rollback sentinel. A custom
-    disposable Linux runner passed 63 artifact tests and Alembic upgrade and
-    drift check; Ruff and Linux-target mypy passed. Inverting the corruption
-    assertion failed, and the restored test passed. Verified owned resources
-    were removed. P0-07c remains open pending review and reconciliation;
-    top-level progress remains 18/57 (31.6%), P0 4/9.
+    [#154](https://github.com/yanxel18/animetron/pull/154) merged at
+    `b51b1d5`: the audit has a real Linux byte-store integration test with
+    migrated PostgreSQL metadata, a temporary table and a rollback sentinel.
+    A custom disposable Linux runner passed 63 artifact tests, Alembic upgrade
+    and drift check; Ruff and Linux-target mypy passed. Inverting the corruption
+    assertion failed, and the restored test passed. The runner was temporary;
+    its verified owned resources were removed. Self-review was posted and
+    GitGuardian passed; combined status was pending. P0-07c remains open pending
+    review of its historical implementation and remaining scope. Top-level
+    progress remains 18/57 (31.6%), P0 4/9.
     [#152](https://github.com/yanxel18/animetron/pull/152) merged at
     `3f7d77d`: a real Linux byte-store and SQLite metadata integration check
     covers consistent, missing, corrupt and orphaned artifacts and compares
     before/after state. An unprivileged disposable Linux container ran 61
     artifact tests with 27 PostgreSQL-gated skips; Ruff passed. Self-review was
     posted and GitGuardian passed; combined status was pending. PostgreSQL
-    with the real filesystem remains unverified. P0-07c remains open; the
-    overall count is 18/57 (31.6%) and P0 remains 4/9.
+    with the real filesystem was subsequently tested in #154 above. P0-07c
+    remains open; the overall count is 18/57 (31.6%) and P0 remains 4/9.
     Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
     `task/p0-07c-artifact-reconciliation`; merged to master through
     [#75](https://github.com/yanxel18/animetron/pull/75) (PR head `f9d12df`).
@@ -680,9 +682,8 @@ have the security and recovery guarantees below.
     audit regression against migrated metadata with a fake byte inventory,
     merged in #91. A post-merge review identified test gaps; their follow-up
     merged in #93, pending independent review and required checks. The test is
-    not a real filesystem integration test; keep
-    unchecked pending review, required checks and remaining integration
-    verification. Its branch included master commit
+    not a real filesystem integration test; #154 above adds that coverage.
+    Keep unchecked pending review and remaining scope reconciliation. Its branch included master commit
     `8d10be9` to resolve the checklist conflict.
     Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
     byte-store tests (26 passed), backend suite outside owner-gated auth tests
