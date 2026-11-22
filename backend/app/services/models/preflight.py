@@ -1,7 +1,11 @@
 from enum import StrEnum
 
+from app.services.models.manifest import ModelManifest
+from app.services.models.policy import ModelReferenceAllowlist
+
 
 class AcquisitionBlocker(StrEnum):
+    REFERENCE_NOT_ALLOWED = "REFERENCE_NOT_ALLOWED"
     LICENSE_NOT_ACCEPTED = "LICENSE_NOT_ACCEPTED"
     ACCESS_NOT_CONFIRMED = "ACCESS_NOT_CONFIRMED"
     INSUFFICIENT_STORAGE = "INSUFFICIENT_STORAGE"
@@ -32,3 +36,25 @@ def check_acquisition(
     if available_bytes < required_bytes:
         blockers.append(AcquisitionBlocker.INSUFFICIENT_STORAGE)
     return tuple(blockers)
+
+
+def check_manifest_acquisition(
+    *,
+    manifest: ModelManifest,
+    allowlist: ModelReferenceAllowlist,
+    license_accepted: bool,
+    access_confirmed: bool,
+    available_bytes: int,
+) -> tuple[AcquisitionBlocker, ...]:
+    """Evaluate trusted caller-supplied facts, not authorization or readiness."""
+    if type(manifest) is not ModelManifest or type(allowlist) is not ModelReferenceAllowlist:
+        raise TypeError("A model manifest and trusted allowlist are required")
+    blockers = check_acquisition(
+        license_accepted=license_accepted,
+        access_confirmed=access_confirmed,
+        required_bytes=manifest.estimated_bytes,
+        available_bytes=available_bytes,
+    )
+    if not allowlist.allows(manifest.reference):
+        return (AcquisitionBlocker.REFERENCE_NOT_ALLOWED, *blockers)
+    return blockers
