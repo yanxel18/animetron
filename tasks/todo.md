@@ -283,8 +283,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 - 2026-11-22 reconciliation: #125's node insertion and its separate boundary
   correction #127 reached master by `8a69798`. PRs #126 and #128–#136 merged
-  into feature branches rather than master; a combined integration branch is
-  being prepared against master at `cc202f9`. Review and check gates remain
+  into feature branches rather than master; [#142](https://github.com/yanxel18/animetron/pull/142)
+  proposes their combined integration against master at `cc202f9`. Review and check gates remain
   outstanding. The top-level checklist remains 18/57 (31.6%); no phase is
   complete.
 - Local preview check: the tailnet UI returned HTTP 200, but its session API
@@ -1351,6 +1351,12 @@ accessibility checks pass, not merely when mock screens exist.
     including ports and config schemas, with loading, retry and denial handling.
     This read-only slice does not create nodes or establish execution readiness;
     independent review and required checks remain outstanding.
+  - [ ] P7-02s Insert an explicitly selected catalog node into a loaded draft
+    with a secure generated UUID and empty config. No request is sent until the
+    existing save action; required configuration, validation and execution
+    remain separate. [#139](https://github.com/yanxel18/animetron/pull/139)
+    targets master without the integrated editor; a reconciled follow-up is
+    stacked on #142. Independent review and required checks remain outstanding.
   - Owner-only draft read, write, validation and revision creation APIs exist.
     A full editor and its workflow-creation UX remain unimplemented; P1-09
     remains unchecked because its review/check gates are incomplete.

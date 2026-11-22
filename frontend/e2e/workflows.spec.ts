@@ -6,12 +6,16 @@ const revision = { workflowId: id, revision: "saved-revision-1", createdAt: "202
 const canonicalJson = '{"revision":"saved-revision-1","text":"<script>inert</script>"}';
 
 test("shows sample validation metadata on request at a narrow viewport", async ({ page }) => {
+  let writes = 0;
   await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (route.request().method() !== "GET") writes += 1;
     if (path === "/api/v1/workflows/node-types") {
       await route.fulfill({ json: { scope: "sample-validation", nodes: [
         { type: "sample.constant", inputs: [], outputs: [{ name: "text", type: "text", required: false }], configSchema: { type: "object", properties: { text: { type: "string" } } } },
       ] } });
+    } else if (path === `/api/v1/workflows/${id}/draft`) {
+      await route.fulfill({ json: { workflowId: id, version: 1, document: '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[]}' } });
     } else {
       await route.fulfill({ json: { data: [], nextCursor: null } });
     }
@@ -22,6 +26,18 @@ test("shows sample validation metadata on request at a narrow viewport", async (
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "sample.constant" })).toBeVisible();
   await expect(page.getByLabel("Configuration schema for sample.constant")).toContainText('"type": "object"');
+  await page.getByLabel("Workflow ID", { exact: true }).fill(id);
+  await page.getByRole("button", { name: "Load draft" }).click();
+  await page.getByLabel("Sample node type", { exact: true }).selectOption("sample.constant");
+  await page.getByRole("button", { name: "Insert sample node" }).focus();
+  await page.keyboard.press("Enter");
+  const text = await page.getByLabel("Workflow draft JSON").inputValue();
+  const inserted = JSON.parse(text).nodes;
+  expect(inserted).toHaveLength(1);
+  expect(inserted[0].id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  expect(inserted[0]).toMatchObject({ type: "sample.constant", config: {} });
+  await expect(page.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
+  expect(writes).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 

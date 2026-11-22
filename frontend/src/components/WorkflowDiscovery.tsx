@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { RevisionListOutput, RevisionOutput, WorkflowIdListOutput } from "../api/generated";
+import type { RevisionListOutput, RevisionOutput, SampleNodeCatalogOutput, WorkflowIdListOutput } from "../api/generated";
 import { fetchRevision, fetchRevisionPage, fetchWorkflowPage, WorkflowDiscoveryError } from "../api/workflows";
 import { WorkflowDraftError } from "../api/workflow-drafts";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
@@ -9,6 +9,7 @@ type Request = { cursor: string | null; attempt: number };
 const firstPage = (): Request => ({ cursor: null, attempt: 0 });
 
 export function WorkflowDiscovery() {
+  const [nodeCatalog, setNodeCatalog] = useState<SampleNodeCatalogOutput | null>(null);
   const [workflows, setWorkflows] = useState<WorkflowIdListOutput | null>(null);
   const [revisions, setRevisions] = useState<RevisionListOutput | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function WorkflowDiscovery() {
     revisionController.current?.abort();
     detailController.current?.abort();
     setWorkflows(null);
+    setNodeCatalog(null);
     setRevisions(null);
     setSelected(null);
     setSelectedRevision(null);
@@ -152,7 +154,7 @@ export function WorkflowDiscovery() {
       </p>
       {!(workflowError instanceof WorkflowDiscoveryError || workflowError instanceof WorkflowDraftError) ||
        (workflowError.status !== 401 && workflowError.status !== 403)
-        ? <><WorkflowNodeCatalog onDenied={denied} /><WorkflowDraftPanel onDenied={(error) => { denied(error); }} /></> : null}
+        ? <><WorkflowNodeCatalog onDenied={denied} onCatalogChange={setNodeCatalog} /><WorkflowDraftPanel nodeCatalog={nodeCatalog} onDenied={(error) => { denied(error); }} /></> : null}
       <section aria-labelledby="workflow-list-title" aria-busy={workflowLoading}>
         <h2 ref={workflowHeading} id="workflow-list-title" tabIndex={-1}>Workflow IDs</h2>
         {workflowLoading && <p role="status">Loading workflows...</p>}

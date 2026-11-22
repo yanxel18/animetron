@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "../api/generated";
+import type { RevisionOutput, SampleNodeCatalogOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "../api/generated";
 import {
   acknowledgeDraftCreation, clearPendingWorkflowRevision, createDraftRevision, createWorkflowDraft,
   readPendingDraftCreation, readPendingWorkflowRevision, reconcileDraftCreation,
@@ -139,6 +139,7 @@ function WorkflowDraftCreation({ onDenied, busy, setBusy, blocked }: {
 }
 
 type LoadedWorkflowDraftProps = {
+  nodeCatalog: SampleNodeCatalogOutput | null;
   draft: WorkflowDraftOutput;
   document: string;
   saveNotice: string | null;
@@ -159,7 +160,7 @@ type LoadedWorkflowDraftProps = {
 };
 
 function LoadedWorkflowDraft({
-  draft, document, saveNotice, busy, reloadRequired, validation, revision,
+  draft, document, saveNotice, busy, reloadRequired, validation, revision, nodeCatalog,
   uncertain, acknowledged, pendingFields, onNodePendingChange, onEdgePendingChange, onDocumentChange, onSave, onDiscard, onValidate,
   onCreateRevision,
 }: LoadedWorkflowDraftProps) {
@@ -169,7 +170,7 @@ function LoadedWorkflowDraft({
   return <>
     <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
     <WorkflowNodeOrder key={draft.workflowId} document={document} disabled={busy || reloadRequired}
-      onDocumentChange={onDocumentChange} onNodePendingChange={onNodePendingChange} onEdgePendingChange={onEdgePendingChange} />
+      onDocumentChange={onDocumentChange} onNodePendingChange={onNodePendingChange} onEdgePendingChange={onEdgePendingChange} nodeCatalog={nodeCatalog} />
     <label className="workflow-document-label" htmlFor="workflow-draft-document">Workflow draft JSON</label>
     <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved. Choose a revision identifier before creating a revision.</p>
     {document === "" && <button className="button button--secondary" type="button"
@@ -215,7 +216,7 @@ function LoadedWorkflowDraft({
   </>;
 }
 
-export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDraftError) => void }) {
+export function WorkflowDraftPanel({ onDenied, nodeCatalog = null }: { onDenied: (error: WorkflowDraftError) => void; nodeCatalog?: SampleNodeCatalogOutput | null }) {
   const [recovery, setRecovery] = useState(readPendingWorkflowRevision);
   const [id, setId] = useState(() =>
     recovery !== null && recovery !== "unavailable" ? recovery.workflowId : "");
@@ -427,7 +428,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
       <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
       I understand the prior attempt may have created a revision and a new attempt could create a duplicate.
     </label>}
-    {draft && <LoadedWorkflowDraft draft={draft} document={editorDocument} saveNotice={saveNotice}
+    {draft && <LoadedWorkflowDraft draft={draft} document={editorDocument} saveNotice={saveNotice} nodeCatalog={nodeCatalog}
       busy={busy} reloadRequired={reloadRequired} validation={validation} revision={revision}
       uncertain={uncertain} acknowledged={acknowledged}
       pendingFields={pendingFields} onNodePendingChange={setNodePending} onEdgePendingChange={setEdgePending}

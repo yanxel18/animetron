@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { SampleNodeCatalogOutput } from "../api/generated";
 import { fetchSampleNodeCatalog } from "../api/workflows";
 
-export function WorkflowNodeCatalog({ onDenied }: { onDenied: (error: unknown) => boolean }) {
+export function WorkflowNodeCatalog({ onDenied, onCatalogChange }: {
+  onDenied: (error: unknown) => boolean; onCatalogChange: (catalog: SampleNodeCatalogOutput | null) => void;
+}) {
   const [catalog, setCatalog] = useState<SampleNodeCatalogOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,9 +18,10 @@ export function WorkflowNodeCatalog({ onDenied }: { onDenied: (error: unknown) =
     setLoading(true);
     setError(null);
     setCatalog(null);
+    onCatalogChange(null);
     try {
       const result = await fetchSampleNodeCatalog(request.signal);
-      if (!request.signal.aborted) setCatalog(result);
+      if (!request.signal.aborted) { setCatalog(result); onCatalogChange(result); }
     } catch (value) {
       if (!request.signal.aborted && !onDenied(value)) {
         setError(value instanceof Error ? value.message : "Could not load sample node types.");
