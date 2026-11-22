@@ -1446,6 +1446,10 @@ accessibility checks pass, not merely when mock screens exist.
     existing version-checked save and discard controls. It does not add nodes,
     validate a saved draft, create a revision, or execute a workflow. Review
     and required checks remain outstanding; top-level counts are unchanged.
+  - [ ] P7-02i Add a node from a supplied JSON object without rewriting the
+    rest of the draft. Changes remain local until version-checked save; backend
+    validation still determines supported types and graph validity. Review and
+    required checks remain outstanding; the parent task remains incomplete.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
