@@ -1086,6 +1086,14 @@ hardware and failures never appear ready.
     Docker reported a Linux overlayfs backend. These transient figures do not
     establish container memory limits, volume capacity, CUDA compatibility or
     safe benchmark capacity; P2-02 and the model acquisition gate remain open.
+  - Follow-up on 2026-11-22: `docker info` reported 16,614,359,040 bytes
+    of Linux memory, below the benchmark report's 20 GiB container planning
+    allowance. Windows free physical memory had fallen to 9,602,752 KiB at
+    the follow-up check. The Docker Desktop filesystem reported 839.3 GiB
+    available internally, but its virtual capacity does not establish physical
+    backing space or the capacity of the eventual model volume. The host-level
+    cgroup files were unavailable in the inspected WSL namespace. No model or
+    inference workload was started; the RAM gate remains unsatisfied.
   - [x] P2-02a Record host resources and Linux-container NVIDIA visibility.
     [#28](https://github.com/yanxel18/animetron/pull/28); no CUDA kernel, model
     compatibility, Docker-volume capacity or inference benchmark is certified.
