@@ -29,6 +29,9 @@ Node removal is stacked on PR #128; it refuses removal if an existing edge
 references the node or has unreadable endpoints. The connection list can remove
 readable edges, and falls back to direct JSON editing for ambiguous lists.
 Connection removal is stacked on PR #129. Removal remains local until saved.
+Connection source, target and ports can also be edited locally while retaining
+the connection ID. Connections with extra fields must be edited through the
+JSON editor to avoid discarding data. This edit slice is stacked on PR #135.
 
 After the Workflows section has been opened, the editor stays mounted but hidden
 when switching sections, preserving its in-memory draft. Unsaved draft-document

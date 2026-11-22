@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appendWorkflowEdge, readWorkflowEdges, removeWorkflowEdge } from "./workflow-draft-document";
+import { appendWorkflowEdge, readWorkflowEdges, removeWorkflowEdge, replaceWorkflowEdge } from "./workflow-draft-document";
 
 const fields = [
   ["id", "Connection ID"], ["source", "Source node ID"], ["sourcePort", "Source port"],
@@ -11,7 +11,9 @@ export function WorkflowEdgeEditor({ document, disabled, onDocumentChange, onPen
   document: string; disabled: boolean; onDocumentChange: (value: string) => void; onPendingChange?: (pending: boolean) => void;
 }) {
   const [values, setValues] = useState(empty);
-  const [message, setMessage] = useState<"added" | "error" | null>(null);
+  const [message, setMessage] = useState<"added" | "updated" | "unchanged" | "error" | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const sourceInput = useRef<HTMLInputElement>(null);
   const added = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const removed = useRef(false);
@@ -30,7 +32,13 @@ export function WorkflowEdgeEditor({ document, disabled, onDocumentChange, onPen
       edges.length === 0 ? <p>No connections.</p> : <ul aria-label="Workflow connections">
         {edges.map((edge) => <li className="workflow-connection-item" key={edge.id}>
           <code>{edge.id}</code>: {edge.source} / {edge.sourcePort} → {edge.target} / {edge.targetPort}{" "}
-          <button className="button button--secondary" type="button" disabled={disabled}
+          <button className="button button--secondary" type="button"
+            disabled={disabled || editingId !== null || Object.values(values).some((value) => value.length > 0)}
+            aria-label={`Edit connection ${edge.id}`} onClick={() => {
+              setValues(edge); setEditingId(edge.id); onPendingChange?.(true); setMessage(null); setRemovalNotice(null);
+              sourceInput.current?.focus();
+            }}>Edit</button>{" "}
+          <button className="button button--secondary" type="button" disabled={disabled || editingId !== null}
             aria-label={`Remove connection ${edge.id}`} onClick={() => {
               const updated = removeWorkflowEdge(document, edge.id);
               if (!updated) return;
@@ -42,31 +50,35 @@ export function WorkflowEdgeEditor({ document, disabled, onDocumentChange, onPen
       </ul>}
     {removalNotice && <p role="status">{removalNotice}</p>}
     <fieldset disabled={disabled}>
-    <legend>Add connection</legend>
+    <legend>{editingId === null ? "Add connection" : "Edit connection"}</legend>
     <p>Enter node IDs and ports. Changes stay local until saved; validate the saved draft to check connections.</p>
     {fields.map(([key, label]) => <div className="schedule-create-field" key={key}>
       <label htmlFor={`workflow-edge-${key}`}>{label}</label>
       <input id={`workflow-edge-${key}`} value={values[key]} maxLength={256}
+        ref={key === "source" ? sourceInput : undefined} disabled={key === "id" && editingId !== null}
         onChange={(event) => {
           const next = { ...values, [key]: event.target.value };
-          setValues(next); onPendingChange?.(Object.values(next).some((value) => value.length > 0)); setMessage(null);
+          setValues(next); onPendingChange?.(editingId !== null || Object.values(next).some((value) => value.length > 0)); setMessage(null);
         }} />
     </div>)}
-    {Object.values(values).some((value) => value.length > 0) &&
+    {(editingId !== null || Object.values(values).some((value) => value.length > 0)) &&
       <button className="button button--secondary" type="button" onClick={() => {
-        setValues(empty); onPendingChange?.(false); setMessage(null);
+        setValues(empty); setEditingId(null); onPendingChange?.(false); setMessage(null);
       }}>Clear connection input</button>}
     <button className="button button--secondary" type="button" onClick={() => {
-      const updated = appendWorkflowEdge(document, JSON.stringify(values));
+      const updated = editingId === null ? appendWorkflowEdge(document, JSON.stringify(values)) : replaceWorkflowEdge(document, editingId, JSON.stringify(values));
       if (!updated) { setMessage("error"); return; }
-      added.current = true;
-      onDocumentChange(updated);
+      const unchanged = updated === document;
+      if (!unchanged) { added.current = true; onDocumentChange(updated); }
       setValues(empty);
+      setEditingId(null);
       onPendingChange?.(false);
-      setMessage("added");
-    }}>Add connection</button>
-    {message === "error" && <p role="alert">Cannot add connection. Check all fields, unique ID and draft size.</p>}
+      setMessage(unchanged ? "unchanged" : editingId === null ? "added" : "updated");
+    }}>{editingId === null ? "Add connection" : "Apply connection changes"}</button>
+    {message === "error" && <p role="alert">Cannot {editingId === null ? "add" : "update"} connection. Check the fields, unique ID and draft size; connections with extra fields must be edited in JSON.</p>}
     {message === "added" && <p role="status">Connection added locally. Save the draft to keep it.</p>}
+    {message === "updated" && <p role="status">Connection updated locally. Save the draft to keep it.</p>}
+    {message === "unchanged" && <p role="status">Connection unchanged.</p>}
     </fieldset>
   </section>;
 }

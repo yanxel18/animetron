@@ -236,6 +236,30 @@ export function removeWorkflowEdge(document: string, edgeId: string): string | n
   return document.slice(0, start) + document.slice(end);
 }
 
+export function replaceWorkflowEdge(document: string, edgeId: string, edge: string): string | null {
+  if (new TextEncoder().encode(edge).length > 32_768) return null;
+  const edges = readWorkflowEdges(document);
+  const ranges = findArrayRanges(document, "edges")?.ranges;
+  if (!edges || !ranges || ranges.length !== edges.length) return null;
+  const index = edges.findIndex((item) => item.id === edgeId);
+  if (index < 0) return null;
+  try {
+    const value: unknown = JSON.parse(edge);
+    const current: unknown = JSON.parse(document);
+    if (!isRecord(value) || !isRecord(current) || !Array.isArray(current.edges)) return null;
+    const original: unknown = current.edges[index];
+    const keys = ["id", "source", "sourcePort", "target", "targetPort"];
+    if (!isRecord(original) || Object.keys(original).length !== keys.length ||
+        !keys.every((key) => Object.hasOwn(original, key)) || Object.keys(value).length !== keys.length ||
+        !keys.every((key) => typeof value[key] === "string" && (value[key] as string).length > 0) || value.id !== edgeId) return null;
+    const wrapper = `{"schemaVersion":1,"revision":"draft","nodes":[],"edges":[${edge}]}`;
+    if (readWorkflowEdges(wrapper)?.length !== 1) return null;
+    const range = ranges[index];
+    const updated = document.slice(0, range.start) + edge + document.slice(range.end);
+    return new TextEncoder().encode(updated).length <= 32_768 ? updated : null;
+  } catch { return null; }
+}
+
 export function removeWorkflowNode(document: string, nodeId: string): string | null {
   const parsed = parseWorkflowDraft(document);
   if (!parsed) return null;

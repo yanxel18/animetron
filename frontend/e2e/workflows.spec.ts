@@ -84,6 +84,13 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await expect(page.getByRole("button", { name: "Load draft" })).toBeDisabled();
   await page.getByRole("button", { name: "Add connection" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Connection added locally" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit connection edge1" }).click();
+  await expect(page.getByLabel("Source node ID")).toBeFocused();
+  await expect(page.getByLabel("Connection ID")).toBeDisabled();
+  await page.getByLabel("Target node ID").fill("third");
+  await page.getByRole("button", { name: "Apply connection changes" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Connection updated locally" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Workflow connections" })).toContainText("third");
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(/"sourcePort":"text"/);
   await page.getByRole("button", { name: "Remove first" }).click();
   await expect(page.getByRole("alert")).toContainText(/connections reference/i);
