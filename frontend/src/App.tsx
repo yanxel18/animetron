@@ -48,6 +48,11 @@ export function App() {
   const [activeSection, setActiveSection] = useState<StudioSection>(() =>
     studioSectionFromHash(window.location.hash),
   );
+  const [workflowVisited, setWorkflowVisited] = useState(activeSection === "workflows");
+
+  useEffect(() => {
+    if (activeSection === "workflows") setWorkflowVisited(true);
+  }, [activeSection]);
 
   useEffect(() => {
     const updateActiveSection = () => {
@@ -127,7 +132,8 @@ export function App() {
           {activeSection === "review" && <ReviewQueue />}
           {activeSection === "runs" && <RunMonitor />}
           {activeSection === "schedules" && <ScheduleList />}
-          {activeSection === "workflows" && <WorkflowDiscovery />}
+          {(workflowVisited || activeSection === "workflows") &&
+            <div hidden={activeSection !== "workflows"}><WorkflowDiscovery /></div>}
           <div
             className="page-heading"
             hidden={activeSection !== "studio"}

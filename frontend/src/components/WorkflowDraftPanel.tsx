@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "../api/generated";
 import {
   acknowledgeDraftCreation, clearPendingWorkflowRevision, createDraftRevision, createWorkflowDraft,
@@ -369,6 +369,15 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   }
 
   const unsavedChanges = draft !== null && editorDocument !== draft.document;
+  useEffect(() => {
+    if (!unsavedChanges) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsavedChanges]);
   return <section className="workflow-draft-panel" aria-labelledby="workflow-draft-title" aria-busy={busy}>
     <h2 id="workflow-draft-title">Saved draft</h2>
     <WorkflowDraftCreation busy={busy} setBusy={setBusy} blocked={unsavedChanges} onDenied={(value) => {
