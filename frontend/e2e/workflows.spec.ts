@@ -84,6 +84,12 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await expect(page.getByRole("status").filter({ hasText: "Removed connection edge1 locally" })).toBeVisible();
   await page.getByRole("button", { name: "Remove first" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Removed first locally" })).toBeVisible();
+  const unsaved = await page.getByLabel("Workflow draft JSON").inputValue();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("link", { name: "Studio", exact: true }).click();
+  await page.getByRole("link", { name: "Workflows", exact: true }).click();
+  await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(unsaved);
+  await page.setViewportSize({ width: 375, height: 900 });
   expect(attempts).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(errors).toEqual([]);

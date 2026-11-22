@@ -280,6 +280,26 @@ it("initializes an empty saved draft locally and saves only on request", async (
   expect(JSON.parse(fetcher.mock.calls[2][1].body)).toEqual({ document: initialized, expectedVersion: 3 });
 });
 
+it("warns on browser unload only while the draft document has unsaved changes", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(draft)));
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  const editor = await screen.findByLabelText("Workflow draft JSON");
+  const clean = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(clean);
+  expect(clean.defaultPrevented).toBe(false);
+  await user.type(editor, "x");
+  const dirty = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(dirty);
+  expect(dirty.defaultPrevented).toBe(true);
+  await user.click(screen.getByRole("button", { name: "Discard edits" }));
+  const discarded = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(discarded);
+  expect(discarded.defaultPrevented).toBe(false);
+});
+
 it("loads, validates and creates a revision of the exact saved draft", async () => {
   const fetcher = vi.fn()
     .mockResolvedValueOnce(json(draft))

@@ -24,3 +24,11 @@ Node removal is stacked on PR #128; it refuses removal if an existing edge
 references the node or has unreadable endpoints. The connection list can remove
 readable edges, and falls back to direct JSON editing for ambiguous lists.
 Connection removal is stacked on PR #129. Removal remains local until saved.
+
+After the Workflows section has been opened, the editor stays mounted but hidden
+when switching sections, preserving its in-memory draft. Unsaved draft-document
+changes request a browser warning on reload or close; browser behavior varies,
+and this does not restore data after a crash. Partially entered node and
+connection fields are not included in the warning. Hidden workflow components
+remain mounted and can complete outstanding requests; authorization failures
+still clear protected content. This navigation slice is stacked on PR #130.
