@@ -1441,6 +1441,11 @@ accessibility checks pass, not merely when mock screens exist.
     and screen-reader verification are unavailable. Independent GitHub review
     and required checks remain outstanding. This nested slice does not change
     the 18/57 (31.6%) or P7 1/6 counts.
+  - [ ] P7-02h Initialize an empty draft with a starter workflow document in
+    the editor. Initialization is local, requires explicit action, and uses the
+    existing version-checked save and discard controls. It does not add nodes,
+    validate a saved draft, create a revision, or execute a workflow. Review
+    and required checks remain outstanding; top-level counts are unchanged.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status

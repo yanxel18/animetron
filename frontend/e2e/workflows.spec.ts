@@ -53,6 +53,11 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await page.getByLabel("Workflow ID", { exact: true }).fill(createdId);
   await page.getByRole("button", { name: "Load draft" }).click();
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue("");
+  await page.getByRole("button", { name: "Initialize empty draft" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Workflow draft JSON")).toBeFocused();
+  await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(/"schemaVersion": 1/);
+  await expect(page.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
   expect(attempts).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(errors).toEqual([]);

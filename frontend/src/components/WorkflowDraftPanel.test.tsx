@@ -144,6 +144,32 @@ it("blocks draft creation while there are unsaved edits and editing during creat
   await waitFor(() => expect(screen.queryByLabelText("Workflow draft JSON")).not.toBeInTheDocument());
 });
 
+it("initializes an empty saved draft locally and saves only on request", async () => {
+  const empty = { ...draft, document: "" };
+  const initialized = '{\n  "schemaVersion": 1,\n  "revision": "draft",\n  "nodes": [],\n  "edges": []\n}';
+  const fetcher = vi.fn().mockResolvedValueOnce(json(empty))
+    .mockResolvedValueOnce(json(session))
+    .mockResolvedValueOnce(json({ ...empty, document: initialized, version: 4 }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  await screen.findByLabelText("Workflow draft JSON");
+  await user.click(screen.getByRole("button", { name: "Initialize empty draft" }));
+  expect(screen.getByLabelText("Workflow draft JSON")).toHaveValue(initialized);
+  expect(screen.getByLabelText("Workflow draft JSON")).toHaveFocus();
+  expect(screen.queryByRole("button", { name: "Initialize empty draft" })).not.toBeInTheDocument();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Discard edits" }));
+  expect(screen.getByLabelText("Workflow draft JSON")).toHaveValue("");
+  await user.click(screen.getByRole("button", { name: "Initialize empty draft" }));
+  await user.click(screen.getByRole("button", { name: "Save draft" }));
+  await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+  expect(JSON.parse(fetcher.mock.calls[2][1].body)).toEqual({ document: initialized, expectedVersion: 3 });
+});
+
 it("loads, validates and creates a revision of the exact saved draft", async () => {
   const fetcher = vi.fn()
     .mockResolvedValueOnce(json(draft))
