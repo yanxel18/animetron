@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
 import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
-import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowEdges, readWorkflowNodeOrder, readWorkflowNodeSource, removeWorkflowEdge, removeWorkflowNode } from "./workflow-draft-document";
+import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowEdges, readWorkflowNodeOrder, readWorkflowNodeSource, removeWorkflowEdge, removeWorkflowNode, replaceWorkflowNode } from "./workflow-draft-document";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
@@ -12,6 +12,16 @@ const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 const draft = { workflowId: id, version: 3, document: '{"revision":"r1"}' };
+it("replaces only a selected node while preserving node identity and other JSON", () => {
+  const node = '{"id":"a","type":"x","config":{"n":1}}';
+  const document = `{"schemaVersion":1,"revision":"r1","nodes":[${node}],"edges":[],"n":9007199254740993}`;
+  const replacement = '{"id":"a","type":"x","config":{"n":9007199254740995}}';
+  expect(replaceWorkflowNode(document, "a", replacement)).toBe(document.replace(node, replacement));
+  expect(replaceWorkflowNode(document, "a", replacement.replace('"id":"a"', '"id":"b"'))).toBeNull();
+  expect(replaceWorkflowNode(document, "a", `${replacement}],"injected":[1`)).toBeNull();
+  expect(replaceWorkflowNode(document, "a", '{"id":"a","id":"a","type":"x","config":{}}')).toBeNull();
+  expect(replaceWorkflowNode(document, "missing", replacement)).toBeNull();
+});
 it("reads a node's exact JSON without rounding numeric values", () => {
   const node = '{ "id":"a", "type":"x", "config":{"n":9007199254740993} }';
   const document = `{"schemaVersion":1,"revision":"r1","nodes":[${node}],"edges":[]}`;
@@ -33,6 +43,30 @@ it("inspects a node as exact text and clears its inspector after removal", async
   expect(screen.getByRole("button", { name: "Inspect a" })).toHaveAttribute("aria-pressed", "true");
   await user.click(screen.getByRole("button", { name: "Remove a" }));
   expect(screen.queryByLabelText("Selected node JSON")).not.toBeInTheDocument();
+});
+it("edits a selected node locally and rejects an ID change", async () => {
+  const initial = '{"schemaVersion":1,"revision":"r1","nodes":[{"id":"a","type":"x","config":{}}],"edges":[]}';
+  const pending = vi.fn();
+  function Harness() {
+    const [value, setValue] = useState(initial);
+    return <WorkflowNodeOrder document={value} disabled={false} onDocumentChange={setValue} onNodePendingChange={pending} />;
+  }
+  const user = userEvent.setup();
+  render(<Harness />);
+  await user.click(screen.getByRole("button", { name: "Edit a" }));
+  expect(screen.getByLabelText("Node JSON")).toHaveFocus();
+  expect(pending).toHaveBeenLastCalledWith(true);
+  const editor = screen.getByLabelText("Node JSON");
+  await user.clear(editor);
+  expect(pending).toHaveBeenLastCalledWith(true);
+  await user.paste('{"id":"b","type":"x","config":{}}');
+  await user.click(screen.getByRole("button", { name: "Apply node changes" }));
+  expect(screen.getByRole("alert")).toHaveTextContent(/same node id/i);
+  await user.clear(editor);
+  await user.paste('{"id":"a","type":"x","config":{"text":"updated"}}');
+  await user.click(screen.getByRole("button", { name: "Apply node changes" }));
+  expect(pending).toHaveBeenLastCalledWith(false);
+  expect(screen.getByLabelText("Selected node JSON")).toHaveTextContent('"text":"updated"');
 });
 it("removes a connection without rewriting the remaining draft", () => {
   const edge = (id: string) => `{"id":"${id}","source":"a","sourcePort":"text","target":"b","targetPort":"text"}`;

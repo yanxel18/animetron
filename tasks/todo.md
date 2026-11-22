@@ -1485,6 +1485,10 @@ accessibility checks pass, not merely when mock screens exist.
     without reserializing or claiming validation. Selection clears when the
     node is no longer readable. Stacked on #132; review and required checks
     remain outstanding.
+  - [ ] P7-02p Edit an existing node's JSON locally without changing its ID or
+    rewriting other draft content. Reuse pending-input protection and saved
+    version checks; graph validity remains backend-owned. Stacked on #134;
+    review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
