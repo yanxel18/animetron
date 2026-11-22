@@ -150,6 +150,14 @@ acceptance.
 
 ## How to use
 
+- Owner instruction on 2026-11-22: for future development changes, commit with
+  details, push, open a detailed PR, post a substantive self-review and merge
+  to `master` when appropriate checks and any enforced branch protections pass.
+  Ask the owner about complex decisions the AI cannot reasonably judge or when
+  essential authorization or information is missing. Earlier notes describing
+  missing independent reviews are historical evidence, not a requirement to
+  fabricate a review or automatically credit those slices. See
+  [the development workflow](../.github/copilot-instructions.md).
 - Toggle a Markdown task by editing `[ ]` to `[x]` (or back to `[ ]`).
 - Check a task only when its work is merged to `master` and its stated checks
   have passed. Link the merged PR or other evidence. An open PR is not done:
@@ -164,7 +172,7 @@ acceptance.
   Phases are dependency ordered, but independent slices may run in parallel.
 - No delivery date or effort estimate is established. Estimate and update dates
   only after scope, hardware, provider eligibility and capacity are confirmed.
-- The owner has authorized the assistant to merge reviewed, verified PRs.
+- The owner has authorized the assistant to merge self-reviewed, verified PRs.
   This checklist does not authorize deployment, live publishing, model licenses,
   model downloads or external transmission.
 
@@ -283,8 +291,8 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 - 2026-11-22 reconciliation: #125's node insertion and its separate boundary
   correction #127 reached master by `8a69798`. PRs #126 and #128–#136 merged
-  into feature branches rather than master; a combined integration branch is
-  being prepared against master at `cc202f9`. Review and check gates remain
+  into feature branches rather than master; [#142](https://github.com/yanxel18/animetron/pull/142)
+  proposes their combined integration. Review and check gates remain
   outstanding. The top-level checklist remains 18/57 (31.6%); no phase is
   complete.
 - Local preview check: the tailnet UI returned HTTP 200, but its session API
@@ -1345,8 +1353,8 @@ accessibility checks pass, not merely when mock screens exist.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
   - P7-02j through P7-02q were previously merged only into feature branches;
-    the current integration branch brings them together for review against
-    master. Do not mark them complete until their stated gates pass.
+    [#142](https://github.com/yanxel18/animetron/pull/142) brings them together
+    for review against master. Do not mark them complete before merge and checks.
   - [ ] P7-02r Display the owner-only sample-validation node catalog on demand,
     including ports and config schemas, with loading, retry and denial handling.
     This read-only slice does not create nodes or establish execution readiness;
