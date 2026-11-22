@@ -5,6 +5,7 @@ import pytest
 
 from app.services.models.integrity import ModelIntegrityError, verify_model_file
 from app.services.models.manifest import ModelFile, ModelManifest
+from app.services.models.policy import ModelReferenceAllowlist
 from app.services.models.preflight import AcquisitionBlocker, check_acquisition
 from app.services.models.reference import ModelReference
 
@@ -167,6 +168,26 @@ def test_model_reference_requires_a_full_canonical_commit_hash(revision: str) ->
 def test_model_reference_does_not_accept_unknown_providers() -> None:
     with pytest.raises(ValueError):
         ModelReference("other", "creator/model", "a" * 40)
+
+
+def test_reference_allowlist_requires_an_exact_pinned_reference() -> None:
+    allowed = ModelReference("huggingface", "creator-a/model", "a" * 40)
+    policy = ModelReferenceAllowlist(frozenset({allowed}))
+
+    assert policy.allows(ModelReference("huggingface", "creator-a/model", "a" * 40))
+    assert not policy.allows(ModelReference("huggingface", "creator-b/model", "a" * 40))
+    assert not policy.allows(ModelReference("huggingface", "creator-a/model", "b" * 40))
+    assert not policy.allows(ModelReference("huggingface", "Creator-a/model", "a" * 40))
+
+
+def test_reference_allowlist_denies_empty_and_rejects_mutable_or_invalid_values() -> None:
+    reference = ModelReference("huggingface", "creator/model", "a" * 40)
+    assert not ModelReferenceAllowlist(frozenset()).allows(reference)
+    for invalid in ({reference}, frozenset({"creator/model"})):
+        with pytest.raises(TypeError):
+            ModelReferenceAllowlist(invalid)
+    with pytest.raises(TypeError):
+        ModelReferenceAllowlist(frozenset()).allows("creator/model")
 
 
 def test_accepted_access_and_sufficient_space_pass_preflight() -> None:
