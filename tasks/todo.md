@@ -1457,6 +1457,13 @@ accessibility checks pass, not merely when mock screens exist.
     rest of the draft. Changes remain local until version-checked save; backend
     validation still determines supported types and graph validity. Review and
     required checks remain outstanding; the parent task remains incomplete.
+    Implementation is in [#125](https://github.com/yanxel18/animetron/pull/125).
+    Follow-up commit `763c150` rejects a crafted node input that escapes its
+    JSON object; independent review and required checks remain outstanding.
+  - [ ] P7-02j Add a connection with named node and port fields without
+    rewriting the draft. This slice is stacked on #125. It only edits locally;
+    graph validation, supported ports, save and execution remain the existing
+    backend's responsibility. Review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
