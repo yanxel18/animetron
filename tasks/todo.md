@@ -1142,11 +1142,14 @@ hardware and failures never appear ready.
     See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
-  - In progress on `task/model-manifest-preflight`: a pure internal helper
-    combines exact-pin, license, access and manifest-estimate checks using
-    trusted caller-supplied facts. It is not wired to acquisition and does not
-    authorize downloads or establish readiness. P2-03 remains open; overall
-    progress remains 18/57 (31.6%), P2 1/6.
+  - [#160](https://github.com/yanxel18/animetron/pull/160) merged at
+    `3e8f494`: a pure internal helper combines exact-pin, license, access and
+    manifest-estimate checks using trusted caller-supplied facts. Model,
+    snapshot and readiness tests passed (130 passed, 2 PostgreSQL-gated skips);
+    Ruff and Linux-target mypy passed. Self-review was posted and GitGuardian
+    passed; combined status was pending. The helper is not wired to acquisition
+    and does not authenticate a manifest, authorize downloads or establish readiness.
+    P2-03 remains open; overall progress remains 18/57 (31.6%), P2 1/6.
   - [#158](https://github.com/yanxel18/animetron/pull/158) merged at
     `15a43a1`: an internal exact-pin allowlist compares trusted immutable
     reference sets. Model registry, snapshot and readiness tests passed (127
