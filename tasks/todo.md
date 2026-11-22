@@ -1461,7 +1461,8 @@ accessibility checks pass, not merely when mock screens exist.
     Follow-up commit `763c150` rejects a crafted node input that escapes its
     JSON object; independent review and required checks remain outstanding.
   - [ ] P7-02j Add a connection with named node and port fields without
-    rewriting the draft. This slice is stacked on #125. It only edits locally;
+    rewriting the draft. This slice is stacked on #127; #126 merged only into
+    its feature branch, so a new PR is needed for master. It only edits locally;
     graph validation, supported ports, save and execution remain the existing
     backend's responsibility. Review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with

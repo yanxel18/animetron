@@ -17,6 +17,6 @@ nodes and add a connection through named ID/port fields. Node and connection
 insertion preserve the existing JSON text and remain local until the existing
 version-checked save. The backend validates node types, ports and graph shape;
 an insertion or successful save does not imply validity or execution readiness.
-The connection editor is stacked on PR #125 and is not complete until its PR,
-review and required checks are resolved. A backend-driven palette, connection
+The connection editor is stacked on the node-boundary fix in PR #127 and is
+not complete until its PR, review and required checks are resolved. A backend-driven palette, connection
 discovery and live authenticated end-to-end verification remain outstanding.
