@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import type { RevisionOutput, WorkflowDraftOutput, WorkflowValidationOutput } from "../api/generated";
 import {
   acknowledgeDraftCreation, clearPendingWorkflowRevision, createDraftRevision, createWorkflowDraft,
@@ -162,13 +162,20 @@ function LoadedWorkflowDraft({
 }: LoadedWorkflowDraftProps) {
   const usableVersion = draft.version < 2_147_483_647;
   const unsavedChanges = document !== draft.document;
+  const editorRef = useRef<HTMLTextAreaElement>(null);
   return <>
     <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
     <WorkflowNodeOrder document={document} disabled={busy || reloadRequired}
       onDocumentChange={onDocumentChange} />
     <label className="workflow-document-label" htmlFor="workflow-draft-document">Workflow draft JSON</label>
-    <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved.</p>
+    <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved. Choose a revision identifier before creating a revision.</p>
+    {document === "" && <button className="button button--secondary" type="button"
+      disabled={busy || reloadRequired} onClick={() => {
+        onDocumentChange(JSON.stringify({ schemaVersion: 1, revision: "draft", nodes: [], edges: [] }, null, 2));
+        editorRef.current?.focus();
+      }}>Initialize empty draft</button>}
     <textarea id="workflow-draft-document" className="workflow-json workflow-json-editor"
+      ref={editorRef}
       aria-describedby="workflow-draft-editor-help" value={document}
       disabled={busy || reloadRequired} spellCheck={false}
       onChange={(event) => onDocumentChange(event.target.value)} />
