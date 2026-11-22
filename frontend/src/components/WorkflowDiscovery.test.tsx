@@ -17,6 +17,30 @@ it("loads node validation metadata on request without claiming readiness", async
   expect(screen.getByLabelText("Configuration schema for sample.constant")).toHaveTextContent('"type": "object"');
 });
 
+it("inserts a selected catalog node locally into a loaded draft", async () => {
+  const nodeId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  vi.spyOn(crypto, "randomUUID").mockReturnValue(nodeId);
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[]}';
+  const fetcher = vi.fn().mockImplementation((url: string, _options?: RequestInit) => Promise.resolve(new Response(JSON.stringify(
+    url.endsWith("/node-types") ? { scope: "sample-validation", nodes: [{ type: "sample.constant", inputs: [], outputs: [], configSchema: { type: "object", required: ["text"] } }] } :
+      url.endsWith("/draft") ? { workflowId: id, version: 2, document } : { data: [], nextCursor: null },
+  ))));
+  vi.stubGlobal("fetch", fetcher);
+  render(<WorkflowDiscovery />);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Load sample node types" }));
+  await screen.findByText("sample.constant");
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  await user.selectOptions(await screen.findByLabelText("Sample node type"), "sample.constant");
+  await user.click(screen.getByRole("button", { name: "Insert sample node" }));
+  const value = (screen.getByLabelText("Workflow draft JSON") as HTMLTextAreaElement).value;
+  expect(JSON.parse(value).nodes).toEqual([{ id: nodeId, type: "sample.constant", config: {} }]);
+  expect(screen.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
+  expect(fetcher.mock.calls.every(([, options]) => !options || options.method === "GET")).toBe(true);
+  vi.restoreAllMocks();
+});
+
 it("clears protected workflow state when the node catalog denies access", async () => {
   vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(
     url.endsWith("/node-types") ? new Response("", { status: 403 }) :

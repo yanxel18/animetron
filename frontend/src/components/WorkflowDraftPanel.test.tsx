@@ -119,6 +119,30 @@ it("appends a connection without changing other JSON or allowing ambiguous IDs",
   expect(appendWorkflowEdge(document, '{"id":"x","id":"y","source":"a"}')).toBeNull();
   expect(appendWorkflowEdge(document, '{"id":"x"}')).toBeNull();
 });
+it("does not insert catalog nodes when secure ID generation is unavailable or the ID already exists", async () => {
+  const existing = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const document = `{"schemaVersion":1,"revision":"r1","nodes":[{"id":"${existing}","type":"sample.constant","config":{}}],"edges":[]}`;
+  const nodeCatalog = { scope: "sample-validation" as const, nodes: [{ type: "sample.constant", inputs: [], outputs: [], configSchema: null }] };
+  const onChange = vi.fn();
+  const onPending = vi.fn();
+  vi.stubGlobal("crypto", {});
+  render(<WorkflowNodeOrder document={document} nodeCatalog={nodeCatalog} disabled={false} onDocumentChange={onChange} onNodePendingChange={onPending} />);
+  const user = userEvent.setup();
+  await user.selectOptions(screen.getByLabelText("Sample node type"), "sample.constant");
+  await user.click(screen.getByRole("button", { name: "Insert sample node" }));
+  expect(screen.getByRole("alert")).toHaveTextContent(/secure id generation/i);
+  expect(onChange).not.toHaveBeenCalled();
+  vi.stubGlobal("crypto", { randomUUID: () => existing });
+  await user.click(screen.getByRole("button", { name: "Insert sample node" }));
+  expect(onChange).not.toHaveBeenCalled();
+  await user.type(screen.getByLabelText("Node JSON"), "partial");
+  expect(screen.getByRole("button", { name: "Insert sample node" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Clear node input" }));
+  await user.click(screen.getByRole("button", { name: `Edit ${existing}` }));
+  await user.clear(screen.getByLabelText("Node JSON"));
+  expect(onPending).toHaveBeenLastCalledWith(true);
+  expect(screen.getByRole("button", { name: "Insert sample node" })).toBeDisabled();
+});
 it("appends a node without altering existing JSON values or accepting duplicate IDs", () => {
   const empty = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[],"large":9007199254740993}';
   const node = '{"id":"a","type":"sample.constant","config":{"text":"hi"}}';
