@@ -1142,6 +1142,10 @@ hardware and failures never appear ready.
     See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
+  - In progress on `task/model-pinned-reference-policy`: an internal exact-pin
+    allowlist value compares trusted immutable reference sets. It does not load
+    policy, enforce acquisition, or imply consent or readiness. This slice does
+    not complete P2-03; overall progress remains 18/57 (31.6%), P2 1/6.
   - [x] P2-03a Validate immutable Hugging Face repository and commit identities
     ([#14](https://github.com/yanxel18/animetron/pull/14); not a manifest,
     allowlist or readiness check).

@@ -438,6 +438,13 @@ identifiers, expected file sizes and digests, and a minimum storage estimate.
 It does not establish license acceptance, repository allowlisting, safe file
 access, adequate staging space, verified downloads, or model readiness.
 
+`ModelReferenceAllowlist` compares an exact provider, repository and revision
+against a caller-supplied immutable set of pinned references. An empty set
+denies all references; matching is case-sensitive. It does not load or enforce
+trusted configuration, validate a manifest's file metadata, grant access or
+license consent, initiate acquisition, or establish readiness. No runtime
+service currently uses this policy.
+
 ## Internal schedule preview (Phase 6 slice)
 
 `app.services.scheduling.preview.preview_occurrences(expression, time_zone, after)`
