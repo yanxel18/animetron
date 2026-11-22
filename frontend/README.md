@@ -13,7 +13,10 @@ deployment or an authentication bypass.
 ## Sample node catalog
 
 The Workflows screen can request the owner-only sample-validation node catalog
-and display its port and configuration schemas. The catalog is read-only: it
-does not add nodes, authorize execution or indicate model readiness. Requests
+and display its port and configuration schemas. With a readable draft loaded,
+the owner can explicitly insert a selected sample type with a secure generated
+UUID and empty config. This is a local edit until the existing version-checked
+save; required configuration may need to be added before backend validation.
+The catalog does not authorize execution or indicate model readiness. Requests
 use the existing session boundary; denial clears protected workflow state. The
 backend contract is documented in [the workflow specification](../docs/SPEC-workflow-runtime.md#sample-validation-node-catalog).

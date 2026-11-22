@@ -1349,6 +1349,10 @@ accessibility checks pass, not merely when mock screens exist.
     including ports and config schemas, with loading, retry and denial handling.
     This read-only slice does not create nodes or establish execution readiness;
     independent review and required checks remain outstanding.
+  - [ ] P7-02s Insert an explicitly selected catalog node into a loaded draft
+    with a secure generated UUID and empty config. No request is sent until the
+    existing save action; required configuration, validation and execution
+    remain separate. Independent review and required checks remain outstanding.
   - Owner-only draft read, write, validation and revision creation APIs exist.
     A full editor and its workflow-creation UX remain unimplemented; P1-09
     remains unchecked because its review/check gates are incomplete.
