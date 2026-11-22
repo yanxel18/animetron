@@ -1465,6 +1465,10 @@ accessibility checks pass, not merely when mock screens exist.
     its feature branch, so a new PR is needed for master. It only edits locally;
     graph validation, supported ports, save and execution remain the existing
     backend's responsibility. Review and required checks remain outstanding.
+  - [ ] P7-02k Remove an unconnected node locally while preserving unrelated
+    draft JSON; block removal when connections reference it or cannot be read.
+    This slice is stacked on #128. Save, validation and execution remain
+    separate; review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
