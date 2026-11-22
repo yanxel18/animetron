@@ -59,7 +59,9 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(/"schemaVersion": 1/);
   await expect(page.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
   await page.getByLabel("Node JSON").fill('{"id":"first","type":"sample.constant","config":{"text":"hello"}}');
+  await expect(page.getByLabel("Workflow draft JSON")).toBeDisabled();
   await page.getByRole("button", { name: "Add node" }).click();
+  await expect(page.getByLabel("Workflow draft JSON")).toBeEnabled();
   await expect(page.getByRole("list", { name: "Workflow node order" })).toContainText("first");
   await expect(page.getByRole("status").filter({ hasText: "Node added locally" })).toBeVisible();
   await page.getByLabel("Connection ID").fill("edge1");
@@ -67,6 +69,7 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await page.getByLabel("Source port").fill("text");
   await page.getByLabel("Target node ID").fill("second");
   await page.getByLabel("Target port").fill("text");
+  await expect(page.getByRole("button", { name: "Load draft" })).toBeDisabled();
   await page.getByRole("button", { name: "Add connection" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Connection added locally" })).toBeVisible();
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(/"sourcePort":"text"/);
@@ -85,9 +88,12 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await page.getByRole("button", { name: "Remove first" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Removed first locally" })).toBeVisible();
   const unsaved = await page.getByLabel("Workflow draft JSON").inputValue();
+  await page.getByLabel("Node JSON").fill("unfinished");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("link", { name: "Studio", exact: true }).click();
   await page.getByRole("link", { name: "Workflows", exact: true }).click();
+  await expect(page.getByLabel("Node JSON")).toHaveValue("unfinished");
+  await page.getByRole("button", { name: "Clear node input" }).click();
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(unsaved);
   await page.setViewportSize({ width: 375, height: 900 });
   expect(attempts).toBe(2);

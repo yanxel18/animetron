@@ -1476,8 +1476,11 @@ accessibility checks pass, not merely when mock screens exist.
   - [ ] P7-02m Preserve a loaded workflow editor across in-app section changes
     and register a browser unload warning while its draft document differs from
     the saved version. Stacked on #130; this is in-memory preservation, not
-    crash recovery. Partially entered node/connection form fields are not yet
-    included in the unload warning. Review and checks remain outstanding.
+    crash recovery. Review and checks remain outstanding.
+  - [ ] P7-02n Protect partially entered node and connection fields with the
+    existing unload warning and prevent switching, editing, saving or validating
+    until those fields are added or cleared. Stacked on #131. This remains
+    in-memory only; review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
