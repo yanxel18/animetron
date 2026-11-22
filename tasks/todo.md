@@ -1142,9 +1142,12 @@ hardware and failures never appear ready.
     See [hardware evidence](development-report.md#hardware-evidence---2026-11-14).
 - [ ] P2-03 Define pinned manifests, repository allowlists, integrity metadata,
   license/access records and typed readiness states.
-  - In progress on `task/catalog-model-preflight`: an internal check selects an
-    exact pinned manifest from a trusted caller-supplied catalog before the
-    existing preflight. Missing pins return an explicit blocker. It is not wired
+  - [#164](https://github.com/yanxel18/animetron/pull/164) merged at
+    `a3f8225`: an internal check selects an exact pinned manifest from a trusted
+    caller-supplied catalog before preflight; missing pins return a blocker.
+    Model, snapshot and readiness tests passed (134 passed, 2 PostgreSQL-gated
+    skips); Ruff and Linux-target mypy passed. Self-review was posted and
+    GitGuardian passed; combined status was pending. The helper is not wired
     to acquisition and does not establish consent, trust or readiness. P2-03
     remains open; overall progress remains 18/57 (31.6%), P2 1/6.
   - [#162](https://github.com/yanxel18/animetron/pull/162) merged at
