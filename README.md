@@ -1,16 +1,42 @@
 # AnimeTron
 
-AnimeTron is an in-development platform for a creator to build workflows for
-locally generated vertical animation, review results, and eventually publish
-approved content through eligible official platform APIs. The project combines
-a Python API, a React creator studio, PostgreSQL-backed records and planned
-local media and integration services.
+AnimeTron is intended to be a self-hosted creator studio for turning original
+story ideas into short vertical animated videos using local AI models. It is
+designed for one creator using Windows with WSL2 and Docker. The target video
+length is 30–60 seconds, with a 90-second maximum. A 3D visual style means
+rendered images and animation, not editable 3D meshes or rigs.
 
 **Status: development, not an end-to-end production system.** As of the last
 recorded checklist snapshot, 18 of 57 top-level tasks are complete (31.6%). This
 is an unweighted task count, not a measure of working functionality. See
 [the project checklist](tasks/todo.md) for the current evidence, open PRs and
 acceptance gates; its status supersedes this snapshot.
+
+## Intended creator workflow
+
+1. Build or reuse a visual workflow that plans a story and creates scenes,
+   animation, narration, subtitles and a final video.
+2. Run the workflow locally, or schedule it, and monitor its progress.
+3. Review the finished video, caption and destinations, including through the
+   planned Telegram review flow. A person must approve the exact revision,
+   caption and destination set; changes require fresh approval.
+4. Publish approved content through eligible official platform APIs. Facebook
+   Page Reels comes first; Instagram Reels, YouTube Shorts and TikTok are planned
+   separately, subject to account and API eligibility.
+
+## Planned models and tools
+
+The architecture proposes Ollama for a local story-planning language model and
+ComfyUI for image and video generation workflows. A specific story-planning
+LLM, image-generation model, voice model and alignment engine have not been
+selected as final defaults. Flux is mentioned as an image-model example.
+
+Wan 2.2 TI2V 5B is an approved candidate for a bounded video-generation
+feasibility test, not a proven or final production model. The recorded test
+verified CUDA kernels but stopped before model acquisition because the RAM
+capacity gate was not met; no model was loaded and no scene was generated.
+See the [Wan feasibility report](tasks/wan-benchmark-report.md) for the exact
+approved files, conditions and evidence.
 
 ## What exists
 
@@ -23,9 +49,10 @@ acceptance gates; its status supersedes this snapshot.
   tests. Individual slices and their limitations are tracked in the checklist.
 
 This does **not** yet provide a complete authenticated deployment, durable
-workflow execution, real media generation, automatic scheduling or social
-publication. Model feasibility and resource capacity remain open. A successful
-health check or fixture-backed test does not establish end-to-end readiness.
+workflow execution, real media generation, automatic schedule dispatch,
+Telegram review or social publication. Model feasibility and resource capacity
+remain open. A successful health check or fixture-backed test does not establish
+end-to-end readiness.
 
 ## Repository map
 
