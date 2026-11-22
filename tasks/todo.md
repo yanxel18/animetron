@@ -1,7 +1,10 @@
 # AnimeTron project progress
 
-This is the single project-wide implementation checklist. Last reconciled with
-verified remote `master` at `969eb37` on 2026-11-19. #53 and #54 merged
+This is the single project-wide implementation checklist. An earlier check of
+remote `master` found `95c4fc4` on 2026-11-22, including #121 and #122. Master
+has since advanced to at least `cc202f9`; their review and check gates have not
+been independently reverified in this update.
+Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
 and #58, #59 and #60 merged the schedule list, preview and pause/resume.
@@ -1085,6 +1088,21 @@ hardware and failures never appear ready.
   [#7](https://github.com/yanxel18/animetron/pull/7)
 - [ ] P2-02 Inspect actual VRAM, driver, WSL2/CUDA and available storage; record
   supported runtime choices and benchmark plan.
+  - 2026-11-22 read-only host snapshot: RTX 5070 Ti, 16,303 MiB total and
+    13,332 MiB free VRAM, NVIDIA driver 621.01; Windows reported 33,257,584 KiB
+    total and 12,147,596 KiB free physical memory. C: had 411,439,812,608
+    bytes free and D: 217,795,039,232 bytes free. WSL default version was 2;
+    Docker reported a Linux overlayfs backend. These transient figures do not
+    establish container memory limits, volume capacity, CUDA compatibility or
+    safe benchmark capacity; P2-02 and the model acquisition gate remain open.
+  - Follow-up on 2026-11-22: `docker info` reported 16,614,359,040 bytes
+    of Linux memory, below the benchmark report's 20 GiB container planning
+    allowance. Windows free physical memory had fallen to 9,602,752 KiB at
+    the follow-up check. The Docker Desktop filesystem reported 839.3 GiB
+    available internally, but its virtual capacity does not establish physical
+    backing space or the capacity of the eventual model volume. The host-level
+    cgroup files were unavailable in the inspected WSL namespace. No model or
+    inference workload was started; the RAM gate remains unsatisfied.
   - [x] P2-02a Record host resources and Linux-container NVIDIA visibility.
     [#28](https://github.com/yanxel18/animetron/pull/28); no CUDA kernel, model
     compatibility, Docker-volume capacity or inference benchmark is certified.
@@ -1454,7 +1472,7 @@ accessibility checks pass, not merely when mock screens exist.
     conflict or uncertain result, check the same ID before any retry, and keep
     it until the owner records it. Use the existing compare-and-swap API and
     browser lock; no workflow entity or execution is created. Implementation
-    is in review in [#121](https://github.com/yanxel18/animetron/pull/121). Local
+    merged in [#121](https://github.com/yanxel18/animetron/pull/121). Local
     verification: 160 frontend tests, TypeScript/build, 27 fixture-backed
     Chromium tests (including two-tab locking) and `git diff --check`. An
     independent local review found creation denial could discard unsaved
@@ -1465,7 +1483,7 @@ accessibility checks pass, not merely when mock screens exist.
     combined status is pending. Counts remain 18/57 (31.6%), P7 1/6.
   - [ ] P7-02g Offer explicit secure UUID generation for draft creation,
     retaining manual entry when unavailable and preventing regeneration during
-    recovery or unsaved edits. Depends on open #121; implementation is in review
+    recovery or unsaved edits. Depends on #121; implementation merged
     in [#122](https://github.com/yanxel18/animetron/pull/122). Local verification:
     163 frontend tests, TypeScript/build, 27 fixture-backed Chromium tests
     and `git diff --check`. Browser coverage generates an ID and restores the
