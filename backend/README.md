@@ -11,6 +11,11 @@ most 90,000 ms. The 30-60 second target is not a minimum. This provisional
 contract has no provider, API, execution handler or generated media attached.
 Focused check: `python -m pytest tests/test_media_generation.py -q`.
 
+`app.engines.scene_timeline.build_scene_timeline` validates the original plan
+bytes and derives ordered, contiguous half-open scene budgets in milliseconds.
+These are planning offsets, not measured audio alignment or a render guarantee.
+It is an internal function and is not connected to workflow execution.
+
 The API provides minimal public liveness and a bounded authenticated control
 plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
