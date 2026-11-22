@@ -54,6 +54,49 @@ DEFINITIONS = {"story": NodeDefinition(config_model=StoryConfig)}
 LIMITS = GraphLimits(max_nodes=10, max_edges=10)
 
 
+def test_sample_node_catalog_uses_backend_validation_definitions(offline_context):
+    from app.services.workflows.sample_evaluator import SAMPLE_DEFINITIONS
+
+    client, _ = offline_context
+    response = client.get("/api/v1/workflows/node-types")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scope"] == "sample-validation"
+    assert [item["type"] for item in data["nodes"]] == sorted(SAMPLE_DEFINITIONS)
+    for item in data["nodes"]:
+        definition = SAMPLE_DEFINITIONS[item["type"]]
+        assert item["inputs"] == [
+            {"name": name, "type": port.type, "required": port.required}
+            for name, port in sorted(definition.inputs.items())
+        ]
+        assert item["outputs"] == [
+            {"name": name, "type": port.type, "required": port.required}
+            for name, port in sorted(definition.outputs.items())
+        ]
+        assert item["configSchema"] == (
+            definition.config_model.model_json_schema() if definition.config_model else None
+        )
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_sample_node_catalog_requires_owner_and_rejects_queries(offline_context):
+    client, _ = offline_context
+    assert client.get("/api/v1/workflows/node-types?x=1").status_code == 422
+    for handle, expected in [("operator-session", 403), ("viewer-session", 403), ("invalid", 401)]:
+        client.cookies.set(SESSION_COOKIE, handle)
+        assert client.get("/api/v1/workflows/node-types").status_code == expected
+        assert client.get("/api/v1/workflows/node-types?x=1").status_code == expected
+    client.cookies.set(SESSION_COOKIE, "owner-session")
+    assert client.get("/api/v1/workflows/node-types", headers={"Origin": "https://other.example"}).status_code == 403
+
+
+def test_sample_node_catalog_fails_closed_without_auth_configuration():
+    with TestClient(SecurityHeaders(create_api()), base_url="https://control.example") as client:
+        response = client.get("/api/v1/workflows/node-types")
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "AUTH_UNAVAILABLE"
+
+
 @pytest.fixture
 def offline_context(monkeypatch):
     config = AuthConfig(
