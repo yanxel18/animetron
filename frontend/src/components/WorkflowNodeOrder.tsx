@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder, removeWorkflowNode } from "./workflow-draft-document";
+import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder, readWorkflowNodeSource, removeWorkflowNode } from "./workflow-draft-document";
 import { WorkflowEdgeEditor } from "./WorkflowEdgeEditor";
 
 type MoveDirection = "up" | "down";
@@ -26,6 +26,12 @@ export function WorkflowNodeOrder({
   const [nodeError, setNodeError] = useState<string | null>(null);
   const [nodeNotice, setNodeNotice] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const selectedSource = useMemo(() => selectedNode === null ? null : readWorkflowNodeSource(document, selectedNode), [document, selectedNode]);
+
+  useEffect(() => {
+    if (selectedNode !== null && selectedSource === null) setSelectedNode(null);
+  }, [selectedNode, selectedSource]);
 
   useEffect(() => {
     if (!addedNode.current) setNodeNotice(null);
@@ -95,6 +101,9 @@ export function WorkflowNodeOrder({
               <code>{node.id}</code>
             </div>
             <div className="workflow-node-order-actions">
+              <button className="button button--secondary" type="button" disabled={disabled}
+                aria-label={`Inspect ${node.id}`} aria-pressed={selectedNode === node.id}
+                onClick={() => setSelectedNode(node.id)}>Inspect</button>
               <button className="button button--secondary" type="button"
                 aria-label={`Move ${node.id} up`} disabled={index === 0 || disabled}
                 ref={(element) => {
@@ -140,6 +149,11 @@ export function WorkflowNodeOrder({
         ))}
       </ol>
     )}
+    {selectedSource !== null && <section aria-labelledby="workflow-selected-node-title">
+      <h4 id="workflow-selected-node-title">Selected node</h4>
+      <p>Exact node JSON from the current draft. Save and validate the draft to check its configuration.</p>
+      <pre className="workflow-json" tabIndex={0} aria-label="Selected node JSON"><code>{selectedSource}</code></pre>
+    </section>}
     {notice && <p role="status">{notice}</p>}
     {removeError && <p role="alert">{removeError}</p>}
   </section>;
