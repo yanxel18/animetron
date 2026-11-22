@@ -6,15 +6,16 @@ export type WorkflowNodeOrderItem = {
 type ParsedWorkflowDraft = {
   order: WorkflowNodeOrderItem[];
   nodeRanges: { start: number; end: number }[];
+  nodeArrayEnd: number;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function findNodeRanges(json: string): { start: number; end: number }[] | null {
+function findNodeRanges(json: string): { ranges: { start: number; end: number }[]; end: number } | null {
   let index = 0;
-  let nodeRanges: { start: number; end: number }[] | null = null;
+  let nodeRanges: { ranges: { start: number; end: number }[]; end: number } | null = null;
   const whitespace = /\s/;
   const skipWhitespace = () => {
     while (whitespace.test(json[index] ?? "")) index += 1;
@@ -72,8 +73,8 @@ function findNodeRanges(json: string): { start: number; end: number }[] | null {
       const ranges: { start: number; end: number }[] = [];
       skipWhitespace();
       if (json[index] === "]") {
+        if (captureNodes) nodeRanges = { ranges, end: index };
         index += 1;
-        if (captureNodes) nodeRanges = ranges;
         return true;
       }
       while (index < json.length) {
@@ -83,8 +84,8 @@ function findNodeRanges(json: string): { start: number; end: number }[] | null {
         if (captureNodes) ranges.push({ start, end: index });
         skipWhitespace();
         if (json[index] === "]") {
+          if (captureNodes) nodeRanges = { ranges, end: index };
           index += 1;
-          if (captureNodes) nodeRanges = ranges;
           return true;
         }
         if (json[index] !== ",") return false;
@@ -133,8 +134,20 @@ function parseWorkflowDraft(document: string): ParsedWorkflowDraft | null {
     ids.add(candidate.id);
     order.push({ id: candidate.id, type: candidate.type });
   }
-  if (nodeRanges.length !== order.length) return null;
-  return { nodeRanges, order };
+  if (nodeRanges.ranges.length !== order.length) return null;
+  return { nodeRanges: nodeRanges.ranges, nodeArrayEnd: nodeRanges.end, order };
+}
+
+export function appendWorkflowNode(document: string, node: string): string | null {
+  if (new TextEncoder().encode(node).length > 32_768) return null;
+  const parsed = parseWorkflowDraft(document);
+  const candidate = parseWorkflowDraft(`{"schemaVersion":1,"revision":"draft","nodes":[${node}],"edges":[]}`);
+  if (!parsed || !candidate || candidate.order.length !== 1 ||
+      parsed.order.some((item) => item.id === candidate.order[0].id)) return null;
+  const insertion = `${parsed.order.length ? "," : ""}${node}`;
+  const updated = document.slice(0, parsed.nodeArrayEnd) + insertion + document.slice(parsed.nodeArrayEnd);
+  if (new TextEncoder().encode(updated).length > 32_768) return null;
+  return updated;
 }
 
 export function readWorkflowNodeOrder(document: string): WorkflowNodeOrderItem[] | null {

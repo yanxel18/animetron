@@ -58,6 +58,10 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await expect(page.getByLabel("Workflow draft JSON")).toBeFocused();
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(/"schemaVersion": 1/);
   await expect(page.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
+  await page.getByLabel("Node JSON").fill('{"id":"first","type":"sample.constant","config":{"text":"hello"}}');
+  await page.getByRole("button", { name: "Add node" }).click();
+  await expect(page.getByRole("list", { name: "Workflow node order" })).toContainText("first");
+  await expect(page.getByRole("status").filter({ hasText: "Node added locally" })).toBeVisible();
   expect(attempts).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(errors).toEqual([]);

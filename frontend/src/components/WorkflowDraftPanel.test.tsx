@@ -2,7 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
-import { moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
+import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
+import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
@@ -10,6 +11,33 @@ const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 const draft = { workflowId: id, version: 3, document: '{"revision":"r1"}' };
+it("appends a node without altering existing JSON values or accepting duplicate IDs", () => {
+  const empty = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[],"large":9007199254740993}';
+  const node = '{"id":"a","type":"sample.constant","config":{"text":"hi"}}';
+  const one = appendWorkflowNode(empty, node);
+  expect(one).toBe(empty.replace('"nodes":[]', `"nodes":[${node}]`));
+  expect(appendWorkflowNode(one!, node)).toBeNull();
+  const two = appendWorkflowNode(one!, '{"id":"b","type":"sample.constant","config":{"text":"bye"}}');
+  expect(two).toContain('"large":9007199254740993');
+  expect(readWorkflowNodeOrder(two!)).toEqual([{ id: "a", type: "sample.constant" }, { id: "b", type: "sample.constant" }]);
+  expect(appendWorkflowNode(empty, '{"id":"a","id":"b","type":"x","config":{}}')).toBeNull();
+  expect(appendWorkflowNode(empty, '{"id":"a"}')).toBeNull();
+});
+it("adds a supplied node locally and reports invalid input", async () => {
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[]}';
+  const onChange = vi.fn();
+  render(<WorkflowNodeOrder document={document} disabled={false} onDocumentChange={onChange} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Node JSON"), "invalid");
+  await user.click(screen.getByRole("button", { name: "Add node" }));
+  expect(screen.getByRole("alert")).toHaveTextContent(/cannot add/i);
+  expect(onChange).not.toHaveBeenCalled();
+  await user.clear(screen.getByLabelText("Node JSON"));
+  await user.paste('{"id":"a","type":"sample.constant","config":{"text":"hi"}}');
+  await user.click(screen.getByRole("button", { name: "Add node" }));
+  expect(onChange).toHaveBeenCalledOnce();
+  expect(readWorkflowNodeOrder(onChange.mock.calls[0][0])).toEqual([{ id: "a", type: "sample.constant" }]);
+});
 beforeEach(() => {
   Object.defineProperty(navigator, "locks", {
     configurable: true,

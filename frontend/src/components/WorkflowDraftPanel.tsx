@@ -165,7 +165,7 @@ function LoadedWorkflowDraft({
   const editorRef = useRef<HTMLTextAreaElement>(null);
   return <>
     <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
-    <WorkflowNodeOrder document={document} disabled={busy || reloadRequired}
+    <WorkflowNodeOrder key={draft.workflowId} document={document} disabled={busy || reloadRequired}
       onDocumentChange={onDocumentChange} />
     <label className="workflow-document-label" htmlFor="workflow-draft-document">Workflow draft JSON</label>
     <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved. Choose a revision identifier before creating a revision.</p>
