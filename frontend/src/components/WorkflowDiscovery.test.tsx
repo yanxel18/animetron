@@ -6,6 +6,44 @@ import { WorkflowDiscovery } from "./WorkflowDiscovery";
 const id = "12345678-1234-4234-8234-123456789abc";
 afterEach(() => vi.unstubAllGlobals());
 
+it("loads node validation metadata on request without claiming readiness", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(new Response(JSON.stringify(
+    url.endsWith("/node-types") ? { scope: "sample-validation", nodes: [{ type: "sample.constant", inputs: [], outputs: [{ name: "text", type: "text", required: false }], configSchema: { type: "object" } }] } : { data: [], nextCursor: null },
+  )))));
+  render(<WorkflowDiscovery />);
+  await userEvent.click(screen.getByRole("button", { name: "Load sample node types" }));
+  expect(await screen.findByText("sample.constant")).toBeInTheDocument();
+  expect(screen.getByText(/does not establish execution or model readiness/i)).toBeInTheDocument();
+  expect(screen.getByLabelText("Configuration schema for sample.constant")).toHaveTextContent('"type": "object"');
+});
+
+it("clears protected workflow state when the node catalog denies access", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(
+    url.endsWith("/node-types") ? new Response("", { status: 403 }) :
+      new Response(JSON.stringify({ data: [{ workflowId: id }], nextCursor: null })),
+  )));
+  render(<WorkflowDiscovery />);
+  await screen.findByRole("button", { name: new RegExp(id) });
+  await userEvent.click(screen.getByRole("button", { name: "Load sample node types" }));
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/access/i));
+  expect(screen.queryByText(id)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /retry/i })).toHaveFocus();
+});
+
+it("offers a retry when the node catalog is unavailable", async () => {
+  let attempts = 0;
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(
+    url.endsWith("/node-types") ? (++attempts === 1 ? new Response("", { status: 503 }) :
+      new Response(JSON.stringify({ scope: "sample-validation", nodes: [] }))) :
+      new Response(JSON.stringify({ data: [], nextCursor: null })),
+  )));
+  render(<WorkflowDiscovery />);
+  await userEvent.click(screen.getByRole("button", { name: "Load sample node types" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("503");
+  await userEvent.click(screen.getByRole("button", { name: "Reload sample node types" }));
+  expect(await screen.findByText("No sample node types are available.")).toBeInTheDocument();
+});
+
 it("browses saved revisions without offering write actions", async () => {
   vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => Promise.resolve(new Response(JSON.stringify(
     url.includes("/revisions")

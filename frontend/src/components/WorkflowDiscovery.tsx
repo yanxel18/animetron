@@ -3,6 +3,7 @@ import type { RevisionListOutput, RevisionOutput, WorkflowIdListOutput } from ".
 import { fetchRevision, fetchRevisionPage, fetchWorkflowPage, WorkflowDiscoveryError } from "../api/workflows";
 import { WorkflowDraftError } from "../api/workflow-drafts";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
+import { WorkflowNodeCatalog } from "./WorkflowNodeCatalog";
 
 type Request = { cursor: string | null; attempt: number };
 const firstPage = (): Request => ({ cursor: null, attempt: 0 });
@@ -151,7 +152,7 @@ export function WorkflowDiscovery() {
       </p>
       {!(workflowError instanceof WorkflowDiscoveryError || workflowError instanceof WorkflowDraftError) ||
        (workflowError.status !== 401 && workflowError.status !== 403)
-        ? <WorkflowDraftPanel onDenied={(error) => { denied(error); }} /> : null}
+        ? <><WorkflowNodeCatalog onDenied={denied} /><WorkflowDraftPanel onDenied={(error) => { denied(error); }} /></> : null}
       <section aria-labelledby="workflow-list-title" aria-busy={workflowLoading}>
         <h2 ref={workflowHeading} id="workflow-list-title" tabIndex={-1}>Workflow IDs</h2>
         {workflowLoading && <p role="status">Loading workflows...</p>}

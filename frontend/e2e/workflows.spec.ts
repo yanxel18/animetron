@@ -5,6 +5,26 @@ const second = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const revision = { workflowId: id, revision: "saved-revision-1", createdAt: "2025-01-02T03:04:05Z" };
 const canonicalJson = '{"revision":"saved-revision-1","text":"<script>inert</script>"}';
 
+test("shows sample validation metadata on request at a narrow viewport", async ({ page }) => {
+  await page.route((url) => url.pathname.startsWith("/api/"), async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/v1/workflows/node-types") {
+      await route.fulfill({ json: { scope: "sample-validation", nodes: [
+        { type: "sample.constant", inputs: [], outputs: [{ name: "text", type: "text", required: false }], configSchema: { type: "object", properties: { text: { type: "string" } } } },
+      ] } });
+    } else {
+      await route.fulfill({ json: { data: [], nextCursor: null } });
+    }
+  });
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/#workflows");
+  await page.getByRole("button", { name: "Load sample node types" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "sample.constant" })).toBeVisible();
+  await expect(page.getByLabel("Configuration schema for sample.constant")).toContainText('"type": "object"');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test("recovers an uncertain empty draft creation and loads the same ID", async ({ page }, testInfo) => {
   let attempts = 0;
   let createdId = "";

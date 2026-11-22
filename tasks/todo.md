@@ -1345,6 +1345,10 @@ accessibility checks pass, not merely when mock screens exist.
     backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
+  - [ ] P7-02r Display the owner-only sample-validation node catalog on demand,
+    including ports and config schemas, with loading, retry and denial handling.
+    This read-only slice does not create nodes or establish execution readiness;
+    independent review and required checks remain outstanding.
   - Owner-only draft read, write, validation and revision creation APIs exist.
     A full editor and its workflow-creation UX remain unimplemented; P1-09
     remains unchecked because its review/check gates are incomplete.
