@@ -268,6 +268,69 @@ def test_audit_reads_postgresql_metadata_without_mutation(engine) -> None:
         get_artifact(conn, sentinel.id)
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="Real byte storage requires Linux")
+def test_audit_reconciles_postgresql_and_real_byte_store(engine) -> None:
+    root_parent = os.environ.get("ARTIFACT_TEST_ROOT")
+    if not root_parent:
+        pytest.skip("Set ARTIFACT_TEST_ROOT to an isolated private Linux directory")
+    sentinel = artifact()
+    with (
+        tempfile.TemporaryDirectory(dir=root_parent) as root,
+        ArtifactByteStore(root) as store,
+        engine.connect() as conn,
+    ):
+        transaction = conn.begin()
+        try:
+            save_artifact(conn, sentinel)
+            conn.execute(text(
+                "CREATE TEMP TABLE artifact_metadata "
+                "(LIKE public.artifact_metadata INCLUDING ALL) ON COMMIT DROP"
+            ))
+            consistent_id, missing_id, corrupt_id, orphan_id = (uuid4() for _ in range(4))
+            for identifier, data in (
+                (consistent_id, b"match"), (corrupt_id, b"actual"), (orphan_id, b"orphan"),
+            ):
+                store.put(identifier, io.BytesIO(data), max_bytes=len(data))
+            for record in (
+                replace(artifact(), id=consistent_id,
+                        sha256=hashlib.sha256(b"match").hexdigest(), byte_size=5),
+                replace(artifact(), id=missing_id),
+                replace(artifact(), id=corrupt_id,
+                        sha256=hashlib.sha256(b"expect").hexdigest(), byte_size=6),
+            ):
+                save_artifact(conn, record)
+            directory = Path(root) / "artifacts"
+            before_files = {
+                path.name: (path.stat().st_ino, path.read_bytes())
+                for path in directory.iterdir()
+            }
+            before_rows = conn.execute(select(artifacts).order_by(artifacts.c.id)).all()
+
+            report = artifact_module.audit_artifacts(
+                conn, store, max_total_bytes=64, max_entries=10,
+            )
+
+            assert transaction.is_active
+            assert report.consistent == (consistent_id,)
+            assert report.missing == (missing_id,)
+            assert report.corrupt == (corrupt_id,)
+            assert report.orphaned == (orphan_id,)
+            assert report.unsafe == report.invalid_metadata == ()
+            assert report.pending_names == report.unsafe_pending_names == ()
+            assert report.unexpected_count == 0
+            assert conn.execute(select(artifacts).order_by(artifacts.c.id)).all() == before_rows
+            after_files = {
+                path.name: (path.stat().st_ino, path.read_bytes())
+                for path in directory.iterdir()
+            }
+            assert after_files == before_files
+        finally:
+            if transaction.is_active:
+                transaction.rollback()
+    with engine.connect() as conn, pytest.raises(ArtifactNotFound):
+        get_artifact(conn, sentinel.id)
+
+
 def test_audit_excludes_invalid_metadata_ids_from_orphaned_bytes() -> None:
     engine = sqlite_artifact_engine()
     identifier = uuid4()
