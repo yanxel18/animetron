@@ -289,13 +289,12 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-19
 
-- 2026-11-22 reconciliation: master `f127229` includes #125's original node
-  insertion but not its later boundary fix `763c150`. A separate fix branch
-  based on master is in progress; until it merges, crafted node input can alter
-  unrelated draft JSON. #126 merged into `task/p7-add-workflow-node` after #125
-  merged into master; its connection editor has not reached master. Review and
-  check gates remain outstanding. The top-level checklist remains 18/57
-  (31.6%); no phase is complete.
+- 2026-11-22 reconciliation: #125's node insertion and its separate boundary
+  correction #127 reached master by `8a69798`. PRs #126 and #128–#136 merged
+  into feature branches rather than master; [#142](https://github.com/yanxel18/animetron/pull/142)
+  proposes their combined integration. Review and check gates remain
+  outstanding. The top-level checklist remains 18/57 (31.6%); no phase is
+  complete.
 - Local preview check: the tailnet UI returned HTTP 200, but its session API
   path returned HTML rather than the expected API response and no backend
   listened on `127.0.0.1:8000`. This is not an authenticated or operational
@@ -1353,6 +1352,9 @@ accessibility checks pass, not merely when mock screens exist.
     backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
+  - P7-02j through P7-02q were previously merged only into feature branches;
+    [#142](https://github.com/yanxel18/animetron/pull/142) brings them together
+    for review against master. Do not mark them complete before merge and checks.
   - [ ] P7-02r Display the owner-only sample-validation node catalog on demand,
     including ports and config schemas, with loading, retry and denial handling.
     This read-only slice does not create nodes or establish execution readiness;
@@ -1473,6 +1475,42 @@ accessibility checks pass, not merely when mock screens exist.
     rest of the draft. Changes remain local until version-checked save; backend
     validation still determines supported types and graph validity. Review and
     required checks remain outstanding; the parent task remains incomplete.
+    Implementation is in [#125](https://github.com/yanxel18/animetron/pull/125).
+    Follow-up commit `763c150` rejects a crafted node input that escapes its
+    JSON object; independent review and required checks remain outstanding.
+  - [ ] P7-02j Add a connection with named node and port fields without
+    rewriting the draft. This slice is stacked on #127; #126 merged only into
+    its feature branch, so a new PR is needed for master. It only edits locally;
+    graph validation, supported ports, save and execution remain the existing
+    backend's responsibility. Review and required checks remain outstanding.
+  - [ ] P7-02k Remove an unconnected node locally while preserving unrelated
+    draft JSON; block removal when connections reference it or cannot be read.
+    This slice is stacked on #128. Save, validation and execution remain
+    separate; review and required checks remain outstanding.
+  - [ ] P7-02l List and remove readable connections locally without rewriting
+    unrelated draft JSON. Reject ambiguous connection lists, retain keyboard
+    focus and use the existing save path. Stacked on #129; review and required
+    checks remain outstanding.
+  - [ ] P7-02m Preserve a loaded workflow editor across in-app section changes
+    and register a browser unload warning while its draft document differs from
+    the saved version. Stacked on #130; this is in-memory preservation, not
+    crash recovery. Review and checks remain outstanding.
+  - [ ] P7-02n Protect partially entered node and connection fields with the
+    existing unload warning and prevent switching, editing, saving or validating
+    until those fields are added or cleared. Stacked on #131. This remains
+    in-memory only; review and required checks remain outstanding.
+  - [ ] P7-02o Inspect a selected node's exact JSON from the current draft,
+    without reserializing or claiming validation. Selection clears when the
+    node is no longer readable. Stacked on #132; review and required checks
+    remain outstanding.
+  - [ ] P7-02p Edit an existing node's JSON locally without changing its ID or
+    rewriting other draft content. Reuse pending-input protection and saved
+    version checks; graph validity remains backend-owned. Stacked on #134;
+    review and required checks remain outstanding.
+  - [ ] P7-02q Edit the source, target and ports of a readable connection
+    locally while retaining its ID and preserving unrelated draft content.
+    Connections with extra fields remain editable only in the JSON editor.
+    Stacked on #135; review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
