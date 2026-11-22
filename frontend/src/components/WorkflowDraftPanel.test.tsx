@@ -300,6 +300,35 @@ it("warns on browser unload only while the draft document has unsaved changes", 
   expect(discarded.defaultPrevented).toBe(false);
 });
 
+it("protects partially entered node and connection fields until added or cleared", async () => {
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[]}';
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json({ ...draft, document })));
+  render(<WorkflowDraftPanel onDenied={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Workflow ID"), id);
+  await user.click(screen.getByRole("button", { name: "Load draft" }));
+  await screen.findByLabelText("Workflow draft JSON");
+  await user.type(screen.getByLabelText("Node JSON"), "partial");
+  expect(screen.getByLabelText("Workflow ID")).toBeDisabled();
+  expect(screen.getByLabelText("Workflow draft JSON")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Validate saved draft" })).toBeDisabled();
+  const nodeUnload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(nodeUnload);
+  expect(nodeUnload.defaultPrevented).toBe(true);
+  await user.click(screen.getByRole("button", { name: "Clear node input" }));
+  expect(screen.getByLabelText("Workflow draft JSON")).toBeEnabled();
+  await user.type(screen.getByLabelText("Source node ID"), "unfinished");
+  expect(screen.getByRole("button", { name: "Load draft" })).toBeDisabled();
+  const edgeUnload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(edgeUnload);
+  expect(edgeUnload.defaultPrevented).toBe(true);
+  await user.click(screen.getByRole("button", { name: "Clear connection input" }));
+  expect(screen.getByRole("button", { name: "Validate saved draft" })).toBeEnabled();
+  const clean = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(clean);
+  expect(clean.defaultPrevented).toBe(false);
+});
+
 it("loads, validates and creates a revision of the exact saved draft", async () => {
   const fetcher = vi.fn()
     .mockResolvedValueOnce(json(draft))

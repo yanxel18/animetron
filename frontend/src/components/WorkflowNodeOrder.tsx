@@ -8,10 +8,12 @@ type WorkflowNodeOrderProps = {
   document: string;
   disabled: boolean;
   onDocumentChange: (value: string) => void;
+  onNodePendingChange?: (pending: boolean) => void;
+  onEdgePendingChange?: (pending: boolean) => void;
 };
 
 export function WorkflowNodeOrder({
-  document, disabled, onDocumentChange,
+  document, disabled, onDocumentChange, onNodePendingChange, onEdgePendingChange,
 }: WorkflowNodeOrderProps) {
   const nodeOrder = useMemo(() => readWorkflowNodeOrder(document), [document]);
   const nodeMoveButtons = useRef(new Map<string, Partial<Record<MoveDirection, HTMLButtonElement>>>());
@@ -60,7 +62,9 @@ export function WorkflowNodeOrder({
       <p id="workflow-new-node-help">Enter one node object with an ID, type and config. Validate the saved draft to check supported types and connections.</p>
       <textarea id="workflow-new-node" className="workflow-json workflow-json-editor" value={nodeText}
         aria-describedby="workflow-new-node-help" disabled={disabled} maxLength={32768}
-        onChange={(event) => { setNodeText(event.target.value); setNodeError(null); setNodeNotice(null); }} />
+        onChange={(event) => { setNodeText(event.target.value); onNodePendingChange?.(event.target.value.length > 0); setNodeError(null); setNodeNotice(null); }} />
+      {nodeText.length > 0 && <button className="button button--secondary" type="button" disabled={disabled}
+        onClick={() => { setNodeText(""); onNodePendingChange?.(false); setNodeError(null); }}>Clear node input</button>}
       <button className="button button--secondary" type="button" disabled={disabled} onClick={() => {
         const updated = appendWorkflowNode(document, nodeText);
         if (!updated) {
@@ -70,13 +74,14 @@ export function WorkflowNodeOrder({
         addedNode.current = true;
         onDocumentChange(updated);
         setNodeText("");
+        onNodePendingChange?.(false);
         setNodeError(null);
         setNodeNotice("Node added locally. Save the draft to keep it.");
       }}>Add node</button>
       {nodeError && <p role="alert">{nodeError}</p>}
       {nodeNotice && <p role="status">{nodeNotice}</p>}
     </div>}
-    {nodeOrder !== null && <WorkflowEdgeEditor document={document} disabled={disabled} onDocumentChange={onDocumentChange} />}
+    {nodeOrder !== null && <WorkflowEdgeEditor document={document} disabled={disabled} onDocumentChange={onDocumentChange} onPendingChange={onEdgePendingChange} />}
     {nodeOrder === null ? (
       <p role="note">Node ordering is unavailable because this draft does not contain a readable workflow node list. You can still edit the JSON directly.</p>
     ) : nodeOrder.length === 0 ? (

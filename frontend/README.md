@@ -29,6 +29,7 @@ After the Workflows section has been opened, the editor stays mounted but hidden
 when switching sections, preserving its in-memory draft. Unsaved draft-document
 changes request a browser warning on reload or close; browser behavior varies,
 and this does not restore data after a crash. Partially entered node and
-connection fields are not included in the warning. Hidden workflow components
+connection fields also trigger the warning and must be added or cleared before
+switching drafts or editing, saving or validating the document. Hidden workflow components
 remain mounted and can complete outstanding requests; authorization failures
-still clear protected content. This navigation slice is stacked on PR #130.
+still clear protected content. The pending-input protection is stacked on PR #131.

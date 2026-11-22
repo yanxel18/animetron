@@ -7,8 +7,8 @@ const fields = [
 ] as const;
 const empty = { id: "", source: "", sourcePort: "", target: "", targetPort: "" };
 
-export function WorkflowEdgeEditor({ document, disabled, onDocumentChange }: {
-  document: string; disabled: boolean; onDocumentChange: (value: string) => void;
+export function WorkflowEdgeEditor({ document, disabled, onDocumentChange, onPendingChange }: {
+  document: string; disabled: boolean; onDocumentChange: (value: string) => void; onPendingChange?: (pending: boolean) => void;
 }) {
   const [values, setValues] = useState(empty);
   const [message, setMessage] = useState<"added" | "error" | null>(null);
@@ -47,14 +47,22 @@ export function WorkflowEdgeEditor({ document, disabled, onDocumentChange }: {
     {fields.map(([key, label]) => <div className="schedule-create-field" key={key}>
       <label htmlFor={`workflow-edge-${key}`}>{label}</label>
       <input id={`workflow-edge-${key}`} value={values[key]} maxLength={256}
-        onChange={(event) => { setValues({ ...values, [key]: event.target.value }); setMessage(null); }} />
+        onChange={(event) => {
+          const next = { ...values, [key]: event.target.value };
+          setValues(next); onPendingChange?.(Object.values(next).some((value) => value.length > 0)); setMessage(null);
+        }} />
     </div>)}
+    {Object.values(values).some((value) => value.length > 0) &&
+      <button className="button button--secondary" type="button" onClick={() => {
+        setValues(empty); onPendingChange?.(false); setMessage(null);
+      }}>Clear connection input</button>}
     <button className="button button--secondary" type="button" onClick={() => {
       const updated = appendWorkflowEdge(document, JSON.stringify(values));
       if (!updated) { setMessage("error"); return; }
       added.current = true;
       onDocumentChange(updated);
       setValues(empty);
+      onPendingChange?.(false);
       setMessage("added");
     }}>Add connection</button>
     {message === "error" && <p role="alert">Cannot add connection. Check all fields, unique ID and draft size.</p>}

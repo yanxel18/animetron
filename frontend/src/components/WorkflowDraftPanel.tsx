@@ -148,6 +148,9 @@ type LoadedWorkflowDraftProps = {
   revision: RevisionOutput | null;
   uncertain: boolean;
   acknowledged: boolean;
+  pendingFields: boolean;
+  onNodePendingChange: (pending: boolean) => void;
+  onEdgePendingChange: (pending: boolean) => void;
   onDocumentChange: (value: string) => void;
   onSave: () => Promise<void>;
   onDiscard: () => void;
@@ -157,7 +160,7 @@ type LoadedWorkflowDraftProps = {
 
 function LoadedWorkflowDraft({
   draft, document, saveNotice, busy, reloadRequired, validation, revision,
-  uncertain, acknowledged, onDocumentChange, onSave, onDiscard, onValidate,
+  uncertain, acknowledged, pendingFields, onNodePendingChange, onEdgePendingChange, onDocumentChange, onSave, onDiscard, onValidate,
   onCreateRevision,
 }: LoadedWorkflowDraftProps) {
   const usableVersion = draft.version < 2_147_483_647;
@@ -166,7 +169,7 @@ function LoadedWorkflowDraft({
   return <>
     <p>Workflow <code>{draft.workflowId}</code> · saved version <strong>{draft.version}</strong></p>
     <WorkflowNodeOrder key={draft.workflowId} document={document} disabled={busy || reloadRequired}
-      onDocumentChange={onDocumentChange} />
+      onDocumentChange={onDocumentChange} onNodePendingChange={onNodePendingChange} onEdgePendingChange={onEdgePendingChange} />
     <label className="workflow-document-label" htmlFor="workflow-draft-document">Workflow draft JSON</label>
     <p id="workflow-draft-editor-help">Edit the JSON directly. Changes are local until saved. Choose a revision identifier before creating a revision.</p>
     {document === "" && <button className="button button--secondary" type="button"
@@ -177,21 +180,22 @@ function LoadedWorkflowDraft({
     <textarea id="workflow-draft-document" className="workflow-json workflow-json-editor"
       ref={editorRef}
       aria-describedby="workflow-draft-editor-help" value={document}
-      disabled={busy || reloadRequired} spellCheck={false}
+      disabled={busy || reloadRequired || pendingFields} spellCheck={false}
       onChange={(event) => onDocumentChange(event.target.value)} />
     {unsavedChanges && <p role="status">Unsaved changes. Save before validating or creating a revision.</p>}
+    {pendingFields && <p role="status">Add or clear the unfinished node and connection inputs before editing, saving or validating the draft.</p>}
     {saveNotice && <p role="status">{saveNotice}</p>}
     {!usableVersion && <p role="note">This draft version cannot be validated or saved as a revision by the current API.</p>}
     <div className="workflow-draft-actions">
       {unsavedChanges && !reloadRequired && <button className="button button--secondary" type="button"
-        onClick={onDiscard}>Discard edits</button>}
+        disabled={pendingFields} onClick={onDiscard}>Discard edits</button>}
       <button className="button button--secondary" type="button" onClick={() => void onSave()}
-        disabled={busy || reloadRequired || !usableVersion || !unsavedChanges}>Save draft</button>
+        disabled={busy || reloadRequired || pendingFields || !usableVersion || !unsavedChanges}>Save draft</button>
       <button className="button button--secondary" type="button" onClick={() => void onValidate()}
-        disabled={busy || reloadRequired || !usableVersion || unsavedChanges}>Validate saved draft</button>
+        disabled={busy || reloadRequired || pendingFields || !usableVersion || unsavedChanges}>Validate saved draft</button>
       <button className="button button--primary" type="button" onClick={() => void onCreateRevision()}
         disabled={busy || reloadRequired || (uncertain && !acknowledged) ||
-          !usableVersion || unsavedChanges || !validation?.isValid || revision !== null}>Create immutable revision</button>
+          pendingFields || !usableVersion || unsavedChanges || !validation?.isValid || revision !== null}>Create immutable revision</button>
     </div>
     {validation?.isValid && <p role="status">Draft is valid for version {validation.draftVersion}.</p>}
     {validation && !validation.isValid && <div role="status">
@@ -217,6 +221,9 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
     recovery !== null && recovery !== "unavailable" ? recovery.workflowId : "");
   const [draft, setDraft] = useState<WorkflowDraftOutput | null>(null);
   const [editorDocument, setEditorDocument] = useState("");
+  const [nodePending, setNodePending] = useState(false);
+  const [edgePending, setEdgePending] = useState(false);
+  const pendingFields = nodePending || edgePending;
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [validation, setValidation] = useState<WorkflowValidationOutput | null>(null);
   const [revision, setRevision] = useState<RevisionOutput | null>(null);
@@ -236,6 +243,8 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
     if (value instanceof WorkflowDraftError && (value.status === 401 || value.status === 403)) {
       setDraft(null);
       setEditorDocument("");
+      setNodePending(false);
+      setEdgePending(false);
       setValidation(null);
       setRevision(null);
       setId("");
@@ -275,6 +284,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
 
   async function load(event: FormEvent) {
     event.preventDefault();
+    if (pendingFields) return;
     setBusy(true);
     setError(null);
     setValidation(null);
@@ -306,7 +316,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   }
 
   async function save() {
-    if (!draft || busy || reloadRequired || editorDocument === draft.document) return;
+    if (!draft || busy || reloadRequired || pendingFields || editorDocument === draft.document) return;
     setBusy(true);
     setError(null);
     setSaveNotice(null);
@@ -325,7 +335,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   }
 
   async function validate() {
-    if (!draft || busy || reloadRequired || editorDocument !== draft.document) return;
+    if (!draft || busy || reloadRequired || pendingFields || editorDocument !== draft.document) return;
     setBusy(true);
     setError(null);
     setValidation(null);
@@ -340,7 +350,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
   }
 
   async function createRevision() {
-    if (!draft || busy || reloadRequired || editorDocument !== draft.document || !validation?.isValid) return;
+    if (!draft || busy || reloadRequired || pendingFields || editorDocument !== draft.document || !validation?.isValid) return;
     setBusy(true);
     setError(null);
     try {
@@ -370,19 +380,21 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
 
   const unsavedChanges = draft !== null && editorDocument !== draft.document;
   useEffect(() => {
-    if (!unsavedChanges) return;
+    if (!unsavedChanges && !pendingFields) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [unsavedChanges]);
+  }, [unsavedChanges, pendingFields]);
   return <section className="workflow-draft-panel" aria-labelledby="workflow-draft-title" aria-busy={busy}>
     <h2 id="workflow-draft-title">Saved draft</h2>
-    <WorkflowDraftCreation busy={busy} setBusy={setBusy} blocked={unsavedChanges} onDenied={(value) => {
+    <WorkflowDraftCreation busy={busy} setBusy={setBusy} blocked={unsavedChanges || pendingFields} onDenied={(value) => {
       setDraft(null);
       setEditorDocument("");
+      setNodePending(false);
+      setEdgePending(false);
       setValidation(null);
       setRevision(null);
       setId("");
@@ -392,7 +404,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
     <form onSubmit={(event) => void load(event)} className="workflow-draft-form">
       <div className="schedule-create-field">
         <label htmlFor="workflow-draft-id">Workflow ID</label>
-        <input id="workflow-draft-id" value={id} disabled={busy || uncertain || unsavedChanges || reloadRequired}
+        <input id="workflow-draft-id" value={id} disabled={busy || uncertain || unsavedChanges || pendingFields || reloadRequired}
           onChange={(event) => {
             setId(event.target.value);
             setDraft(null);
@@ -405,7 +417,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
           }} placeholder="00000000-0000-0000-0000-000000000000" required />
       </div>
       <button className="button button--secondary" type="submit"
-        disabled={busy || (unsavedChanges && !reloadRequired)}>
+        disabled={busy || pendingFields || (unsavedChanges && !reloadRequired)}>
         {reloadRequired ? "Reload saved draft" : "Load draft"}
       </button>
     </form>
@@ -418,6 +430,7 @@ export function WorkflowDraftPanel({ onDenied }: { onDenied: (error: WorkflowDra
     {draft && <LoadedWorkflowDraft draft={draft} document={editorDocument} saveNotice={saveNotice}
       busy={busy} reloadRequired={reloadRequired} validation={validation} revision={revision}
       uncertain={uncertain} acknowledged={acknowledged}
+      pendingFields={pendingFields} onNodePendingChange={setNodePending} onEdgePendingChange={setEdgePending}
       onDocumentChange={(value) => {
         setEditorDocument(value);
         setSaveNotice(null);
