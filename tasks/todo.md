@@ -655,13 +655,15 @@ have the security and recovery guarantees below.
     byte/metadata atomicity or automatic orphan recovery).
   - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
     byte inventories without changing either store.
-    A locator-classification correction is in progress on
-    `fix/artifact-audit-invalid-locator`: a malformed stored locator is reported
-    as invalid metadata and its bytes are not reported as orphaned. The SQLite
-    regression failed before the fix. Unprivileged Linux artifact suites passed
-    62 tests with 28 database-gated skips; Ruff and Linux-target mypy passed.
-    The PostgreSQL constraint normally rejects mismatched locators; no schema
-    constraint was disabled. P0-07c stays open and counts remain 18/57, P0 4/9.
+    [#156](https://github.com/yanxel18/animetron/pull/156) merged at
+    `be0a9c1`: a malformed stored locator is reported as invalid metadata and
+    its bytes are not reported as orphaned. The SQLite regression failed
+    before the fix. Unprivileged Linux artifact suites passed 62 tests with 28
+    database-gated skips; Ruff and Linux-target mypy passed. Self-review was
+    posted and GitGuardian passed; combined status was pending. The PostgreSQL
+    constraint normally rejects mismatched locators; no constraint was disabled
+    and PostgreSQL tests were not rerun for this change. P0-07c stays open and
+    counts remain 18/57 (31.6%), P0 4/9.
     [#154](https://github.com/yanxel18/animetron/pull/154) merged at
     `b51b1d5`: the audit has a real Linux byte-store integration test with
     migrated PostgreSQL metadata, a temporary table and a rollback sentinel.
