@@ -6,7 +6,11 @@ import pytest
 from app.services.models.integrity import ModelIntegrityError, verify_model_file
 from app.services.models.manifest import ModelFile, ModelManifest
 from app.services.models.policy import ModelReferenceAllowlist
-from app.services.models.preflight import AcquisitionBlocker, check_acquisition
+from app.services.models.preflight import (
+    AcquisitionBlocker,
+    check_acquisition,
+    check_manifest_acquisition,
+)
 from app.services.models.reference import ModelReference
 
 
@@ -188,6 +192,60 @@ def test_reference_allowlist_denies_empty_and_rejects_mutable_or_invalid_values(
             ModelReferenceAllowlist(invalid)
     with pytest.raises(TypeError):
         ModelReferenceAllowlist(frozenset()).allows("creator/model")
+
+
+def test_manifest_preflight_requires_exact_pin_and_sufficient_manifest_estimate() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    file = ModelFile("model.safetensors", 10, "b" * 64)
+    manifest = ModelManifest(ref, "comfyui", "license-1", (file,), 20)
+    allowed = ModelReferenceAllowlist(frozenset({ref}))
+    assert check_manifest_acquisition(
+        manifest=manifest, allowlist=allowed, license_accepted=True,
+        access_confirmed=True, available_bytes=20,
+    ) == ()
+    assert check_manifest_acquisition(
+        manifest=manifest, allowlist=allowed, license_accepted=True,
+        access_confirmed=True, available_bytes=19,
+    ) == (AcquisitionBlocker.INSUFFICIENT_STORAGE,)
+
+
+def test_manifest_preflight_reports_all_independent_blockers() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    manifest = ModelManifest(ref, "comfyui", "license-1", (ModelFile("model", 1, "b" * 64),), 2)
+    policy = ModelReferenceAllowlist(frozenset({
+        ModelReference("huggingface", "creator/model", "c" * 40),
+    }))
+    assert check_manifest_acquisition(
+        manifest=manifest, allowlist=policy, license_accepted=False,
+        access_confirmed=False, available_bytes=1,
+    ) == (
+        AcquisitionBlocker.REFERENCE_NOT_ALLOWED,
+        AcquisitionBlocker.LICENSE_NOT_ACCEPTED,
+        AcquisitionBlocker.ACCESS_NOT_CONFIRMED,
+        AcquisitionBlocker.INSUFFICIENT_STORAGE,
+    )
+
+
+def test_manifest_preflight_rejects_untrusted_shapes_and_unknown_facts() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    manifest = ModelManifest(ref, "comfyui", "license-1", (ModelFile("model", 1, "b" * 64),), 1)
+    policy = ModelReferenceAllowlist(frozenset())
+    for bad_manifest, bad_policy in ((None, policy), (manifest, {ref})):
+        with pytest.raises(TypeError):
+            check_manifest_acquisition(
+                manifest=bad_manifest, allowlist=bad_policy, license_accepted=True,
+                access_confirmed=True, available_bytes=1,
+            )
+    with pytest.raises(ValueError):
+        check_manifest_acquisition(
+            manifest=manifest, allowlist=policy, license_accepted=None,
+            access_confirmed=True, available_bytes=1,
+        )
+    with pytest.raises(ValueError):
+        check_manifest_acquisition(
+            manifest=manifest, allowlist=policy, license_accepted=True,
+            access_confirmed=True, available_bytes=None,
+        )
 
 
 def test_accepted_access_and_sufficient_space_pass_preflight() -> None:

@@ -445,6 +445,14 @@ trusted configuration, validate a manifest's file metadata, grant access or
 license consent, initiate acquisition, or establish readiness. No runtime
 service currently uses this policy.
 
+`check_manifest_acquisition` combines that exact-pin check with the existing
+license, access and storage preflight, using the supplied manifest's estimated
+size. The caller must supply a trusted manifest, trusted allowlist, acceptance
+and access facts for that model, and current storage information. A permitted
+reference does not authenticate the rest of a manifest, reserve disk space,
+authorize a download, verify files or establish readiness. No runtime service
+currently calls this helper.
+
 ## Internal schedule preview (Phase 6 slice)
 
 `app.services.scheduling.preview.preview_occurrences(expression, time_zone, after)`
