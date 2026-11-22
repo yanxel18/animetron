@@ -1489,6 +1489,10 @@ accessibility checks pass, not merely when mock screens exist.
     rewriting other draft content. Reuse pending-input protection and saved
     version checks; graph validity remains backend-owned. Stacked on #134;
     review and required checks remain outstanding.
+  - [ ] P7-02q Edit the source, target and ports of a readable connection
+    locally while retaining its ID and preserving unrelated draft content.
+    Connections with extra fields remain editable only in the JSON editor.
+    Stacked on #135; review and required checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
