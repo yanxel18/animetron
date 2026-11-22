@@ -281,6 +281,13 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 
 ### Current work - 2026-11-19
 
+- 2026-11-22 reconciliation: master `f127229` includes #125's original node
+  insertion but not its later boundary fix `763c150`. A separate fix branch
+  based on master is in progress; until it merges, crafted node input can alter
+  unrelated draft JSON. #126 merged into `task/p7-add-workflow-node` after #125
+  merged into master; its connection editor has not reached master. Review and
+  check gates remain outstanding. The top-level checklist remains 18/57
+  (31.6%); no phase is complete.
 - Local preview check: the tailnet UI returned HTTP 200, but its session API
   path returned HTML rather than the expected API response and no backend
   listened on `127.0.0.1:8000`. This is not an authenticated or operational
