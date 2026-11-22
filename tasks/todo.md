@@ -1,8 +1,9 @@
 # AnimeTron project progress
 
-This is the single project-wide implementation checklist. Remote `master` was
-checked at `95c4fc4` on 2026-11-22; #121 and #122 have since merged. Their
-review and check gates have not been independently reverified in this update.
+This is the single project-wide implementation checklist. An earlier check of
+remote `master` found `95c4fc4` on 2026-11-22, including #121 and #122. Master
+has since advanced to at least `cc202f9`; their review and check gates have not
+been independently reverified in this update.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
