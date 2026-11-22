@@ -150,6 +150,14 @@ acceptance.
 
 ## How to use
 
+- Owner instruction on 2026-11-22: for future development changes, commit with
+  details, push, open a detailed PR, post a substantive self-review and merge
+  to `master` when appropriate checks and any enforced branch protections pass.
+  Ask the owner about complex decisions the AI cannot reasonably judge or when
+  essential authorization or information is missing. Earlier notes describing
+  missing independent reviews are historical evidence, not a requirement to
+  fabricate a review or automatically credit those slices. See
+  [the development workflow](../.github/copilot-instructions.md).
 - Toggle a Markdown task by editing `[ ]` to `[x]` (or back to `[ ]`).
 - Check a task only when its work is merged to `master` and its stated checks
   have passed. Link the merged PR or other evidence. An open PR is not done:
@@ -164,7 +172,7 @@ acceptance.
   Phases are dependency ordered, but independent slices may run in parallel.
 - No delivery date or effort estimate is established. Estimate and update dates
   only after scope, hardware, provider eligibility and capacity are confirmed.
-- The owner has authorized the assistant to merge reviewed, verified PRs.
+- The owner has authorized the assistant to merge self-reviewed, verified PRs.
   This checklist does not authorize deployment, live publishing, model licenses,
   model downloads or external transmission.
 
@@ -282,11 +290,12 @@ Slices not yet merged to master remain unchecked. No external publishing was don
 ### Current work - 2026-11-19
 
 - 2026-11-22 reconciliation: #125's node insertion and its separate boundary
-  correction #127 reached master by `8a69798`. PRs #126 and #128–#136 merged
-  into feature branches rather than master; [#142](https://github.com/yanxel18/animetron/pull/142)
-  proposes their combined integration against master at `cc202f9`. Review and check gates remain
-  outstanding. The top-level checklist remains 18/57 (31.6%); no phase is
-  complete.
+  correction #127 reached master by `8a69798`. The editor slices previously
+  merged only to feature branches reached master through
+  [#142](https://github.com/yanxel18/animetron/pull/142) at `ba89438` after
+  self-review, 189 unit tests, build, API drift and 28 fixture-backed browser
+  checks. Live authenticated and screen-reader tests remain open. The top-level
+  checklist remains 18/57 (31.6%); no phase is complete.
 - Local preview check: the tailnet UI returned HTTP 200, but its session API
   path returned HTML rather than the expected API response and no backend
   listened on `127.0.0.1:8000`. This is not an authenticated or operational
@@ -1344,9 +1353,9 @@ accessibility checks pass, not merely when mock screens exist.
     backend-owned frontend contracts, not P7 completion.
 - [ ] P7-02 Implement workflow editing, inspector, validation and saved draft
   versus immutable revision using backend-owned contracts.
-  - P7-02j through P7-02q were previously merged only into feature branches;
-    the current integration branch brings them together for review against
-    master. Do not mark them complete until their stated gates pass.
+  - P7-02j through P7-02q reached master through
+    [#142](https://github.com/yanxel18/animetron/pull/142); these are narrow
+    editor slices and do not complete P7-02 or establish live readiness.
   - [ ] P7-02r Display the owner-only sample-validation node catalog on demand,
     including ports and config schemas, with loading, retry and denial handling.
     This read-only slice does not create nodes or establish execution readiness;
@@ -1476,39 +1485,23 @@ accessibility checks pass, not merely when mock screens exist.
     Implementation is in [#125](https://github.com/yanxel18/animetron/pull/125).
     Follow-up commit `763c150` rejects a crafted node input that escapes its
     JSON object; independent review and required checks remain outstanding.
-  - [ ] P7-02j Add a connection with named node and port fields without
-    rewriting the draft. This slice is stacked on #127; #126 merged only into
-    its feature branch, so a new PR is needed for master. It only edits locally;
-    graph validation, supported ports, save and execution remain the existing
-    backend's responsibility. Review and required checks remain outstanding.
-  - [ ] P7-02k Remove an unconnected node locally while preserving unrelated
+  - [x] P7-02j Add a connection with named node and port fields without
+    rewriting the draft. Edits remain local; graph validity is backend-owned.
+  - [x] P7-02k Remove an unconnected node locally while preserving unrelated
     draft JSON; block removal when connections reference it or cannot be read.
-    This slice is stacked on #128. Save, validation and execution remain
-    separate; review and required checks remain outstanding.
-  - [ ] P7-02l List and remove readable connections locally without rewriting
-    unrelated draft JSON. Reject ambiguous connection lists, retain keyboard
-    focus and use the existing save path. Stacked on #129; review and required
-    checks remain outstanding.
-  - [ ] P7-02m Preserve a loaded workflow editor across in-app section changes
-    and register a browser unload warning while its draft document differs from
-    the saved version. Stacked on #130; this is in-memory preservation, not
-    crash recovery. Review and checks remain outstanding.
-  - [ ] P7-02n Protect partially entered node and connection fields with the
-    existing unload warning and prevent switching, editing, saving or validating
-    until those fields are added or cleared. Stacked on #131. This remains
-    in-memory only; review and required checks remain outstanding.
-  - [ ] P7-02o Inspect a selected node's exact JSON from the current draft,
-    without reserializing or claiming validation. Selection clears when the
-    node is no longer readable. Stacked on #132; review and required checks
-    remain outstanding.
-  - [ ] P7-02p Edit an existing node's JSON locally without changing its ID or
-    rewriting other draft content. Reuse pending-input protection and saved
-    version checks; graph validity remains backend-owned. Stacked on #134;
-    review and required checks remain outstanding.
-  - [ ] P7-02q Edit the source, target and ports of a readable connection
-    locally while retaining its ID and preserving unrelated draft content.
-    Connections with extra fields remain editable only in the JSON editor.
-    Stacked on #135; review and required checks remain outstanding.
+  - [x] P7-02l List and remove readable connections locally without rewriting
+    unrelated draft JSON, with keyboard focus and the existing save path.
+  - [x] P7-02m Preserve a loaded editor across in-app section changes and
+    request a browser unload warning for unsaved draft text. This is in-memory
+    preservation, not crash recovery.
+  - [x] P7-02n Include partially entered node and connection fields in the
+    unload warning and guard conflicting draft actions until added or cleared.
+  - [x] P7-02o Inspect a selected node's exact current-draft JSON; clear the
+    selection when the node is no longer readable.
+  - [x] P7-02p Edit an existing node's JSON locally without changing its ID or
+    rewriting other draft content; graph validity remains backend-owned.
+  - [x] P7-02q Edit source, target and ports of a readable connection locally
+    while retaining its ID. Extra fields remain editable only in JSON.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
