@@ -3,6 +3,7 @@ import io
 
 import pytest
 
+from app.services.models.catalog import ModelManifestCatalog
 from app.services.models.integrity import ModelIntegrityError, verify_model_file
 from app.services.models.manifest import ModelFile, ModelManifest
 from app.services.models.policy import ModelReferenceAllowlist
@@ -71,6 +72,37 @@ def test_manifest_requires_files_and_explicit_engine_and_license() -> None:
     ]:
         with pytest.raises(ValueError):
             ModelManifest(ref, engine, license_id, files, 10)
+
+
+def test_manifest_catalog_resolves_only_full_pinned_reference() -> None:
+    first = ModelReference("huggingface", "creator-a/model", "a" * 40)
+    second = ModelReference("huggingface", "creator-b/model", "a" * 40)
+    file = ModelFile("model.safetensors", 10, "b" * 64)
+    manifest = ModelManifest(first, "comfyui", "license-1", (file,), 20)
+    other = ModelManifest(second, "comfyui", "license-2", (file,), 30)
+    untrusted = ModelManifest(first, "comfyui", "license-1", (file,), 10)
+    catalog = ModelManifestCatalog((manifest, other))
+
+    assert catalog.resolve(first) == manifest
+    assert catalog.resolve(untrusted.reference) != untrusted
+    assert catalog.resolve(second) == other
+    assert catalog.resolve(ModelReference("huggingface", "creator-a/model", "c" * 40)) is None
+    assert ModelManifestCatalog(()).resolve(first) is None
+
+
+def test_manifest_catalog_rejects_duplicate_pins_and_untrusted_shapes() -> None:
+    reference = ModelReference("huggingface", "creator/model", "a" * 40)
+    file = ModelFile("model.safetensors", 10, "b" * 64)
+    manifest = ModelManifest(reference, "comfyui", "license-1", (file,), 20)
+    conflicting = ModelManifest(reference, "comfyui", "license-2", (file,), 20)
+    for values in ((manifest, manifest), (manifest, conflicting)):
+        with pytest.raises(ValueError):
+            ModelManifestCatalog(values)
+    for values in ([manifest], ("model",)):
+        with pytest.raises(TypeError):
+            ModelManifestCatalog(values)
+    with pytest.raises(TypeError):
+        ModelManifestCatalog(()).resolve("creator/model")
 
 
 def test_model_file_integrity_accepts_exact_size_and_hash() -> None:
