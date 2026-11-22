@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
 import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
-import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowEdges, readWorkflowNodeOrder, removeWorkflowEdge, removeWorkflowNode } from "./workflow-draft-document";
+import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowEdges, readWorkflowNodeOrder, readWorkflowNodeSource, removeWorkflowEdge, removeWorkflowNode } from "./workflow-draft-document";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
@@ -12,6 +12,28 @@ const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 const draft = { workflowId: id, version: 3, document: '{"revision":"r1"}' };
+it("reads a node's exact JSON without rounding numeric values", () => {
+  const node = '{ "id":"a", "type":"x", "config":{"n":9007199254740993} }';
+  const document = `{"schemaVersion":1,"revision":"r1","nodes":[${node}],"edges":[]}`;
+  expect(readWorkflowNodeSource(document, "a")).toBe(node);
+  expect(readWorkflowNodeSource(document, "missing")).toBeNull();
+  expect(readWorkflowNodeSource(document.replace('"id":"a"', '"id":"a","id":"b"'), "a")).toBeNull();
+});
+it("inspects a node as exact text and clears its inspector after removal", async () => {
+  const node = '{"id":"a","type":"x","config":{"n":9007199254740993,"text":"<script>test</script>"}}';
+  const initial = `{"schemaVersion":1,"revision":"r1","nodes":[${node}],"edges":[]}`;
+  function Harness() {
+    const [value, setValue] = useState(initial);
+    return <WorkflowNodeOrder document={value} disabled={false} onDocumentChange={setValue} />;
+  }
+  const user = userEvent.setup();
+  render(<Harness />);
+  await user.click(screen.getByRole("button", { name: "Inspect a" }));
+  expect(screen.getByLabelText("Selected node JSON")).toHaveTextContent(node);
+  expect(screen.getByRole("button", { name: "Inspect a" })).toHaveAttribute("aria-pressed", "true");
+  await user.click(screen.getByRole("button", { name: "Remove a" }));
+  expect(screen.queryByLabelText("Selected node JSON")).not.toBeInTheDocument();
+});
 it("removes a connection without rewriting the remaining draft", () => {
   const edge = (id: string) => `{"id":"${id}","source":"a","sourcePort":"text","target":"b","targetPort":"text"}`;
   const document = `{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[${edge("a")}, ${edge("b")}, ${edge("c")}],"n":9007199254740993}`;

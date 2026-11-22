@@ -183,6 +183,15 @@ export function readWorkflowNodeOrder(document: string): WorkflowNodeOrderItem[]
   return parseWorkflowDraft(document)?.order ?? null;
 }
 
+export function readWorkflowNodeSource(document: string, nodeId: string): string | null {
+  const parsed = parseWorkflowDraft(document);
+  if (!parsed) return null;
+  const index = parsed.order.findIndex((node) => node.id === nodeId);
+  if (index < 0) return null;
+  const range = parsed.nodeRanges[index];
+  return document.slice(range.start, range.end);
+}
+
 type WorkflowEdgeItem = { id: string; source: string; sourcePort: string; target: string; targetPort: string };
 
 export function readWorkflowEdges(document: string): WorkflowEdgeItem[] | null {

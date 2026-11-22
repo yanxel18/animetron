@@ -1481,6 +1481,10 @@ accessibility checks pass, not merely when mock screens exist.
     existing unload warning and prevent switching, editing, saving or validating
     until those fields are added or cleared. Stacked on #131. This remains
     in-memory only; review and required checks remain outstanding.
+  - [ ] P7-02o Inspect a selected node's exact JSON from the current draft,
+    without reserializing or claiming validation. Selection clears when the
+    node is no longer readable. Stacked on #132; review and required checks
+    remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status
