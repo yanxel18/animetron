@@ -1469,6 +1469,10 @@ accessibility checks pass, not merely when mock screens exist.
     draft JSON; block removal when connections reference it or cannot be read.
     This slice is stacked on #128. Save, validation and execution remain
     separate; review and required checks remain outstanding.
+  - [ ] P7-02l List and remove readable connections locally without rewriting
+    unrelated draft JSON. Reject ambiguous connection lists, retain keyboard
+    focus and use the existing save path. Stacked on #129; review and required
+    checks remain outstanding.
 - [ ] P7-03 Implement run monitoring, reconnect/replay, library and preview with
   truthful loading, errors, waiting and progress states.
   - [x] P7-03a Add an owner-only run-ID monitor backed by persisted run status

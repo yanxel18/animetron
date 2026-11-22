@@ -183,6 +183,37 @@ export function readWorkflowNodeOrder(document: string): WorkflowNodeOrderItem[]
   return parseWorkflowDraft(document)?.order ?? null;
 }
 
+type WorkflowEdgeItem = { id: string; source: string; sourcePort: string; target: string; targetPort: string };
+
+export function readWorkflowEdges(document: string): WorkflowEdgeItem[] | null {
+  if (!parseWorkflowDraft(document) || !findArrayRanges(document, "edges")) return null;
+  try {
+    const value: unknown = JSON.parse(document);
+    if (!isRecord(value) || !Array.isArray(value.edges)) return null;
+    const result: WorkflowEdgeItem[] = [];
+    const ids = new Set<string>();
+    for (const edge of value.edges) {
+      if (!isRecord(edge) || typeof edge.id !== "string" || !edge.id || ids.has(edge.id) ||
+          typeof edge.source !== "string" || !edge.source || typeof edge.sourcePort !== "string" || !edge.sourcePort ||
+          typeof edge.target !== "string" || !edge.target || typeof edge.targetPort !== "string" || !edge.targetPort) return null;
+      ids.add(edge.id);
+      result.push({ id: edge.id, source: edge.source, sourcePort: edge.sourcePort, target: edge.target, targetPort: edge.targetPort });
+    }
+    return result;
+  } catch { return null; }
+}
+
+export function removeWorkflowEdge(document: string, edgeId: string): string | null {
+  const edges = readWorkflowEdges(document);
+  const ranges = findArrayRanges(document, "edges")?.ranges;
+  if (!edges || !ranges || ranges.length !== edges.length) return null;
+  const index = edges.findIndex((edge) => edge.id === edgeId);
+  if (index < 0) return null;
+  const start = index === ranges.length - 1 && index > 0 ? ranges[index - 1].end : ranges[index].start;
+  const end = index < ranges.length - 1 ? ranges[index + 1].start : ranges[index].end;
+  return document.slice(0, start) + document.slice(end);
+}
+
 export function removeWorkflowNode(document: string, nodeId: string): string | null {
   const parsed = parseWorkflowDraft(document);
   if (!parsed) return null;

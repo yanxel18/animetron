@@ -21,5 +21,6 @@ The connection editor is stacked on the node-boundary fix in PR #127 and is
 not complete until its PR, review and required checks are resolved. A backend-driven palette, connection
 discovery and live authenticated end-to-end verification remain outstanding.
 Node removal is stacked on PR #128; it refuses removal if an existing edge
-references the node or has unreadable endpoints. Remove or edit those edges in
-the JSON editor first. Removal remains local until saved.
+references the node or has unreadable endpoints. The connection list can remove
+readable edges, and falls back to direct JSON editing for ambiguous lists.
+Connection removal is stacked on PR #129. Removal remains local until saved.
