@@ -2,6 +2,15 @@
 
 Project-wide progress and remaining work: [task checklist](../tasks/todo.md).
 
+The internal `app.engines.scene_plan.parse_scene_plan` validates up to 64 KiB
+of UTF-8 JSON from a future story model. A plan has `language`, `characters`
+(each with `id` and `description`) and ordered `scenes` (each with `id`,
+`narration`, `shot_prompt`, `character_ids` and positive integer `duration_ms`).
+IDs must be unique and references must resolve; scene durations may total at
+most 90,000 ms. The 30-60 second target is not a minimum. This provisional
+contract has no provider, API, execution handler or generated media attached.
+Focused check: `python -m pytest tests/test_media_generation.py -q`.
+
 The API provides minimal public liveness and a bounded authenticated control
 plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,

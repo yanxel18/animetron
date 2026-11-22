@@ -1215,6 +1215,10 @@ checks and a measured hardware benchmark, without cloud inference fallback.
 
 - [ ] P3-01 Implement schema-validated story/scene planning with duration
   budgets and explicit failures for malformed model output.
+  - [ ] Internal scene-plan validation is implemented as a partial slice;
+    no LLM provider, runtime handler, or real story generation is connected.
+    Plans use ordered scenes and millisecond budgets, with a 90-second maximum.
+    The 30-60 second target is not enforced as a minimum. P3-01 remains open.
 - [ ] P3-02 Implement character references, keyframes and scene animation
   using pinned models and allowlisted handlers.
 - [ ] P3-03 Implement narration, alignment and deterministic rendering with
