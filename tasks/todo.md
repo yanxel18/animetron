@@ -1215,7 +1215,7 @@ checks and a measured hardware benchmark, without cloud inference fallback.
 
 - [ ] P3-01 Implement schema-validated story/scene planning with duration
   budgets and explicit failures for malformed model output.
-  - [ ] Internal scene-plan validation is implemented as a partial slice;
+  - [ ] Internal scene-plan validation merged in [#168](https://github.com/yanxel18/animetron/pull/168) as a partial slice;
     no LLM provider, runtime handler, or real story generation is connected.
     Plans use ordered scenes and millisecond budgets, with a 90-second maximum.
     The 30-60 second target is not enforced as a minimum. P3-01 remains open.
@@ -1223,6 +1223,10 @@ checks and a measured hardware benchmark, without cloud inference fallback.
   using pinned models and allowlisted handlers.
 - [ ] P3-03 Implement narration, alignment and deterministic rendering with
   safe FFmpeg argument handling and artifact provenance.
+  - [ ] An internal scene-budget timeline derives contiguous offsets from a
+    validated plan. Actual audio alignment and rendering remain unimplemented;
+    P3-03 stays open. This partial slice leaves progress at 18/57 (31.6%)
+    and Phase 3 at 0/5.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
 - [ ] P3-05 Measure an actual short reel's resource peaks, elapsed time,
