@@ -1223,10 +1223,12 @@ checks and a measured hardware benchmark, without cloud inference fallback.
   using pinned models and allowlisted handlers.
 - [ ] P3-03 Implement narration, alignment and deterministic rendering with
   safe FFmpeg argument handling and artifact provenance.
-  - [ ] An internal scene-budget timeline derives contiguous offsets from a
+  - [ ] An internal scene-budget timeline merged in [#169](https://github.com/yanxel18/animetron/pull/169) derives contiguous offsets from a
     validated plan. Actual audio alignment and rendering remain unimplemented;
     P3-03 stays open. This partial slice leaves progress at 18/57 (31.6%)
     and Phase 3 at 0/5.
+  - [ ] A draft SRT generator uses scene-duration budgets for subtitle cues.
+    It is not connected to speech alignment, rendering or workflow execution.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
 - [ ] P3-05 Measure an actual short reel's resource peaks, elapsed time,

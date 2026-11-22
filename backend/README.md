@@ -16,6 +16,11 @@ bytes and derives ordered, contiguous half-open scene budgets in milliseconds.
 These are planning offsets, not measured audio alignment or a render guarantee.
 It is an internal function and is not connected to workflow execution.
 
+`app.engines.draft_subtitles.make_draft_srt` produces UTF-8 SRT bytes using
+each scene's entire planned duration. It is a draft for review, not measured
+speech alignment; it neither writes files nor attaches subtitles to video.
+Focused check: `python -m pytest tests/test_draft_subtitles.py -q`.
+
 The API provides minimal public liveness and a bounded authenticated control
 plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
