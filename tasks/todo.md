@@ -1651,6 +1651,11 @@ accessibility checks pass, not merely when mock screens exist.
     status is pending. Keep unchecked pending the required review and checks.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
+  - On `task/control-border-contrast`: improve Run ID and Artifact ID input
+    borders against their surrounding forms; browser regression coverage
+    measures both fields. PR creation was blocked by GitHub integration 403.
+    This is a limited control contrast slice, not a full accessibility audit.
+    Top-level progress remains 18/57 (31.6%), and P7 remains 1/6.
   - 2026-11-22: a partial static dark-theme color measurement is recorded in
     [contrast evidence](p7-06-contrast-evidence.md). The border token needs
     rendered-context investigation; browser and assistive-technology checks

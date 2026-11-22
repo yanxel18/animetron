@@ -111,6 +111,23 @@ test("measures rendered text and control contrast from computed browser colors",
   }
 });
 
+test("keeps lookup field borders distinct from their surrounding surfaces", async ({ page }) => {
+  for (const [section, label] of [["runs", "Run ID"], ["library", "Artifact ID"]]) {
+    await page.goto(`/#${section}`);
+    const field = page.getByLabel(label!);
+    await expect(field).toBeVisible();
+    const colors = await field.evaluate((element) => {
+      const form = element.closest("form");
+      if (!form) throw new Error("Lookup field has no surrounding form");
+      return {
+        border: getComputedStyle(element).borderTopColor,
+        surrounding: getComputedStyle(form).backgroundColor,
+      };
+    });
+    expect(contrastRatio(colors.border, colors.surrounding), label).toBeGreaterThanOrEqual(3);
+  }
+});
+
 test("exposes real disabled states and navigable landmarks", async ({ page }) => {
   await page.goto("/");
 
