@@ -150,6 +150,14 @@ acceptance.
 
 ## How to use
 
+- Owner instruction on 2026-11-22: for future development changes, commit with
+  details, push, open a detailed PR, post a substantive self-review and merge
+  to `master` when appropriate checks and any enforced branch protections pass.
+  Ask the owner about complex decisions the AI cannot reasonably judge or when
+  essential authorization or information is missing. Earlier notes describing
+  missing independent reviews are historical evidence, not a requirement to
+  fabricate a review or automatically credit those slices. See
+  [the development workflow](../.github/copilot-instructions.md).
 - Toggle a Markdown task by editing `[ ]` to `[x]` (or back to `[ ]`).
 - Check a task only when its work is merged to `master` and its stated checks
   have passed. Link the merged PR or other evidence. An open PR is not done:
@@ -164,7 +172,7 @@ acceptance.
   Phases are dependency ordered, but independent slices may run in parallel.
 - No delivery date or effort estimate is established. Estimate and update dates
   only after scope, hardware, provider eligibility and capacity are confirmed.
-- The owner has authorized the assistant to merge reviewed, verified PRs.
+- The owner has authorized the assistant to merge self-reviewed, verified PRs.
   This checklist does not authorize deployment, live publishing, model licenses,
   model downloads or external transmission.
 

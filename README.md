@@ -118,6 +118,11 @@ transmission and publishing.
 4. Keep external publishing, deployment and model acquisition within the
    project's documented authorizations and acceptance requirements.
 
+For repository changes, follow the [development workflow](.github/copilot-instructions.md):
+use a detailed commit and PR, post a self-review, run appropriate checks, and
+merge to `master` when ready and allowed by branch protections. The product's
+human content-approval gates remain separate from code review.
+
 The checklist is the source of truth for remaining work and verification;
 the [development report](tasks/development-report.md) and
 [model benchmark report](tasks/wan-benchmark-report.md) contain historical
