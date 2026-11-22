@@ -1,10 +1,30 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchWorkflowPage, fetchRevisionPage, fetchRevision } from "./workflows";
+import { fetchSampleNodeCatalog, fetchWorkflowPage, fetchRevisionPage, fetchRevision } from "./workflows";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("workflow discovery API", () => {
+  it("loads sample validation metadata with same-origin credentials", async () => {
+    const body = { scope: "sample-validation", nodes: [{ type: "sample.constant", inputs: [], outputs: [{ name: "text", type: "text", required: false }], configSchema: { type: "object" } }] };
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(body)));
+    vi.stubGlobal("fetch", fetcher);
+    expect(await fetchSampleNodeCatalog()).toEqual(body);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/workflows/node-types", expect.objectContaining({ credentials: "same-origin", cache: "no-store" }));
+  });
+
+  it.each([
+    { scope: "execution", nodes: [] },
+    { scope: "sample-validation", nodes: [{ type: "x", inputs: [{ name: "p", type: "text", required: "yes" }], outputs: [], configSchema: null }] },
+    { scope: "sample-validation", nodes: [{ type: "x", inputs: [], outputs: [], configSchema: [] }] },
+  ])("rejects malformed catalog data", async (body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(body))));
+    await expect(fetchSampleNodeCatalog()).rejects.toThrow("invalid response");
+  });
+  it("preserves catalog authorization errors without exposing the response body", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("secret body", { status: 401 })));
+    await expect(fetchSampleNodeCatalog()).rejects.toMatchObject({ status: 401, message: expect.not.stringContaining("secret") });
+  });
   it("requests a bounded workflow page with same-origin credentials", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       data: [{ workflowId: id }], nextCursor: null,

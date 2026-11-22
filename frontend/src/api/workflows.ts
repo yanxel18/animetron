@@ -1,4 +1,4 @@
-import type { RevisionListOutput, RevisionOutput, WorkflowIdListOutput } from "./generated";
+import type { RevisionListOutput, RevisionOutput, SampleNodeCatalogOutput, WorkflowIdListOutput } from "./generated";
 
 export class WorkflowDiscoveryError extends Error {
   readonly status: number | null;
@@ -33,6 +33,25 @@ async function request(path: string, signal?: AbortSignal): Promise<unknown> {
     if (signal?.aborted) throw error;
     throw new WorkflowDiscoveryError("The workflow service returned an invalid response.");
   }
+}
+
+export async function fetchSampleNodeCatalog(signal?: AbortSignal): Promise<SampleNodeCatalogOutput> {
+  const data = record(await request("/api/v1/workflows/node-types", signal));
+  const text = (value: unknown) => typeof value === "string" && value.length > 0 && value.length <= 256;
+  const ports = (value: unknown) => Array.isArray(value) && value.length <= 64 &&
+    value.every((port) => {
+      const item = record(port);
+      return item !== null && text(item.name) && text(item.type) && typeof item.required === "boolean";
+    }) && new Set(value.map((port) => record(port)?.name)).size === value.length;
+  if (!data || data.scope !== "sample-validation" || !Array.isArray(data.nodes) || data.nodes.length > 100 ||
+      !data.nodes.every((value) => {
+        const node = record(value);
+        return node !== null && text(node.type) && ports(node.inputs) && ports(node.outputs) &&
+          (node.configSchema === null || (record(node.configSchema) !== null && JSON.stringify(node.configSchema).length <= 65_536));
+      }) || new Set(data.nodes.map((value: unknown) => record(value)?.type)).size !== data.nodes.length) {
+    throw new WorkflowDiscoveryError("The workflow service returned an invalid response.");
+  }
+  return data as SampleNodeCatalogOutput;
 }
 
 function pageUrl(path: string, cursor: string | null, max: number): string {
