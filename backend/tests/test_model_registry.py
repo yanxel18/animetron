@@ -10,6 +10,7 @@ from app.services.models.policy import ModelReferenceAllowlist
 from app.services.models.preflight import (
     AcquisitionBlocker,
     check_acquisition,
+    check_catalog_acquisition,
     check_manifest_acquisition,
 )
 from app.services.models.reference import ModelReference
@@ -278,6 +279,60 @@ def test_manifest_preflight_rejects_untrusted_shapes_and_unknown_facts() -> None
             manifest=manifest, allowlist=policy, license_accepted=True,
             access_confirmed=True, available_bytes=None,
         )
+
+
+def test_catalog_preflight_uses_stored_manifest_and_exact_pin() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    manifest = ModelManifest(ref, "comfyui", "license-1", (ModelFile("model", 1, "b" * 64),), 20)
+    catalog = ModelManifestCatalog((manifest,))
+    policy = ModelReferenceAllowlist(frozenset({ref}))
+    assert check_catalog_acquisition(
+        reference=ref, catalog=catalog, allowlist=policy, license_accepted=True,
+        access_confirmed=True, available_bytes=19,
+    ) == (AcquisitionBlocker.INSUFFICIENT_STORAGE,)
+    assert check_catalog_acquisition(
+        reference=ref, catalog=catalog, allowlist=policy, license_accepted=True,
+        access_confirmed=True, available_bytes=20,
+    ) == ()
+    assert check_catalog_acquisition(
+        reference=ModelReference("huggingface", "creator/model", "c" * 40),
+        catalog=catalog, allowlist=policy, license_accepted=True,
+        access_confirmed=True, available_bytes=20,
+    ) == (AcquisitionBlocker.MANIFEST_NOT_IN_CATALOG,)
+    assert check_catalog_acquisition(
+        reference=ModelReference("huggingface", "other/model", "a" * 40),
+        catalog=catalog, allowlist=policy, license_accepted=False,
+        access_confirmed=False, available_bytes=0,
+    ) == (AcquisitionBlocker.MANIFEST_NOT_IN_CATALOG,)
+
+
+def test_catalog_preflight_preserves_blockers_and_rejects_invalid_inputs() -> None:
+    ref = ModelReference("huggingface", "creator/model", "a" * 40)
+    manifest = ModelManifest(ref, "comfyui", "license-1", (ModelFile("model", 1, "b" * 64),), 2)
+    catalog = ModelManifestCatalog((manifest,))
+    policy = ModelReferenceAllowlist(frozenset())
+    assert check_catalog_acquisition(
+        reference=ref, catalog=catalog, allowlist=policy, license_accepted=False,
+        access_confirmed=False, available_bytes=1,
+    ) == (
+        AcquisitionBlocker.REFERENCE_NOT_ALLOWED,
+        AcquisitionBlocker.LICENSE_NOT_ACCEPTED,
+        AcquisitionBlocker.ACCESS_NOT_CONFIRMED,
+        AcquisitionBlocker.INSUFFICIENT_STORAGE,
+    )
+    for bad_ref, bad_catalog, bad_policy in (("model", catalog, policy), (ref, (), policy), (ref, catalog, set())):
+        with pytest.raises(TypeError):
+            check_catalog_acquisition(
+                reference=bad_ref, catalog=bad_catalog, allowlist=bad_policy,
+                license_accepted=True, access_confirmed=True, available_bytes=2,
+            )
+    for facts in ((None, True, 1), (True, None, 1), (True, True, None),
+                  (True, True, -1), (True, True, True)):
+        with pytest.raises(ValueError):
+            check_catalog_acquisition(
+                reference=ref, catalog=ModelManifestCatalog(()), allowlist=policy,
+                license_accepted=facts[0], access_confirmed=facts[1], available_bytes=facts[2],
+            )
 
 
 def test_accepted_access_and_sufficient_space_pass_preflight() -> None:

@@ -460,6 +460,14 @@ reference does not authenticate the rest of a manifest, reserve disk space,
 authorize a download, verify files or establish readiness. No runtime service
 currently calls this helper.
 
+`check_catalog_acquisition` selects the exact reference from a caller-supplied
+trusted catalog before running the manifest preflight. If the reference is
+absent, it returns only `MANIFEST_NOT_IN_CATALOG` after validating input facts;
+the other blockers are not evaluated in that case. The caller must establish
+catalog and allowlist trust and obtain model-specific consent, access and storage
+facts. The result does not authorize a download, authenticate configuration,
+reserve resources or establish readiness. No runtime service calls it yet.
+
 ## Internal schedule preview (Phase 6 slice)
 
 `app.services.scheduling.preview.preview_occurrences(expression, time_zone, after)`
