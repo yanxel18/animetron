@@ -34,6 +34,23 @@ Run states: QUEUED, RUNNING, WAITING_REVIEW, SUCCEEDED, PARTIAL_FAILURE, FAILED,
 CANCELLING, CANCELLED. Review decisions and publication states are separate
 domain records, not overloaded generation success.
 
+## Sample-validation node catalog
+
+`GET /api/v1/workflows/node-types` is an owner-only, read-only description of
+the current built-in sample validation definitions. The response has
+`scope: "sample-validation"` and a `nodes` array sorted by type. Each entry
+contains `type`, sorted `inputs` and `outputs` arrays of `{name, type, required}`,
+and `configSchema`: the backend Pydantic JSON Schema or `null` for a node with
+no configuration (the validator requires an empty config object). Query
+parameters are rejected with 422. Normal session,
+origin, owner, no-store and error-envelope rules apply.
+
+The catalog describes the definitions used by sample-document validation; it
+is not a general plugin registry, execution authorization, readiness result,
+model capability or promise that a workflow can run. The backend remains the
+authority when a saved draft is validated. No frontend palette or execution
+behavior is implied by this endpoint.
+
 ## Owner-only immutable workflow revision read (P1-09b)
 
 `GET /api/v1/workflows/{id}/revisions/{revision}` reads one already-known

@@ -806,6 +806,10 @@ immutable workflow and recover its state without duplicate effects.
       pending; keep unchecked.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
+  - [ ] P1-09k Expose an owner-only catalog generated from built-in sample
+    validation definitions and config schemas. This is validation metadata,
+    not handler or model readiness. Frontend palette integration, independent
+    review and required checks remain outstanding; no top-level count changes.
   - [ ] P1-09e Internal mutable draft persistence merged in
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is

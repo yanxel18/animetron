@@ -603,6 +603,62 @@ export type RunStatusOutput = {
 };
 
 /**
+ * SampleNodeCatalogOutput
+ */
+export type SampleNodeCatalogOutput = {
+    /**
+     * Nodes
+     */
+    nodes: Array<SampleNodeTypeOutput>;
+    /**
+     * Scope
+     */
+    scope?: 'sample-validation';
+};
+
+/**
+ * SampleNodeTypeOutput
+ */
+export type SampleNodeTypeOutput = {
+    /**
+     * Configschema
+     */
+    configSchema: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Inputs
+     */
+    inputs: Array<SamplePortOutput>;
+    /**
+     * Outputs
+     */
+    outputs: Array<SamplePortOutput>;
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
+ * SamplePortOutput
+ */
+export type SamplePortOutput = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Required
+     */
+    required: boolean;
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
  * SessionResponse
  */
 export type SessionResponse = {
@@ -1638,6 +1694,43 @@ export type DiscoverWorkflowsApiV1WorkflowsGetResponses = {
 };
 
 export type DiscoverWorkflowsApiV1WorkflowsGetResponse = DiscoverWorkflowsApiV1WorkflowsGetResponses[keyof DiscoverWorkflowsApiV1WorkflowsGetResponses];
+
+export type SampleNodeCatalogApiV1WorkflowsNodeTypesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workflows/node-types';
+};
+
+export type SampleNodeCatalogApiV1WorkflowsNodeTypesGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type SampleNodeCatalogApiV1WorkflowsNodeTypesGetError = SampleNodeCatalogApiV1WorkflowsNodeTypesGetErrors[keyof SampleNodeCatalogApiV1WorkflowsNodeTypesGetErrors];
+
+export type SampleNodeCatalogApiV1WorkflowsNodeTypesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SampleNodeCatalogOutput;
+};
+
+export type SampleNodeCatalogApiV1WorkflowsNodeTypesGetResponse = SampleNodeCatalogApiV1WorkflowsNodeTypesGetResponses[keyof SampleNodeCatalogApiV1WorkflowsNodeTypesGetResponses];
 
 export type ReadWorkflowDraftApiV1WorkflowsIdDraftGetData = {
     body?: never;

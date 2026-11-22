@@ -5,7 +5,7 @@ import binascii
 import json
 import re
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import RFC_4122, UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Request, Response
@@ -41,7 +41,10 @@ from app.services.workflows.run_requests import (
     RunRequestCorrupt,
     request_run,
 )
-from app.services.workflows.sample_evaluator import validate_sample_document
+from app.services.workflows.sample_evaluator import (
+    SAMPLE_DEFINITIONS,
+    validate_sample_document,
+)
 from app.services.workflows.sample_revisions import (
     RevisionCanonicalTooLarge,
     create_sample_revision,
@@ -77,6 +80,26 @@ class RunCreateInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     revision: str = Field(min_length=1, max_length=128)
+
+
+class SamplePortOutput(BaseModel):
+    name: str
+    type: str
+    required: bool
+
+
+class SampleNodeTypeOutput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    type: str
+    inputs: list[SamplePortOutput]
+    outputs: list[SamplePortOutput]
+    config_schema: dict[str, Any] | None = Field(alias="configSchema")
+
+
+class SampleNodeCatalogOutput(BaseModel):
+    scope: Literal["sample-validation"] = "sample-validation"
+    nodes: list[SampleNodeTypeOutput]
 
 
 class RevisionOutput(BaseModel):
@@ -311,6 +334,24 @@ def workflows_router(config: AuthConfig | None, store: AuthStore | None) -> APIR
         },
     )
     _, owner = auth_dependencies(config, store)
+
+    @router.get("/node-types", response_model=SampleNodeCatalogOutput)
+    def sample_node_catalog(
+        request: Request, _: Annotated[Principal, Depends(owner)],
+    ) -> SampleNodeCatalogOutput:
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        return SampleNodeCatalogOutput(nodes=[
+            SampleNodeTypeOutput(
+                type=node_type,
+                inputs=[SamplePortOutput(name=name, type=port.type, required=port.required)
+                        for name, port in sorted(definition.inputs.items())],
+                outputs=[SamplePortOutput(name=name, type=port.type, required=port.required)
+                         for name, port in sorted(definition.outputs.items())],
+                configSchema=definition.config_model.model_json_schema() if definition.config_model else None,
+            )
+            for node_type, definition in sorted(SAMPLE_DEFINITIONS.items())
+        ])
 
     def persistence() -> AuthStore:
         if config is None or store is None:

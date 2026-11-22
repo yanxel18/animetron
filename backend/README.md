@@ -289,6 +289,11 @@ the guard. See [the ownership and denial-audit contract](AUTH.md).
 The plain HTTP server command above is liveness-only: authenticated
 operation requires the explicitly configured HTTPS origin and TLS boundary.
 
+The owner-only `GET /api/v1/workflows/node-types` endpoint describes built-in
+sample-validation node types, their ports and configuration JSON Schemas. It
+does not report execution or model readiness. The response and security
+contract are in [the workflow specification](../docs/SPEC-workflow-runtime.md#sample-validation-node-catalog).
+
 ## Internal Linux artifact bytes
 
 `app.core.artifact_bytes.ArtifactByteStore` adds byte storage only, with no HTTP,
