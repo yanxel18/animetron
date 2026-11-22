@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
+import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder, removeWorkflowNode } from "./workflow-draft-document";
 import { WorkflowEdgeEditor } from "./WorkflowEdgeEditor";
 
 type MoveDirection = "up" | "down";
@@ -16,17 +16,24 @@ export function WorkflowNodeOrder({
   const nodeOrder = useMemo(() => readWorkflowNodeOrder(document), [document]);
   const nodeMoveButtons = useRef(new Map<string, Partial<Record<MoveDirection, HTMLButtonElement>>>());
   const focusAfterMove = useRef<{ id: string; direction: MoveDirection } | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const focusAfterRemoval = useRef(false);
   const addedNode = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [nodeText, setNodeText] = useState("");
   const [nodeError, setNodeError] = useState<string | null>(null);
   const [nodeNotice, setNodeNotice] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!addedNode.current) setNodeNotice(null);
     addedNode.current = false;
     const pending = focusAfterMove.current;
-    if (pending) {
+    setRemoveError(null);
+    if (focusAfterRemoval.current) {
+      headingRef.current?.focus();
+      focusAfterRemoval.current = false;
+    } else if (pending) {
       nodeMoveButtons.current.get(pending.id)?.[pending.direction]?.focus();
     } else {
       setNotice(null);
@@ -46,7 +53,7 @@ export function WorkflowNodeOrder({
   }
 
   return <section className="workflow-node-order" aria-labelledby="workflow-node-order-title">
-    <h3 id="workflow-node-order-title">Node order</h3>
+    <h3 id="workflow-node-order-title" ref={headingRef} tabIndex={-1}>Node order</h3>
     <p>Use the buttons to reorder nodes. Changes stay local until the draft is saved.</p>
     {nodeOrder !== null && <div>
       <label htmlFor="workflow-new-node">Node JSON</label>
@@ -112,11 +119,23 @@ export function WorkflowNodeOrder({
                   }
                 }}
                 onClick={() => moveNode(node.id, "down")}>Move down</button>
+              <button className="button button--secondary" type="button" disabled={disabled}
+                aria-label={`Remove ${node.id}`} onClick={() => {
+                  const updated = removeWorkflowNode(document, node.id);
+                  if (!updated) {
+                    setRemoveError("Cannot remove this node while connections reference it or the connection list is unreadable.");
+                    return;
+                  }
+                  focusAfterRemoval.current = true;
+                  setNotice(`Removed ${node.id} locally. Save the draft to keep it.`);
+                  onDocumentChange(updated);
+                }}>Remove</button>
             </div>
           </li>
         ))}
       </ol>
     )}
     {notice && <p role="status">{notice}</p>}
+    {removeError && <p role="alert">{removeError}</p>}
   </section>;
 }

@@ -70,6 +70,14 @@ test("recovers an uncertain empty draft creation and loads the same ID", async (
   await page.getByRole("button", { name: "Add connection" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Connection added locally" })).toBeVisible();
   await expect(page.getByLabel("Workflow draft JSON")).toHaveValue(/"sourcePort":"text"/);
+  await page.getByRole("button", { name: "Remove first" }).click();
+  await expect(page.getByRole("alert")).toContainText(/connections reference/i);
+  await page.getByLabel("Node JSON").fill('{"id":"free","type":"sample.constant","config":{"text":"hello"}}');
+  await page.getByRole("button", { name: "Add node" }).click();
+  await page.getByRole("button", { name: "Remove free" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Node order" })).toBeFocused();
+  await expect(page.getByRole("status").filter({ hasText: "Removed free locally" })).toBeVisible();
   expect(attempts).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(errors).toEqual([]);

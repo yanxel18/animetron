@@ -183,6 +183,23 @@ export function readWorkflowNodeOrder(document: string): WorkflowNodeOrderItem[]
   return parseWorkflowDraft(document)?.order ?? null;
 }
 
+export function removeWorkflowNode(document: string, nodeId: string): string | null {
+  const parsed = parseWorkflowDraft(document);
+  if (!parsed) return null;
+  const index = parsed.order.findIndex((node) => node.id === nodeId);
+  if (index < 0) return null;
+  try {
+    const value: unknown = JSON.parse(document);
+    if (!isRecord(value) || !Array.isArray(value.edges) || value.edges.some((edge: unknown) =>
+      !isRecord(edge) || typeof edge.source !== "string" || typeof edge.target !== "string" ||
+      edge.source === nodeId || edge.target === nodeId)) return null;
+  } catch { return null; }
+  const ranges = parsed.nodeRanges;
+  const start = index === ranges.length - 1 && index > 0 ? ranges[index - 1].end : ranges[index].start;
+  const end = index < ranges.length - 1 ? ranges[index + 1].start : ranges[index].end;
+  return document.slice(0, start) + document.slice(end);
+}
+
 export function moveWorkflowNode(
   document: string,
   nodeId: string,

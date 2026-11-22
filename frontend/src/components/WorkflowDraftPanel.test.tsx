@@ -1,9 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
 import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
-import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
+import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder, removeWorkflowNode } from "./workflow-draft-document";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
@@ -11,6 +12,24 @@ const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 const draft = { workflowId: id, version: 3, document: '{"revision":"r1"}' };
+it("removes an unconnected node without rewriting unrelated JSON", () => {
+  const a = '{"id":"a","type":"sample.constant","config":{}}';
+  const b = '{"id":"b","type":"sample.constant","config":{}}';
+  const c = '{"id":"c","type":"sample.constant","config":{}}';
+  const document = `{"schemaVersion":1,"revision":"r1","nodes":[${a}, ${b}, ${c}],"edges":[],"n":9007199254740993}`;
+  for (const [id, ids] of [["a", ["b", "c"]], ["b", ["a", "c"]], ["c", ["a", "b"]]] as const) {
+    const updated = removeWorkflowNode(document, id);
+    expect(readWorkflowNodeOrder(updated!)).toEqual(ids.map((id) => ({ id, type: "sample.constant" })));
+    expect(updated).toContain('"n":9007199254740993');
+  }
+  const single = document.replace(`${a}, ${b}, ${c}`, a);
+  expect(readWorkflowNodeOrder(removeWorkflowNode(single, "a")!)).toEqual([]);
+  const connected = document.replace('"edges":[]', '"edges":[{"id":"e","source":"a","sourcePort":"text","target":"b","targetPort":"text"}]');
+  expect(removeWorkflowNode(connected, "a")).toBeNull();
+  expect(removeWorkflowNode(connected, "b")).toBeNull();
+  expect(removeWorkflowNode(document.replace('"edges":[]', '"edges":[{}]'), "a")).toBeNull();
+  expect(removeWorkflowNode(document, "missing")).toBeNull();
+});
 it("appends a connection without changing other JSON or allowing ambiguous IDs", () => {
   const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[],"large":9007199254740993}';
   const edge = '{"id":"e1","source":"a","sourcePort":"text","target":"b","targetPort":"text"}';
@@ -59,6 +78,19 @@ it("adds a connection locally from named fields", async () => {
   await user.click(screen.getByRole("button", { name: "Add connection" }));
   expect(onChange).toHaveBeenCalledOnce();
   expect(JSON.parse(onChange.mock.calls[0][0]).edges).toEqual([{ id: "e1", source: "a", sourcePort: "text", target: "b", targetPort: "text" }]);
+});
+it("removes a node locally and keeps keyboard focus in the node section", async () => {
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[{"id":"a","type":"sample.constant","config":{}}],"edges":[]}';
+  const user = userEvent.setup();
+  function Harness() {
+    const [value, setValue] = useState(document);
+    return <WorkflowNodeOrder document={value} disabled={false} onDocumentChange={setValue} />;
+  }
+  render(<Harness />);
+  await user.click(screen.getByRole("button", { name: "Remove a" }));
+  expect(screen.getByRole("heading", { name: "Node order" })).toHaveFocus();
+  expect(screen.getByRole("status")).toHaveTextContent(/removed a locally/i);
+  expect(screen.getByText(/no nodes to reorder/i)).toBeInTheDocument();
 });
 beforeEach(() => {
   Object.defineProperty(navigator, "locks", {
