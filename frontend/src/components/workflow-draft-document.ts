@@ -13,7 +13,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function findNodeRanges(json: string): { ranges: { start: number; end: number }[]; end: number } | null {
+function findArrayRanges(json: string, target: "nodes" | "edges"): { ranges: { start: number; end: number }[]; end: number } | null {
   let index = 0;
   let nodeRanges: { ranges: { start: number; end: number }[]; end: number } | null = null;
   const whitespace = /\s/;
@@ -57,7 +57,7 @@ function findNodeRanges(json: string): { ranges: { start: number; end: number }[
         skipWhitespace();
         if (json[index] !== ":") return false;
         index += 1;
-        if (!readValue(depth + 1, depth === 0 && key === "nodes")) return false;
+        if (!readValue(depth + 1, depth === 0 && key === target)) return false;
         skipWhitespace();
         if (json[index] === "}") {
           index += 1;
@@ -116,7 +116,7 @@ function parseWorkflowDraft(document: string): ParsedWorkflowDraft | null {
   } catch {
     return null;
   }
-  const nodeRanges = findNodeRanges(document);
+  const nodeRanges = findArrayRanges(document, "nodes");
   if (nodeRanges === null || !isRecord(value) || value.schemaVersion !== 1 ||
     typeof value.revision !== "string" || !Array.isArray(value.nodes) ||
     !Array.isArray(value.edges)) {
@@ -140,6 +140,7 @@ function parseWorkflowDraft(document: string): ParsedWorkflowDraft | null {
 
 export function appendWorkflowNode(document: string, node: string): string | null {
   if (new TextEncoder().encode(node).length > 32_768) return null;
+  try { JSON.parse(node); } catch { return null; }
   const parsed = parseWorkflowDraft(document);
   const candidate = parseWorkflowDraft(`{"schemaVersion":1,"revision":"draft","nodes":[${node}],"edges":[]}`);
   if (!parsed || !candidate || candidate.order.length !== 1 ||
@@ -148,6 +149,34 @@ export function appendWorkflowNode(document: string, node: string): string | nul
   const updated = document.slice(0, parsed.nodeArrayEnd) + insertion + document.slice(parsed.nodeArrayEnd);
   if (new TextEncoder().encode(updated).length > 32_768) return null;
   return updated;
+}
+
+export function appendWorkflowEdge(document: string, edge: string): string | null {
+  if (new TextEncoder().encode(edge).length > 32_768 || !parseWorkflowDraft(document)) return null;
+  const ranges = findArrayRanges(document, "edges");
+  const wrapper = `{"schemaVersion":1,"revision":"draft","nodes":[],"edges":[${edge}]}`;
+  const candidateRanges = findArrayRanges(wrapper, "edges");
+  if (!ranges || !candidateRanges || candidateRanges.ranges.length !== 1) return null;
+  try {
+    JSON.parse(edge);
+    const current: unknown = JSON.parse(document);
+    const candidate: unknown = JSON.parse(wrapper);
+    if (!isRecord(current) || !Array.isArray(current.edges) || !isRecord(candidate) ||
+        !Array.isArray(candidate.edges) || candidate.edges.length !== 1) return null;
+    const item: unknown = candidate.edges[0];
+    if (!isRecord(item) || !["id", "source", "sourcePort", "target", "targetPort"].every(
+      (key) => typeof item[key] === "string" && (item[key] as string).length > 0,
+    )) return null;
+    const ids = new Set<unknown>([item.id]);
+    for (const existing of current.edges) {
+      if (!isRecord(existing) || typeof existing.id !== "string" || !existing.id || ids.has(existing.id)) return null;
+      ids.add(existing.id);
+    }
+    const updated = document.slice(0, ranges.end) + (current.edges.length ? "," : "") + edge + document.slice(ranges.end);
+    return new TextEncoder().encode(updated).length <= 32_768 ? updated : null;
+  } catch {
+    return null;
+  }
 }
 
 export function readWorkflowNodeOrder(document: string): WorkflowNodeOrderItem[] | null {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
+import { WorkflowEdgeEditor } from "./WorkflowEdgeEditor";
 
 type MoveDirection = "up" | "down";
 
@@ -68,6 +69,7 @@ export function WorkflowNodeOrder({
       {nodeError && <p role="alert">{nodeError}</p>}
       {nodeNotice && <p role="status">{nodeNotice}</p>}
     </div>}
+    {nodeOrder !== null && <WorkflowEdgeEditor document={document} disabled={disabled} onDocumentChange={onDocumentChange} />}
     {nodeOrder === null ? (
       <p role="note">Node ordering is unavailable because this draft does not contain a readable workflow node list. You can still edit the JSON directly.</p>
     ) : nodeOrder.length === 0 ? (
