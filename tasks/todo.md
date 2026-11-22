@@ -1,34 +1,5 @@
 # AnimeTron project progress
 
-## What AnimeTron is for
-
-AnimeTron is intended to be a self-hosted creator studio for turning original
-story ideas into short vertical animated videos using local AI models. It is
-designed for one creator using Windows with WSL2 and Docker. The target video
-length is 30–60 seconds, with a 90-second maximum. A 3D visual style means
-rendered images and animation, not editable 3D meshes or rigs.
-
-The intended workflow is:
-
-1. Build or reuse a visual workflow that plans a story and creates scenes,
-   animation, narration, subtitles and a final video.
-2. Run the workflow locally, or schedule it, and monitor its progress.
-3. Review the finished video, caption and destinations, including through the
-   planned Telegram review flow. A person must approve the exact revision,
-   caption and destination set; changes require fresh approval.
-4. Publish approved content through eligible official platform APIs. Facebook
-   Page Reels comes first; Instagram Reels, YouTube Shorts and TikTok are planned
-   separately, subject to account and API eligibility.
-
-**Current status:** This is an in-development system, not a complete video
-generator or publishing service. Parts of the studio and backend exist, but
-durable workflow execution, real media generation, automatic schedule dispatch,
-Telegram review and social publishing remain incomplete. The progress snapshot
-below counts checklist tasks rather than measuring production readiness.
-
-For architecture and approved boundaries, see the [capability map](../docs/CAPABILITY-MAP.md)
-and [specifications](../docs/SPECIFICATIONS.md). For setup, see the [README](../README.md).
-
 This is the single project-wide implementation checklist. It was reconciled
 against remote `master` at `cd26df7` on 2026-11-22. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
