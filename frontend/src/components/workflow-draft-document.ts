@@ -140,6 +140,7 @@ function parseWorkflowDraft(document: string): ParsedWorkflowDraft | null {
 
 export function appendWorkflowNode(document: string, node: string): string | null {
   if (new TextEncoder().encode(node).length > 32_768) return null;
+  try { JSON.parse(node); } catch { return null; }
   const parsed = parseWorkflowDraft(document);
   const candidate = parseWorkflowDraft(`{"schemaVersion":1,"revision":"draft","nodes":[${node}],"edges":[]}`);
   if (!parsed || !candidate || candidate.order.length !== 1 ||
