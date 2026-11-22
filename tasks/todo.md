@@ -655,13 +655,14 @@ have the security and recovery guarantees below.
     byte/metadata atomicity or automatic orphan recovery).
   - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
     byte inventories without changing either store.
-    A real Linux byte-store and SQLite metadata integration check is in
-    progress on `task/artifact-audit-filesystem`. It covers consistent,
-    missing, corrupt and orphaned artifacts and compares before/after state.
-    An unprivileged disposable Linux container ran 61 artifact tests with 27
-    PostgreSQL-gated skips; Ruff passed. PostgreSQL with the real filesystem
-    remains unverified. P0-07c remains open; the overall count is 18/57
-    (31.6%) and P0 remains 4/9.
+    [#152](https://github.com/yanxel18/animetron/pull/152) merged at
+    `3f7d77d`: a real Linux byte-store and SQLite metadata integration check
+    covers consistent, missing, corrupt and orphaned artifacts and compares
+    before/after state. An unprivileged disposable Linux container ran 61
+    artifact tests with 27 PostgreSQL-gated skips; Ruff passed. Self-review was
+    posted and GitGuardian passed; combined status was pending. PostgreSQL
+    with the real filesystem remains unverified. P0-07c remains open; the
+    overall count is 18/57 (31.6%) and P0 remains 4/9.
     Implemented in pushed commits `a25fd7f` and `0944cf9` on branch
     `task/p0-07c-artifact-reconciliation`; merged to master through
     [#75](https://github.com/yanxel18/animetron/pull/75) (PR head `f9d12df`).
