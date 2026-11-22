@@ -152,6 +152,8 @@ def audit_artifacts(
             metadata_record = ArtifactMetadata(
                 row.id, row.owner_id, row.revision, row.sha256, row.byte_size, row.media_type,
             )
+            if row.storage_locator != metadata_record.storage_locator:
+                raise ValueError("Invalid artifact locator")
         except (TypeError, ValueError):
             if isinstance(row.id, UUID):
                 invalid_metadata.add(row.id)

@@ -360,6 +360,33 @@ def test_audit_excludes_invalid_metadata_ids_from_orphaned_bytes() -> None:
         engine.dispose()
 
 
+def test_audit_reports_invalid_locator_without_classifying_bytes_as_orphaned() -> None:
+    engine = sqlite_artifact_engine()
+    record = replace(artifact(), sha256=hashlib.sha256(b"content").hexdigest(), byte_size=7)
+    inventory = SimpleNamespace(
+        files=(StoredBytes(record.id, record.sha256, record.byte_size),),
+        unsafe_ids=(), pending_names=(), unsafe_pending_names=(), unexpected_count=0,
+    )
+    try:
+        with engine.begin() as conn:
+            conn.execute(insert(artifacts).values(
+                id=record.id, owner_id=record.owner_id, revision=record.revision,
+                sha256=record.sha256, byte_size=record.byte_size,
+                media_type=record.media_type, storage_locator="artifacts/wrong",
+            ))
+            before = conn.execute(select(artifacts)).all()
+
+            report = artifact_module.audit_artifacts(
+                conn, FakeByteStore(inventory), max_total_bytes=64, max_entries=10,
+            )
+
+            assert report.invalid_metadata == (record.id,)
+            assert report.consistent == report.orphaned == ()
+            assert conn.execute(select(artifacts)).all() == before
+    finally:
+        engine.dispose()
+
+
 def test_audit_rejects_metadata_over_entry_limit_before_scanning_bytes() -> None:
     engine = sqlite_artifact_engine()
     byte_store = FakeByteStore(SimpleNamespace(

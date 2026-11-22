@@ -335,7 +335,8 @@ unlinking, a complete file can be read using trusted expectations. No pending
 files are swept at startup, and no published files are deleted on failure.
 `audit_artifacts(connection, store, max_total_bytes=..., max_entries=...)` provides
 a bounded, report-only offline comparison. It reports consistent, missing,
-orphaned, corrupt, unsafe and invalid metadata IDs, exact safe/unsafe pending
+orphaned, corrupt, unsafe and invalid metadata IDs (including mismatched
+derived locators), exact safe/unsafe pending
 names, and a count of unexpected directory entries. It checks private file
 ownership/mode and single-link status, hashes valid artifact files, and returns
 no content or storage paths. Entry/byte limit exhaustion fails without a partial
