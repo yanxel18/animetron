@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkflowDraftPanel } from "./WorkflowDraftPanel";
 import { WorkflowNodeOrder } from "./WorkflowNodeOrder";
-import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
+import { appendWorkflowEdge, appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder } from "./workflow-draft-document";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const pendingKey = "animetron.workflow-revision.pending.v1";
@@ -11,6 +11,15 @@ const creationKey = "animetron.workflow-draft-creation.pending.v1";
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const session = { role: "owner", csrfToken: "test-csrf" };
 const draft = { workflowId: id, version: 3, document: '{"revision":"r1"}' };
+it("appends a connection without changing other JSON or allowing ambiguous IDs", () => {
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[],"large":9007199254740993}';
+  const edge = '{"id":"e1","source":"a","sourcePort":"text","target":"b","targetPort":"text"}';
+  const updated = appendWorkflowEdge(document, edge);
+  expect(updated).toBe(document.replace('"edges":[]', `"edges":[${edge}]`));
+  expect(appendWorkflowEdge(updated!, edge)).toBeNull();
+  expect(appendWorkflowEdge(document, '{"id":"x","id":"y","source":"a"}')).toBeNull();
+  expect(appendWorkflowEdge(document, '{"id":"x"}')).toBeNull();
+});
 it("appends a node without altering existing JSON values or accepting duplicate IDs", () => {
   const empty = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[],"large":9007199254740993}';
   const node = '{"id":"a","type":"sample.constant","config":{"text":"hi"}}';
@@ -38,6 +47,18 @@ it("adds a supplied node locally and reports invalid input", async () => {
   await user.click(screen.getByRole("button", { name: "Add node" }));
   expect(onChange).toHaveBeenCalledOnce();
   expect(readWorkflowNodeOrder(onChange.mock.calls[0][0])).toEqual([{ id: "a", type: "sample.constant" }]);
+});
+it("adds a connection locally from named fields", async () => {
+  const document = '{"schemaVersion":1,"revision":"r1","nodes":[],"edges":[]}';
+  const onChange = vi.fn();
+  render(<WorkflowNodeOrder document={document} disabled={false} onDocumentChange={onChange} />);
+  const user = userEvent.setup();
+  for (const [label, value] of [["Connection ID", "e1"], ["Source node ID", "a"], ["Source port", "text"], ["Target node ID", "b"], ["Target port", "text"]]) {
+    await user.type(screen.getByLabelText(label), value);
+  }
+  await user.click(screen.getByRole("button", { name: "Add connection" }));
+  expect(onChange).toHaveBeenCalledOnce();
+  expect(JSON.parse(onChange.mock.calls[0][0]).edges).toEqual([{ id: "e1", source: "a", sourcePort: "text", target: "b", targetPort: "text" }]);
 });
 beforeEach(() => {
   Object.defineProperty(navigator, "locks", {
