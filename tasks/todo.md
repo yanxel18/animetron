@@ -1589,6 +1589,10 @@ accessibility checks pass, not merely when mock screens exist.
     status is pending. Keep unchecked pending the required review and checks.
 - [ ] P7-06 Measure contrast for implemented themes and agree, then test, a
   real 100-node/150-edge responsiveness target.
+  - 2026-11-22: a partial static dark-theme color measurement is recorded in
+    [contrast evidence](p7-06-contrast-evidence.md). The border token needs
+    rendered-context investigation; browser and assistive-technology checks
+    remain open. This does not complete P7-06 or change the 18/57 count.
   - [x] P7-06a Record the owner-approved responsiveness target: Chromium on the
     reference computer at 1440px, real 100-node/150-edge workflow, p95
     keyboard/click selection to correctly updated inspector at most 200ms,
