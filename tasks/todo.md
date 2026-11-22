@@ -1,9 +1,9 @@
 # AnimeTron project progress
 
-This is the single project-wide implementation checklist. An earlier check of
-remote `master` found `95c4fc4` on 2026-11-22, including #121 and #122. Master
-has since advanced to at least `cc202f9`; their review and check gates have not
-been independently reverified in this update.
+This is the single project-wide implementation checklist. It was reconciled
+against remote `master` at `cd26df7` on 2026-11-22. An earlier check found
+`95c4fc4`, including #121 and #122; their historical review and check records
+have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
 the mobile navigation and API contract slices; #55 reached master through #54.
 #56 reconciled progress documentation, #57 merged read-only run monitoring,
@@ -53,7 +53,7 @@ The owner approved the
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
 
-## Overall progress snapshot - 2026-11-19
+## Overall progress snapshot - 2026-11-22
 
 **31.6%: 18 of 57 top-level P0-P9 checklist tasks are complete.** This is an
 unweighted task count, not a measure of effort, functionality or production
@@ -61,15 +61,16 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated after reconciling latest verified master
-`969eb37`; #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
-#94, #95, #96, #99, #101, #103 and #116 are merged but are not credited
-without a passing independent review and required checks. #117 is also merged
-but is not credited because its independent-review and combined-status gates
-remain unmet. P7-02e merged in
+percentage is unchanged. Recalculated against master `cd26df7` after #142,
+#143, #140 and #141 merged; nested slices did not complete a top-level task.
+Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
+#94, #95, #96, #99, #101, #103 and #116 were merged without the independent
+review and required check evidence then required. #117 was also merged without
+the then-required review and combined-status evidence. These entries have not
+been re-audited under the revised development policy. P7-02e merged in
 [#118](https://github.com/yanxel18/animetron/pull/118); the correction merged
 in [#119](https://github.com/yanxel18/animetron/pull/119). P7-02e remains
-unchecked pending the required independent reviews and checks.
+unchecked pending re-audit of its review and checks under the revised policy.
 #86 includes P1-08c and P1-10c;
 #87 adds P1-11b; #88 adds P1-12a; #89 adds P1-12b; #90 adds P0-07d; #91
 verifies P0-07c; #92 adds P1-12c; #93 addresses the #91 review findings.
@@ -299,6 +300,12 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   self-review, 189 unit tests, build, API drift and 28 fixture-backed browser
   checks. Live authenticated and screen-reader tests remain open. The top-level
   checklist remains 18/57 (31.6%); no phase is complete.
+- The catalog insertion reached master through
+  [#143](https://github.com/yanxel18/animetron/pull/143) at `729aa74` after
+  self-review, 191 unit tests, build, API drift and 28 fixture-backed browser
+  checks. Earlier overlapping #139 was closed as superseded, not merged.
+  Contrast evidence #140 and hardware evidence #141 were also merged; neither
+  establishes accessibility conformance, safe model capacity or phase completion.
 - Local preview check: the tailnet UI returned HTTP 200, but its session API
   path returned HTML rather than the expected API response and no backend
   listened on `127.0.0.1:8000`. This is not an authenticated or operational
@@ -1378,12 +1385,12 @@ accessibility checks pass, not merely when mock screens exist.
     including ports and config schemas, with loading, retry and denial handling.
     This read-only slice does not create nodes or establish execution readiness;
     independent review and required checks remain outstanding.
-  - [ ] P7-02s Insert an explicitly selected catalog node into a loaded draft
+  - [x] P7-02s Insert an explicitly selected catalog node into a loaded draft
     with a secure generated UUID and empty config. No request is sent until the
     existing save action; required configuration, validation and execution
-    remain separate. [#139](https://github.com/yanxel18/animetron/pull/139)
-    targets master without the integrated editor; a reconciled follow-up is
-    stacked on #142. Independent review and required checks remain outstanding.
+    remain separate. The reconciled implementation merged through
+    [#143](https://github.com/yanxel18/animetron/pull/143); #139 was closed
+    as superseded. Live authenticated and screen-reader tests remain open.
   - Owner-only draft read, write, validation and revision creation APIs exist.
     A full editor and its workflow-creation UX remain unimplemented; P1-09
     remains unchecked because its review/check gates are incomplete.
