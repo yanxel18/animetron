@@ -192,6 +192,19 @@ export function readWorkflowNodeSource(document: string, nodeId: string): string
   return document.slice(range.start, range.end);
 }
 
+export function replaceWorkflowNode(document: string, nodeId: string, node: string): string | null {
+  if (new TextEncoder().encode(node).length > 32_768) return null;
+  try { JSON.parse(node); } catch { return null; }
+  const parsed = parseWorkflowDraft(document);
+  const candidate = parseWorkflowDraft(`{"schemaVersion":1,"revision":"draft","nodes":[${node}],"edges":[]}`);
+  if (!parsed || !candidate || candidate.order.length !== 1 || candidate.order[0].id !== nodeId) return null;
+  const index = parsed.order.findIndex((item) => item.id === nodeId);
+  if (index < 0) return null;
+  const range = parsed.nodeRanges[index];
+  const updated = document.slice(0, range.start) + node + document.slice(range.end);
+  return new TextEncoder().encode(updated).length <= 32_768 ? updated : null;
+}
+
 type WorkflowEdgeItem = { id: string; source: string; sourcePort: string; target: string; targetPort: string };
 
 export function readWorkflowEdges(document: string): WorkflowEdgeItem[] | null {

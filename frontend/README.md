@@ -19,6 +19,9 @@ version-checked save. The backend validates node types, ports and graph shape;
 an insertion or successful save does not imply validity or execution readiness.
 The node inspector shows the exact current-draft node JSON, including unsaved
 changes; it does not validate the node. This inspector slice is stacked on #132.
+An existing node can be edited as JSON without changing its ID; the update is
+local until saved and still requires backend validation. This edit slice is
+stacked on #134.
 The connection editor is stacked on the node-boundary fix in PR #127 and is
 not complete until its PR, review and required checks are resolved. A backend-driven palette, connection
 discovery and live authenticated end-to-end verification remain outstanding.

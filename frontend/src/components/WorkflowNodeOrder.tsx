@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder, readWorkflowNodeSource, removeWorkflowNode } from "./workflow-draft-document";
+import { appendWorkflowNode, moveWorkflowNode, readWorkflowNodeOrder, readWorkflowNodeSource, removeWorkflowNode, replaceWorkflowNode } from "./workflow-draft-document";
 import { WorkflowEdgeEditor } from "./WorkflowEdgeEditor";
 
 type MoveDirection = "up" | "down";
@@ -19,10 +19,12 @@ export function WorkflowNodeOrder({
   const nodeMoveButtons = useRef(new Map<string, Partial<Record<MoveDirection, HTMLButtonElement>>>());
   const focusAfterMove = useRef<{ id: string; direction: MoveDirection } | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const nodeInputRef = useRef<HTMLTextAreaElement>(null);
   const focusAfterRemoval = useRef(false);
   const addedNode = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [nodeText, setNodeText] = useState("");
+  const [editingNode, setEditingNode] = useState<string | null>(null);
   const [nodeError, setNodeError] = useState<string | null>(null);
   const [nodeNotice, setNodeNotice] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
@@ -66,24 +68,27 @@ export function WorkflowNodeOrder({
     {nodeOrder !== null && <div>
       <label htmlFor="workflow-new-node">Node JSON</label>
       <p id="workflow-new-node-help">Enter one node object with an ID, type and config. Validate the saved draft to check supported types and connections.</p>
+      {editingNode !== null && <p>Editing node <code>{editingNode}</code>. Its ID must stay the same.</p>}
       <textarea id="workflow-new-node" className="workflow-json workflow-json-editor" value={nodeText}
+        ref={nodeInputRef}
         aria-describedby="workflow-new-node-help" disabled={disabled} maxLength={32768}
-        onChange={(event) => { setNodeText(event.target.value); onNodePendingChange?.(event.target.value.length > 0); setNodeError(null); setNodeNotice(null); }} />
-      {nodeText.length > 0 && <button className="button button--secondary" type="button" disabled={disabled}
-        onClick={() => { setNodeText(""); onNodePendingChange?.(false); setNodeError(null); }}>Clear node input</button>}
+        onChange={(event) => { setNodeText(event.target.value); onNodePendingChange?.(editingNode !== null || event.target.value.length > 0); setNodeError(null); setNodeNotice(null); }} />
+      {(nodeText.length > 0 || editingNode !== null) && <button className="button button--secondary" type="button" disabled={disabled}
+        onClick={() => { setNodeText(""); setEditingNode(null); onNodePendingChange?.(false); setNodeError(null); }}>Clear node input</button>}
       <button className="button button--secondary" type="button" disabled={disabled} onClick={() => {
-        const updated = appendWorkflowNode(document, nodeText);
+        const updated = editingNode === null ? appendWorkflowNode(document, nodeText) : replaceWorkflowNode(document, editingNode, nodeText);
         if (!updated) {
-          setNodeError("Cannot add this node. Check the JSON, unique ID, node fields and draft size.");
+          setNodeError(editingNode === null ? "Cannot add this node. Check the JSON, unique ID, node fields and draft size." : "Cannot update this node. Use valid JSON with the same node ID, required fields and size limit.");
           return;
         }
-        addedNode.current = true;
-        onDocumentChange(updated);
+        const unchanged = updated === document;
+        if (!unchanged) { addedNode.current = true; onDocumentChange(updated); }
         setNodeText("");
+        setEditingNode(null);
         onNodePendingChange?.(false);
         setNodeError(null);
-        setNodeNotice("Node added locally. Save the draft to keep it.");
-      }}>Add node</button>
+        setNodeNotice(unchanged ? "Node unchanged." : editingNode === null ? "Node added locally. Save the draft to keep it." : "Node updated locally. Save the draft to keep it.");
+      }}>{editingNode === null ? "Add node" : "Apply node changes"}</button>
       {nodeError && <p role="alert">{nodeError}</p>}
       {nodeNotice && <p role="status">{nodeNotice}</p>}
     </div>}
@@ -104,6 +109,13 @@ export function WorkflowNodeOrder({
               <button className="button button--secondary" type="button" disabled={disabled}
                 aria-label={`Inspect ${node.id}`} aria-pressed={selectedNode === node.id}
                 onClick={() => setSelectedNode(node.id)}>Inspect</button>
+              <button className="button button--secondary" type="button" disabled={disabled || nodeText.length > 0 || editingNode !== null}
+                aria-label={`Edit ${node.id}`} onClick={() => {
+                  const source = readWorkflowNodeSource(document, node.id);
+                  if (source === null) return;
+                  setSelectedNode(node.id); setEditingNode(node.id); setNodeText(source);
+                  onNodePendingChange?.(true); setNodeError(null); setNodeNotice(null); nodeInputRef.current?.focus();
+                }}>Edit</button>
               <button className="button button--secondary" type="button"
                 aria-label={`Move ${node.id} up`} disabled={index === 0 || disabled}
                 ref={(element) => {
@@ -133,7 +145,7 @@ export function WorkflowNodeOrder({
                   }
                 }}
                 onClick={() => moveNode(node.id, "down")}>Move down</button>
-              <button className="button button--secondary" type="button" disabled={disabled}
+              <button className="button button--secondary" type="button" disabled={disabled || editingNode !== null}
                 aria-label={`Remove ${node.id}`} onClick={() => {
                   const updated = removeWorkflowNode(document, node.id);
                   if (!updated) {
