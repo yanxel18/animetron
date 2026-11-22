@@ -1,7 +1,11 @@
 import hashlib
+import io
 import os
+import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import FrozenInstanceError, replace
+from pathlib import Path
 from threading import Barrier
 from types import SimpleNamespace
 from uuid import UUID, uuid4
@@ -11,7 +15,11 @@ from sqlalchemy import CheckConstraint, create_engine, insert, inspect, select, 
 from sqlalchemy.exc import IntegrityError
 
 from app.core import artifacts as artifact_module
-from app.core.artifact_bytes import ArtifactAuditLimitExceeded, StoredBytes
+from app.core.artifact_bytes import (
+    ArtifactAuditLimitExceeded,
+    ArtifactByteStore,
+    StoredBytes,
+)
 from app.core.artifacts import (
     ArtifactConflict,
     ArtifactMetadata,
@@ -146,6 +154,60 @@ def test_audit_compares_complete_metadata_and_bytes_without_writing() -> None:
             assert byte_store.max_total_bytes == 64
             assert byte_store.max_entries == 10
             assert conn.scalar(text("SELECT count(*) FROM artifact_metadata")) == 4
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Real byte storage requires Linux")
+def test_audit_reconciles_real_byte_store_with_metadata_without_mutation() -> None:
+    root_parent = os.environ.get("ARTIFACT_TEST_ROOT")
+    if not root_parent:
+        pytest.skip("Set ARTIFACT_TEST_ROOT to an isolated private Linux directory")
+    engine = sqlite_artifact_engine()
+    try:
+        with (
+            tempfile.TemporaryDirectory(dir=root_parent) as root,
+            ArtifactByteStore(root) as store,
+            engine.begin() as conn,
+        ):
+            consistent_id, missing_id, corrupt_id, orphan_id = (uuid4() for _ in range(4))
+            for identifier, data in (
+                (consistent_id, b"match"), (corrupt_id, b"actual"), (orphan_id, b"orphan"),
+            ):
+                store.put(identifier, io.BytesIO(data), max_bytes=len(data))
+            records = (
+                replace(artifact(), id=consistent_id,
+                        sha256=hashlib.sha256(b"match").hexdigest(), byte_size=5),
+                replace(artifact(), id=missing_id),
+                replace(artifact(), id=corrupt_id,
+                        sha256=hashlib.sha256(b"expect").hexdigest(), byte_size=6),
+            )
+            for record in records:
+                conn.execute(insert(artifacts).values(
+                    id=record.id, owner_id=record.owner_id, revision=record.revision,
+                    sha256=record.sha256, byte_size=record.byte_size,
+                    media_type=record.media_type, storage_locator=record.storage_locator,
+                ))
+            directory = Path(root) / "artifacts"
+            before_files = {
+                path.name: (path.stat().st_ino, path.read_bytes()) for path in directory.iterdir()
+            }
+            before_rows = conn.execute(select(artifacts).order_by(artifacts.c.id)).all()
+
+            report = artifact_module.audit_artifacts(conn, store, max_total_bytes=64, max_entries=10)
+
+            assert report.consistent == (consistent_id,)
+            assert report.missing == (missing_id,)
+            assert report.corrupt == (corrupt_id,)
+            assert report.orphaned == (orphan_id,)
+            assert report.unsafe == report.invalid_metadata == ()
+            assert report.pending_names == report.unsafe_pending_names == ()
+            assert report.unexpected_count == 0
+            assert conn.execute(select(artifacts).order_by(artifacts.c.id)).all() == before_rows
+            after_files = {
+                path.name: (path.stat().st_ino, path.read_bytes()) for path in directory.iterdir()
+            }
+            assert after_files == before_files
     finally:
         engine.dispose()
 
