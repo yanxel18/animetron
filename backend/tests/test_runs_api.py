@@ -445,6 +445,70 @@ def test_cancellation_requires_csrf_before_run_lookup(run_context):
     assert_error(response, 403)
 
 
+@pytest.mark.parametrize(
+    ("denial", "status"),
+    [
+        ("missing_session", 401),
+        ("revoked_session", 401),
+        ("operator", 403),
+        ("viewer", 403),
+        ("missing_origin", 403),
+        ("wrong_origin", 403),
+        ("duplicate_origin", 403),
+        ("missing_csrf", 403),
+        ("wrong_csrf", 403),
+        ("duplicate_csrf", 403),
+    ],
+)
+def test_cancellation_denials_preserve_run_events_and_intents(
+    run_context, denial, status,
+):
+    client, store, engine, handle, principal = run_context
+    run_id = create_durable_run(engine, terminal=False)
+    with engine.connect() as connection:
+        before_status = run_service.get_run_status(connection, run_id)
+        before_events = run_service.list_events(connection, run_id, 0)
+
+    headers = list(owner_headers(principal).items())
+    if denial == "missing_session":
+        client.cookies.clear()
+    elif denial == "revoked_session":
+        store.revoke(handle, "cancellation-denial")
+    elif denial in {"operator", "viewer"}:
+        role_handle, role_principal = store.create_session(
+            f"run-{denial}", "cancellation-role-denial",
+        )
+        client.cookies.set(SESSION_COOKIE, role_handle)
+        headers = list(owner_headers(role_principal).items())
+    elif denial == "missing_origin":
+        headers = [("X-CSRF-Token", principal.csrf)]
+    elif denial == "wrong_origin":
+        headers = [("Origin", "https://evil.example"),
+                   ("X-CSRF-Token", principal.csrf)]
+    elif denial == "duplicate_origin":
+        headers.append(("Origin", "https://control.example"))
+    elif denial == "missing_csrf":
+        headers = [("Origin", "https://control.example")]
+    elif denial == "wrong_csrf":
+        headers = [("Origin", "https://control.example"),
+                   ("X-CSRF-Token", "invalid-csrf")]
+    elif denial == "duplicate_csrf":
+        headers.append(("X-CSRF-Token", principal.csrf))
+
+    response = client.post(
+        f"/api/v1/runs/{run_id}/cancellations", headers=headers,
+    )
+    assert_error(response, status)
+    with engine.connect() as connection:
+        assert run_service.get_run_status(connection, run_id) == before_status
+        assert run_service.list_events(connection, run_id, 0) == before_events
+        assert connection.scalar(
+            select(func.count()).select_from(outbox).where(
+                outbox.c.resource_id == run_id,
+            )
+        ) == 0
+
+
 def test_cancellation_route_has_an_explicit_async_openapi_contract():
     schema = create_api().openapi()
     operation = schema["paths"]["/api/v1/runs/{id}/cancellations"]["post"]
