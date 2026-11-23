@@ -1332,13 +1332,18 @@ immutable workflow and recover its state without duplicate effects.
     passed parallel technical review. Self-review was posted; GitGuardian,
     Ruff and Linux-target mypy passed. Parent P1-11 and P1-12 remain open for
     execution, worker termination, reconnect/live updates and recovery scope.
-  - [ ] P1-12e Verify concurrent duplicate dispatch preparation reuses one
+  - [x] P1-12e Verify concurrent duplicate dispatch preparation reuses one
     persisted node plan and run-ready intent after waiting on PostgreSQL.
     Nine dispatch tests, migrations, Ruff and Linux-target mypy passed in the
     owned harness; a replay-path mutation failed the new regression. Merged in
     [#95](https://github.com/yanxel18/animetron/pull/95) at `7009807`, after
-    #94. This does not verify worker delivery or execution. Independent review
-    is not recorded and combined status is pending; keep unchecked.
+    #94. Re-audited on 2026-11-23 with an additional PostgreSQL rollback case:
+    the duplicate contender must first wait on the original transaction, then
+    either reuse its committed plan or prepare once after rollback. Both cases
+    assert one node plan, one run-ready intent, a single RUNNING event and
+    sequence 2. The owned dispatch suite passed 12 tests; Ruff and Linux-target
+    mypy passed. Readiness resolution uses fake bindings/catalogs and no handler
+    is invoked. Worker delivery and execution remain unverified.
 
 ## Phase 2 - Model registry and hardware readiness
 

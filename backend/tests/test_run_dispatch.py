@@ -394,7 +394,10 @@ def test_dispatch_and_cancellation_serialize_on_postgresql(
         assert len(topics) == 3
 
 
-def test_concurrent_dispatch_reuses_prepared_intents_on_postgresql(monkeypatch):
+@pytest.mark.parametrize("commit_first", [True, False], ids=["commit", "rollback"])
+def test_concurrent_dispatch_reuses_prepared_intents_on_postgresql(
+    commit_first, monkeypatch,
+):
     url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
     if not url:
         pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
@@ -447,7 +450,10 @@ def test_concurrent_dispatch_reuses_prepared_intents_on_postgresql(monkeypatch):
                     else:
                         pytest.fail("Duplicate dispatch never waited on the first transaction")
                 assert not future.done()
-                transaction.commit()
+                if commit_first:
+                    transaction.commit()
+                else:
+                    transaction.rollback()
             finally:
                 if transaction.is_active:
                     transaction.rollback()
@@ -464,14 +470,18 @@ def test_concurrent_dispatch_reuses_prepared_intents_on_postgresql(monkeypatch):
         engine.dispose()
 
     assert first.outcome is run_dispatch.DispatchOutcome.PREPARED
-    assert second.outcome is run_dispatch.DispatchOutcome.ALREADY_PREPARED
+    assert second.outcome is (
+        run_dispatch.DispatchOutcome.ALREADY_PREPARED
+        if commit_first else run_dispatch.DispatchOutcome.PREPARED
+    )
     assert second.node_count == first.node_count == 1
     assert status.state is RunState.RUNNING
+    assert status.last_sequence == 2
     assert [event.state for event in events] == [RunState.QUEUED, RunState.RUNNING]
     assert topics.count(run_requests.INTERNAL_TOPIC) == 1
     assert topics.count(run_dispatch.RUN_READY_TOPIC) == 1
     assert counts == (1, 2)
-    assert handlers.calls == ["handler-v1"]
+    assert handlers.calls == ["handler-v1"] * (1 if commit_first else 2)
 
 
 def test_dispatch_topic_is_distinct_from_non_executable_run_request():
