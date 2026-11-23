@@ -1,13 +1,14 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `ee4fa5a` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `ed17b13` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
-oversize and streamed-overflow rejection evidence; #179 and this update
-reconcile that evidence. The 2026-11-23 source/test re-audit credited
-P0-07c and P0-07d under the revised review policy. None changes the top-level
-task counts. An earlier check found
+oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
+those slices. This update re-audits P0-09c/d under the current source-review
+workflow and completes P0-09, raising the top-level count to 19/57. The
+2026-11-23 source/test re-audit also credited P0-07c and P0-07d. An earlier
+check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -61,17 +62,19 @@ and human-acceptance gates still apply. This checklist does not replace them.
 
 ## Overall progress snapshot - 2026-11-23
 
-**31.6%: 18 of 57 top-level P0-P9 checklist tasks are complete.** This is an
+**33.3%: 19 of 57 top-level P0-P9 checklist tasks are complete.** This is an
 unweighted task count, not a measure of effort, functionality or production
 readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `ee4fa5a` on 2026-11-23;
+percentage is unchanged. Recalculated against master `ed17b13` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
-P0-09e evidence. P0-07c and P0-07d were re-audited under the revised review
-policy. Counts remain 18/57 (31.6%) because no top-level task completed.
+P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
+the current review workflow and completes P0-09. The count is 19/57 (33.3%),
+with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised review
+policy.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 were merged without the independent
 review and required check evidence then required. #117 was also merged without
@@ -774,8 +777,11 @@ have the security and recovery guarantees below.
     behavior. Implemented in `3fde341` on `task/p0-08-local-recovery-test`,
     stacked through [#76](https://github.com/yanxel18/animetron/pull/76) and
     included in master via #75.
-    No independent review was recorded; keep unchecked pending review-gate
-    reconciliation. The disposable Docker test restored a synthetic metadata
+    Re-audited 2026-11-23 with source review and a fresh run of
+    `run_platform_recovery_checks.py`; the owned resources were cleaned. The
+    historical lack of a separate independent GitHub review was resolved under
+    the current source-review/self-review workflow. The disposable Docker test
+    restored synthetic metadata
     row and artifact into fresh resources with a matching SHA-256, verified
     private PostgreSQL networking and a loopback-only test endpoint,
     and left no labeled resources. Ruff and Python compilation passed; the
@@ -783,8 +789,13 @@ have the security and recovery guarantees below.
     skipped). Reversing the restored-hash assertion failed as expected, then
     the restored check passed. This does not prove a production backup
     procedure or actual gateway setup.
-- [ ] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
+- [x] P0-09 Verify unauthenticated access, malformed uploads, secret redaction,
   transaction recovery and backup/restore with integration tests.
+  Re-audited against the current source/tests on 2026-11-23. The owned full
+  PostgreSQL/Keycloak backend harness passed 965 tests with 27 skips, along
+  with Ruff, Linux-target mypy and Alembic upgrade/drift checks. The separate
+  disposable recovery harness passed; P0-08 remains open for production
+  networking, backup target, encryption and retention decisions.
   - [x] P0-09a Add the owner's explicit local credential-file exclusion.
     Existing `*.env` protection remains intact; the local file is preserved.
     Names-only tracking and ignore checks passed. Merged in
@@ -798,9 +809,10 @@ have the security and recovery guarantees below.
     route cases passed; a disposable mutation reflecting the Authorization
     header made all five fail, then was restored. Ruff and `git diff --check`
     passed. GitGuardian passed; no independent GitHub review was recorded at
-    merge. Keep unchecked pending review-gate reconciliation. This slice does
-    not cover malformed uploads, transaction recovery or backup/restore.
-  - [ ] P0-09c Assert that OIDC callback failure responses never reflect
+    merge. Re-audited the source and test under the current review workflow;
+    the full owned harness passed. This slice does not itself cover malformed
+    uploads, transaction recovery or backup/restore.
+  - [x] P0-09c Assert that OIDC callback failure responses never reflect
     provider-returned access or ID tokens. Implemented in commit `2c8af75` on
     `task/p0-09c-oidc-token-redaction`; merged through stacked
     [#80](https://github.com/yanxel18/animetron/pull/80) and #79.
@@ -808,13 +820,16 @@ have the security and recovery guarantees below.
     Linux-target mypy and Alembic upgrade/check passed. Inverting the assertion
     made all 12 invalid-claim/signature variants fail, then the correct
     assertion was restored. GitGuardian passed; no independent GitHub review
-    was recorded at merge. Keep unchecked pending review-gate reconciliation.
-    This does not resolve upload or production backup policy.
-  - [ ] P0-09d Verify artifact metadata transaction recovery after a constraint
+    was recorded at merge. Re-audited the callback error handling and test;
+    the full owned harness passed under the current source-review workflow.
+    This does not resolve production backup policy.
+  - [x] P0-09d Verify artifact metadata transaction recovery after a constraint
     failure. Implemented and merged in [#81](https://github.com/yanxel18/animetron/pull/81)
     at master `181bf6c`; the owned PostgreSQL harness passed 56 tests, with Ruff,
-    Linux-target mypy and Alembic upgrade/check. The PR body reported no
-    independent review; keep unchecked pending review-gate reconciliation.
+    Linux-target mypy and Alembic upgrade/check. Re-audited the transaction
+    failure test and implementation; the full owned harness passed under the
+    current source-review workflow. This verifies transaction recovery, not
+    atomicity between artifact-byte publication and metadata persistence.
   - [x] P0-09e Verify malformed and oversized PNG uploads leave no bytes or
     metadata. Added owner-authenticated integration cases in
     [#178](https://github.com/yanxel18/animetron/pull/178), merged at
