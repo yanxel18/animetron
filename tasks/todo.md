@@ -1,14 +1,15 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `d8819b6` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `628216c` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
 those slices; #182 reconciled P0-09. PR #183 added the streamed chunk-count
 guard regression and #184 recorded it. PR #185 adds conditional compensation
-for a definite artifact metadata constraint rejection; this update records
-that P0-07g slice without changing top-level counts. The 2026-11-23
+for a definite artifact metadata constraint rejection. PR #187 adds P0-07h
+commit-acknowledgement reconciliation; this update records both nested slices
+without changing top-level counts. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -69,12 +70,13 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `d8819b6` on 2026-11-23;
+percentage is unchanged. Recalculated against master `628216c` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
 the current review workflow and completes P0-09. PR #183 adds nested P0-09g
-chunk-count coverage; #185 adds nested P0-07g. The count remains 19/57
+chunk-count coverage; #185 adds nested P0-07g and #187 adds P0-07h. The
+count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
@@ -765,19 +767,30 @@ have the security and recovery guarantees below.
     metadata/bytes and CSRF rejection before storage. Harness Ruff and
     Linux-target mypy passed; GitGuardian passed. Ancillary chunks and all other
     media are rejected. P0-07g adds exact compensation after a definite
-    metadata constraint rejection. Other database failures may still leave an
-    orphan for the report-only audit; there is no general orphan sweep. Video
+    metadata constraint rejection; P0-07h reconciles a database error by
+    reading the generated UUID in a fresh transaction and confirms success only
+    when all metadata matches. If readback finds no row or the database remains
+    unavailable, the request returns 503 and preserves bytes for the report-only
+    audit. There is no general orphan sweep or cross-store atomicity. Video
     upload and P0-07 as a whole remain incomplete pending a restricted probe
-    runtime and resolution of ambiguous-commit recovery.
+    runtime and broader artifact-lifecycle completion.
   - [x] P0-07g Conditionally remove just-published bytes after a definitive
     artifact-metadata constraint rejection, only when the object still matches
     its expected ID, size, digest and file identity. Implemented in
     [#185](https://github.com/yanxel18/animetron/pull/185), merged at
     `d8819b6`. The owned PostgreSQL upload harness passed 8 tests and the Linux
     byte-store suite passed 27; Ruff, Linux-target mypy, route/test formatting,
-    `git diff --check` and GitGuardian passed. An operational database error
-    preserves the bytes for audit because its commit outcome may be ambiguous.
-    This is not general orphan cleanup or full byte/metadata atomicity.
+    `git diff --check` and GitGuardian passed. This is not general orphan
+    cleanup or full byte/metadata atomicity.
+  - [x] P0-07h Reconcile non-integrity database errors after artifact upload
+    by reading back the generated UUID in a fresh transaction. Return 201 only
+    when the stored metadata exactly matches the attempted record; otherwise
+    return generic 503 and preserve bytes for audit. Implemented in
+    [#187](https://github.com/yanxel18/animetron/pull/187), merged at
+    `628216c`. Owned PostgreSQL upload harness: 9 passed; Ruff and Linux-target
+    mypy passed; local DB-dependent run skipped 9 because no local test database
+    was configured. Self-review and GitGuardian passed. Missing-row or failed
+    readback remains an audit case; this does not provide cross-store atomicity.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
