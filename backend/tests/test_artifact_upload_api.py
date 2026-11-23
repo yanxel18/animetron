@@ -8,6 +8,7 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
+from starlette.requests import Request
 
 from app.api import artifacts as artifact_api
 from app.core.artifact_bytes import StoredBytes
@@ -199,6 +200,41 @@ def test_owner_upload_rejects_streamed_overflow_before_storage(
         headers={
             "content-type": "image/png",
             "x-artifact-revision": "render-stream-overflow",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "ARTIFACT_TOO_LARGE"
+    assert byte_store.uploads == {}
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
+
+
+def test_owner_upload_rejects_excessive_chunk_count_before_storage(
+    upload_context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    monkeypatch.setattr(artifact_api, "_MAX_UPLOAD_CHUNKS", 2)
+
+    # TestClient coalesces iterator bodies; inject ASGI chunks to reach the guard.
+    async def request_chunks(_request: Request):
+        yield b"a"
+        yield b"b"
+        yield b"c"
+
+    monkeypatch.setattr(Request, "stream", request_chunks)
+    with engine.begin() as connection:
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=b"abc",
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-too-many-chunks",
             "origin": config.origin,
             "x-csrf-token": principal.csrf,
         },
