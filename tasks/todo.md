@@ -1318,16 +1318,16 @@ immutable workflow and recover its state without duplicate effects.
     a row-lock mutation failed the new regression. This does not verify worker
     execution or dispatch contention. Merged in
     [#92](https://github.com/yanxel18/animetron/pull/92) at `5bce7b7`;
-    Re-audited in #209 on 2026-11-23: 17 cancellation tests passed in owned
-    PostgreSQL, including the observed row-lock contention and reconnect cases.
+    Re-audited in #209 on 2026-11-23: 17 cancellation tests passed in the owned
+    harness, including PostgreSQL row-lock contention and reconnect cases.
     Self-review was posted; GitGuardian, Ruff and Linux-target mypy passed.
   - [x] P1-12d Verify cancellation and dispatch preparation serialize on
     PostgreSQL in both lock orderings. Eight dispatch and 13 cancellation
     tests passed in the owned harness. Uses a fake execution binding and does
     not verify a worker or suppression of already-prepared run-ready intents.
     Merged in [#94](https://github.com/yanxel18/animetron/pull/94) at
-    `4027b19`. Re-audited in #210 on 2026-11-23: 11 dispatch tests passed in
-    owned PostgreSQL, including both orderings with committed and rolled-back
+    `4027b19`. Re-audited in #210 on 2026-11-23: 11 dispatch tests passed in the
+    owned harness, including PostgreSQL orderings with committed and rolled-back
     lock holders. Exact state/event/intent assertions and row-lock wait evidence
     passed parallel technical review. Self-review was posted; GitGuardian,
     Ruff and Linux-target mypy passed. Parent P1-11 and P1-12 remain open for
