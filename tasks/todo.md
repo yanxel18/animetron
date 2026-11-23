@@ -715,10 +715,11 @@ have the security and recovery guarantees below.
     single byte-range support, and safe inline media allowlisting. Implemented on
     `feat/p0-07e-artifact-content`; [#172](https://github.com/yanxel18/animetron/pull/172)
     is open. The focused content/storage suites passed: 47 passed, 54 skipped;
-    Ruff and format checks passed for changed files. The full backend suite
-    reported 504 passed, 417 skipped, 48 database-auth setup errors and 3
-    database-auth failures because `ANIMETRON_TEST_DATABASE_URL` is unset.
-    GitHub checks and review remain outstanding. `ANIMETRON_ARTIFACT_ROOT` is
+    Ruff lint passed for changed Python files, and format checks passed for the
+    route and test files. The full backend suite reported 504 passed, 417
+    skipped, 48 database-auth setup errors and 3 database-auth failures because
+    `ANIMETRON_TEST_DATABASE_URL` is unset. GitGuardian passed; review remains
+    outstanding. `ANIMETRON_ARTIFACT_ROOT` is
     an explicit Linux-only runtime setting; content fails closed when unset.
     Upload is not implemented.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
