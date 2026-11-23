@@ -1346,6 +1346,8 @@ immutable workflow and recover its state without duplicate effects.
     sequence 2. The owned dispatch suite passed 12 tests; Ruff and Linux-target
     mypy passed. Readiness resolution uses fake bindings/catalogs and no handler
     is invoked. Worker delivery and execution remain unverified.
+    #212 merged at `9119942` after a posted self-review and successful
+    GitGuardian check.
 
 ## Phase 2 - Model registry and hardware readiness
 
@@ -1476,6 +1478,12 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     Callers must account for rotation/sample aspect ratio and must not round
     duration down. This performs no probing or decoding and establishes neither
     audible audio nor real media acceptance. P3-04 remains open.
+    #213 merged at `42fd0ba` after parallel technical review, posted self-review
+    and a successful GitGuardian check. The full owned PostgreSQL/Keycloak
+    harness passed 1,040 tests with 28 skips; Ruff, Linux-target mypy and
+    migration lifecycle passed. The focused media suite passed 66 tests.
+    A direct run without the owned harness failed missing database prerequisites;
+    the owned rerun supplied those dependencies and passed.
 - [ ] P3-05 Measure an actual short reel's resource peaks, elapsed time,
   versions and output hashes; obtain human review of quality and alignment.
 
