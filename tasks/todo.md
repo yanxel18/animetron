@@ -1469,6 +1469,13 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     It is not connected to speech alignment, rendering or workflow execution.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
+  - Internal local probing accepts trusted server-controlled input/executable
+    paths, uses shell-free FFprobe arguments and a file-only protocol list, and
+    bounds post-spawn execution time and captured output before metadata validation.
+    Process-boundary tests use controlled child processes; real FFprobe/media
+    compatibility remains unverified because no executable is available on the
+    current PATH. This is not a sandbox, immutable artifact verification, decoder
+    validation or runtime-handler wiring. P3-04 remains open.
   - A bounded internal FFprobe JSON parser connects supplied metadata to the
     media-facts validator. Its supported profile requires exactly one video and
     one audio stream, unique indices, zero starts, known positive durations,
