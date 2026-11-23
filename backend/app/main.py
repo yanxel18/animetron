@@ -1,5 +1,7 @@
 import json
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, Request
@@ -18,6 +20,7 @@ from app.api.reviews import reviews_router
 from app.api.runs import runs_router
 from app.api.schedules import schedules_router
 from app.api.workflows import workflows_router
+from app.core.artifact_bytes import ArtifactByteStore
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, request_id
 from app.core.database import create_database_engine
 
@@ -56,12 +59,30 @@ async def health() -> HealthResponse:
     return HealthResponse()
 
 
-def create_api(config: AuthConfig | None = None, engine: Engine | None = None) -> FastAPI:
-    api = FastAPI(title="AnimeTron API", docs_url=None, redoc_url=None, openapi_url=None)
+def create_api(
+    config: AuthConfig | None = None,
+    engine: Engine | None = None,
+    artifact_byte_store: ArtifactByteStore | None = None,
+) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_api: FastAPI) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            if artifact_byte_store is not None:
+                artifact_byte_store.close()
+
+    api = FastAPI(
+        title="AnimeTron API",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        lifespan=lifespan,
+    )
     api.add_api_route("/api/v1/health", health, methods=["GET"])
     store = AuthStore(engine, config) if engine is not None and config is not None else None
     api.include_router(auth_router(config, store))
-    api.include_router(artifacts_router(config, store))
+    api.include_router(artifacts_router(config, store, artifact_byte_store))
     api.include_router(runs_router(config, store))
     api.include_router(reviews_router(config, store))
     api.include_router(schedules_router(config, store))
@@ -109,7 +130,9 @@ def configured_api() -> FastAPI:
     except (KeyError, ValueError, TypeError, AttributeError, ArgumentError):
         # Partial configuration is disabled, never a fabricated principal.
         return create_api()
-    return create_api(config, engine)
+    artifact_root = os.environ.get("ANIMETRON_ARTIFACT_ROOT")
+    artifact_byte_store = ArtifactByteStore(artifact_root) if artifact_root else None
+    return create_api(config, engine, artifact_byte_store)
 
 
 api = configured_api()

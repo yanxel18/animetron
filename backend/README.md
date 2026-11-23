@@ -26,8 +26,14 @@ plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
 CSRF, audit/readiness/WebSocket and review controls, and security limitations.
 Review HTTP access is owner-only and metadata/decision-only. The artifact API
-currently exposes only owner-only metadata reads; upload and content delivery
-are not implemented.
+exposes owner-only metadata reads and verified content delivery by opaque UUID.
+Content delivery requires `ANIMETRON_ARTIFACT_ROOT` to name an existing
+service-owned Linux directory with mode `0700`; without it, content requests
+fail closed with `503`. Responses recheck stored size and SHA-256, cap content
+at 128 MiB, limit delivery to two active reads per process, support one byte
+range, and inline only PNG/JPEG/GIF/WebP and MP4/WebM. Other media types
+download as opaque binary. Upload is not implemented. This setting does not
+configure or start a deployment.
 
 The internal workflow graph validator checks graph limits, node and edge IDs,
 allowlisted node types, port connections, required inputs, and cycles against
