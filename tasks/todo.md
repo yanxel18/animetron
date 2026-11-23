@@ -1469,6 +1469,15 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     It is not connected to speech alignment, rendering or workflow execution.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
+  - An internal bytes-based probing helper verifies an expected SHA-256,
+    stages bounded bytes under a trusted server root, probes the staged file,
+    and checks the staged size/digest again before returning facts plus identity.
+    Temporary cleanup is attempted on success and failure. The caller-supplied
+    digest does not establish authorization or external provenance; trusted
+    staging/executable controls with no hostile concurrent writers are still
+    required; before/after hashes do not prove what a compromised tool read.
+    Real FFprobe/media decoding
+    and P3-04 acceptance remain open.
   - Cleanup correction merged in
     [#219](https://github.com/yanxel18/animetron/pull/219): Event/Thread
     construction failures after spawn now enter cleanup, and kill errors cannot
