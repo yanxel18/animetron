@@ -10,7 +10,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import BinaryIO
+from typing import IO, BinaryIO
 
 from app.engines.ffprobe_metadata import parse_ffprobe_metadata
 from app.engines.media_probe import InvalidMediaProbe, MediaProbe
@@ -33,31 +33,33 @@ def probe_local_media(
         process = subprocess.Popen(
             command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
-        assert process.stdout is not None and process.stderr is not None
-        failed = threading.Event()
-        output: list[bytes] = [b"", b""]
-
-        def read(pipe: BinaryIO, index: int, limit: int) -> None:
-            try:
-                data = pipe.read(limit + 1)
-                if len(data) > limit:
-                    failed.set()
-                else:
-                    output[index] = data
-            except OSError:
-                failed.set()
-            finally:
-                pipe.close()
-
-        readers = [
-            threading.Thread(target=read, args=(process.stdout, 0, 65536), daemon=True),
-            threading.Thread(target=read, args=(process.stderr, 1, 8192), daemon=True),
-        ]
         started: list[threading.Thread] = []
+        owned_pipes: set[IO[bytes]] = set()
         try:
+            assert process.stdout is not None and process.stderr is not None
+            failed = threading.Event()
+            output: list[bytes] = [b"", b""]
+
+            def read(pipe: BinaryIO, index: int, limit: int) -> None:
+                try:
+                    data = pipe.read(limit + 1)
+                    if len(data) > limit:
+                        failed.set()
+                    else:
+                        output[index] = data
+                except OSError:
+                    failed.set()
+                finally:
+                    pipe.close()
+
+            readers = [
+                threading.Thread(target=read, args=(process.stdout, 0, 65536), daemon=True),
+                threading.Thread(target=read, args=(process.stderr, 1, 8192), daemon=True),
+            ]
             for reader in readers:
                 reader.start()
                 started.append(reader)
+                owned_pipes.add(process.stdout if len(started) == 1 else process.stderr)
             deadline = time.monotonic() + timeout_seconds
             while process.poll() is None:
                 if failed.is_set() or time.monotonic() >= deadline:
@@ -71,15 +73,17 @@ def probe_local_media(
                 raise ValueError("probe failed")
             return parse_ffprobe_metadata(output[0])
         finally:
-            if process.poll() is None:
-                process.kill()
             try:
-                process.wait(timeout=1)
+                if process.poll() is None:
+                    process.kill()
             finally:
-                for reader in started:
-                    reader.join(timeout=1)
-                for reader, pipe in zip(readers, (process.stdout, process.stderr), strict=True):
-                    if reader not in started:
-                        pipe.close()
+                try:
+                    process.wait(timeout=1)
+                finally:
+                    for reader in started:
+                        reader.join(timeout=1)
+                    for pipe in (process.stdout, process.stderr):
+                        if pipe is not None and pipe not in owned_pipes:
+                            pipe.close()
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
         raise InvalidMediaProbe("Invalid media probe") from None

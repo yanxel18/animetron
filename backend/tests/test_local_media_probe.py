@@ -149,3 +149,54 @@ def test_cleanup_wait_error_is_generic_without_unbounded_retry(paths, monkeypatc
     assert calls == [1]
     assert children[0].poll() is not None
     assert children[0].stdout.closed and children[0].stderr.closed
+
+
+@pytest.mark.parametrize("component", ["Event", "Thread"])
+def test_postspawn_setup_failure_still_reaps_child(paths, monkeypatch, component):
+    children, _ = launch(monkeypatch, "import time;time.sleep(10)")
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("private setup failure")
+
+    monkeypatch.setattr(local_media_probe.threading, component, fail)
+    try:
+        with pytest.raises(InvalidMediaProbe, match="^Invalid media probe$"):
+            local_media_probe.probe_local_media(*paths)
+        assert children[0].poll() is not None
+        assert children[0].stdout.closed and children[0].stderr.closed
+    finally:
+        # The regression's failing stage must not leave its sleeping child alive.
+        if children[0].poll() is None:
+            children[0].kill()
+        children[0].wait(timeout=2)
+        children[0].stdout.close()
+        children[0].stderr.close()
+
+
+def test_kill_error_does_not_skip_wait_and_pipe_cleanup(paths, monkeypatch):
+    original_popen = subprocess.Popen
+    children, waits = [], []
+
+    def spawn(command, **kwargs):
+        child = original_popen([sys.executable, "-c", "import time;time.sleep(10)"], **kwargs)
+        kill, wait = child.kill, child.wait
+
+        def kill_then_error():
+            kill()
+            raise OSError("private kill error")
+
+        def bounded_wait(timeout=None):
+            waits.append(timeout)
+            return wait(timeout=timeout)
+
+        monkeypatch.setattr(child, "kill", kill_then_error)
+        monkeypatch.setattr(child, "wait", bounded_wait)
+        children.append(child)
+        return child
+
+    monkeypatch.setattr(local_media_probe.subprocess, "Popen", spawn)
+    with pytest.raises(InvalidMediaProbe, match="^Invalid media probe$"):
+        local_media_probe.probe_local_media(*paths, timeout_seconds=0.1)
+    assert waits == [1]
+    assert children[0].poll() is not None
+    assert children[0].stdout.closed and children[0].stderr.closed
