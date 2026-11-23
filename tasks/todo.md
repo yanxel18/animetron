@@ -567,9 +567,15 @@ Slices not yet merged to master remain unchecked. No external publishing was don
   [#106](https://github.com/yanxel18/animetron/pull/106) at `8e698e4`. The
   owner explicitly approved proceeding on 2026-11-18, but the proposal does
   not establish a trust root or authorize deployment or installation. Three
-  adversarial review cycles identified substantive issues; the latest
-  amendments still require independent review and the remaining prerequisites
-  are unsatisfied. GitGuardian passed; no independent GitHub review is
+  adversarial review cycles identified substantive issues. A fresh independent
+  technical review on 2026-11-23 found additional open design gates: serialize
+  initial provisioning without an existing policy row; prevent policy
+  deletion/key-generation rollback; specify function owner and grants; bind
+  starts to exact claims/runs/nodes; enforce READ COMMITTED; serialize and
+  clean up failed module initialization; and retain provenance linking tested
+  release bytes to the signed digest. The Ed25519 implementation is not selected.
+  These amendments require another independent review after closure; deployment
+  controls remain unverified. GitGuardian passed; no independent GitHub review is
   recorded and combined status is pending. Merge reconciliation
   [#107](https://github.com/yanxel18/animetron/pull/107) merged at `ad6ad64`;
   GitGuardian passed, but no independent GitHub review is recorded and
@@ -1237,8 +1243,12 @@ immutable workflow and recover its state without duplicate effects.
     verifiable deployment-owned handler-to-artifact binding. The
     [proposed binding](../docs/SPEC-workflow-runtime.md#proposed-p1-10g-deployment-backed-handler-binding)
     merged in [#106](https://github.com/yanxel18/animetron/pull/106). The owner
-    approved proceeding on 2026-11-18; independent review and independently
-    verified deployment controls remain outstanding.
+    approved proceeding on 2026-11-18. A fresh independent technical review on
+    2026-11-23 confirmed the lock ordering but found unresolved provisioning,
+    role/grant, isolation, start-key, module-initialization, release-provenance
+    and crypto-library requirements. Close and independently re-review the
+    proposal, then establish the deployment controls and signing procedure
+    before implementing even an isolated verifier. Execution remains blocked.
     No worker, model invocation, external effect or automatic retry is authorized.
 - [ ] P1-11 Implement cancellation, safe recovery, event replay and
   authenticated live updates; distinguish unknown external effects.
