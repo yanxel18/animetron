@@ -1469,6 +1469,13 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     It is not connected to speech alignment, rendering or workflow execution.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
+  - A bounded internal FFprobe JSON parser connects supplied metadata to the
+    media-facts validator. Its supported profile requires exactly one video and
+    one audio stream, unique indices, zero starts, known positive durations,
+    square pixels and no video rotation/side data. Unsupported profiles fail
+    explicitly. The longest format/stream duration rounds upward to milliseconds;
+    the soft target flag uses that resolution. No FFprobe process or decoder is
+    invoked, and supplied JSON establishes neither provenance nor decodability.
   - Internal `validate_media_probe` in
     [#213](https://github.com/yanxel18/animetron/pull/213) checks supplied typed
     facts for exact 9:16
