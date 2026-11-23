@@ -1076,6 +1076,45 @@ def test_workflow_draft_read_returns_stored_text_and_version_postgresql(context)
     assert response.headers["cache-control"] == "no-store"
 
 
+def test_workflow_draft_write_uses_versioned_compare_and_swap_postgresql(context):
+    client, _, engine, _, principal = context
+    workflow_id = uuid4()
+    path = f"/api/v1/workflows/{workflow_id}/draft"
+    original = b'{"draft":"original"}'
+    updated = '{"draft":"東京 🌸"}'.encode()
+    save_workflow_draft(engine, workflow_id, original)
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": principal.csrf,
+    }
+
+    response = client.put(
+        path,
+        json={"document": updated.decode(), "expectedVersion": 1},
+        headers=headers,
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "workflowId": str(workflow_id),
+        "document": updated.decode(),
+        "version": 2,
+    }
+    assert response.headers["cache-control"] == "no-store"
+
+    stale = client.put(
+        path,
+        json={"document": '{"draft":"stale"}', "expectedVersion": 1},
+        headers=headers,
+    )
+
+    assert_error(stale, 409)
+    with engine.connect() as connection:
+        persisted = get_draft(connection, workflow_id)
+    assert persisted.document == updated
+    assert persisted.version == 2
+
+
 def test_missing_workflow_draft_is_not_found(offline_draft_context):
     client, _, _ = offline_draft_context
 
