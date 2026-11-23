@@ -1476,8 +1476,14 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     digest does not establish authorization or external provenance; trusted
     staging/executable controls with no hostile concurrent writers are still
     required; before/after hashes do not prove what a compromised tool read.
-    Real FFprobe/media decoding
-    and P3-04 acceptance remain open.
+    Real FFprobe/media decoding and P3-04 acceptance remain open.
+    Merged in [#221](https://github.com/yanxel18/animetron/pull/221) at
+    `98b1e09` after parallel technical review, posted self-review and passing
+    GitGuardian. Tests-first failure preceded implementation; 38 focused tests
+    passed. The full owned harness passed 1,187 tests with 28 skips and one
+    Pydantic cursor-alias warning in an OIDC test. Ruff, Linux-target mypy and
+    migration lifecycle passed. Same-size mutation and cleanup-exit failure
+    regressions verify digest rejection and withholding success on cleanup errors.
   - Cleanup correction merged in
     [#219](https://github.com/yanxel18/animetron/pull/219): Event/Thread
     construction failures after spawn now enter cleanup, and kill errors cannot
