@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `16327e3` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `78d859a` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -1219,13 +1219,17 @@ immutable workflow and recover its state without duplicate effects.
     passed 41 tests; the migration suite passed 7 tests. Ruff and Linux-target
     mypy passed. It does not execute handlers, store outputs, or unlock
     dependent nodes; parent P1-10 remains open.
-  - [ ] P1-10f Implement admitted-node revalidation under the
+  - [x] P1-10f Implement admitted-node revalidation under the
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10f-admitted-node-revalidation-contract).
     The owner approved implementation on 2026-11-18; specification
     [#102](https://github.com/yanxel18/animetron/pull/102) and implementation
-    [#103](https://github.com/yanxel18/animetron/pull/103) merged. Independent
-    GitHub review is not recorded and combined status is pending; keep
-    unchecked. It remains read-only and does not authorize execution.
+    [#103](https://github.com/yanxel18/animetron/pull/103) merged.
+    Re-audited on 2026-11-23: exact run/claim is locked and checked, bindings
+    and pins are revalidated, the complete persisted plan is compared, and no
+    state/outbox writes occur. Owned PostgreSQL/Keycloak suite passed 41 tests;
+    migration tests passed 7; Ruff and Linux-target mypy passed. This remains
+    point-in-time evidence, not execution authorization. Parent P1-10 remains
+    open.
   - [ ] P1-10g Implement one-shot bounded sample execution under the
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10g-one-shot-sample-execution-contract).
     The owner approved implementation on 2026-11-18; specification
