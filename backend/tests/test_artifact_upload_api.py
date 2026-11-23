@@ -7,8 +7,9 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
+from app.api import artifacts as artifact_api
 from app.core.artifact_bytes import StoredBytes
 from app.core.artifacts import artifacts, get_artifact
 from app.core.auth import AuthConfig, AuthStore
@@ -131,3 +132,54 @@ def test_owner_upload_rejects_missing_csrf_before_storage(upload_context) -> Non
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "CSRF_REJECTED"
     assert byte_store.uploads == {}
+
+
+def test_owner_upload_rejects_malformed_png_before_storage(upload_context) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    with engine.begin() as connection:
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=b"not a PNG",
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-invalid",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "ARTIFACT_CONTENT_INVALID"
+    assert byte_store.uploads == {}
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
+
+
+def test_owner_upload_rejects_oversized_body_before_storage(
+    upload_context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    monkeypatch.setattr(artifact_api, "MAX_ARTIFACT_CONTENT_BYTES", 8)
+    with engine.begin() as connection:
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=b"x" * 9,
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-oversized",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "ARTIFACT_TOO_LARGE"
+    assert byte_store.uploads == {}
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
