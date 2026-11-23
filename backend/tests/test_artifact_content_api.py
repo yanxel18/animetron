@@ -1,5 +1,8 @@
 import contextlib
 import hashlib
+import struct
+import zlib
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -24,7 +27,18 @@ class MemoryBytes:
     def __init__(self, content: bytes) -> None:
         self.content = content
         self.calls: list[tuple[StoredBytes, int]] = []
+        self.uploads: list[tuple[StoredBytes, bytes, int]] = []
         self.error: Exception | None = None
+
+    def put(self, artifact_id, source, *, max_bytes: int) -> StoredBytes:
+        content = source.read(max_bytes + 1)
+        if len(content) > max_bytes:
+            raise ValueError("Artifact exceeds byte limit")
+        stored = StoredBytes(
+            artifact_id, hashlib.sha256(content).hexdigest(), len(content)
+        )
+        self.uploads.append((stored, content, max_bytes))
+        return stored
 
     def read_verified(self, expected: StoredBytes, *, max_bytes: int) -> bytes:
         self.calls.append((expected, max_bytes))
@@ -54,12 +68,33 @@ def record_for(
     )
 
 
+def png_chunk(kind: bytes, data: bytes) -> bytes:
+    checksum = zlib.crc32(data, zlib.crc32(kind))
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", checksum)
+
+
+def valid_png() -> bytes:
+    header = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
+    pixels = zlib.compress(b"\x00\x10\x20\x30\xff")
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + png_chunk(b"IHDR", header)
+        + png_chunk(b"IDAT", pixels)
+        + png_chunk(b"IEND", b"")
+    )
+
+
+def assert_upload_error(response, status: int, code: str) -> None:
+    assert response.status_code == status
+    assert response.json()["error"]["code"] == code
+
+
 def client_for(monkeypatch, record: ArtifactMetadata, byte_store: MemoryBytes | None):
     def dependencies(_config, _store):
         def principal(_request: Request):
             if _request.headers.get("x-test-owner") != "yes":
                 raise AuthDenied("FORBIDDEN", 403)
-            return object()
+            return SimpleNamespace(id="artifact-owner")
 
         return principal, principal
 
@@ -225,6 +260,149 @@ def test_oversized_artifact_is_rejected_before_byte_read(monkeypatch):
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "ARTIFACT_TOO_LARGE"
     assert byte_store.calls == []
+
+
+def test_owner_uploads_a_valid_png_with_server_generated_metadata(monkeypatch):
+    content = valid_png()
+    byte_store = MemoryBytes(b"")
+    client = client_for(monkeypatch, record_for(), byte_store)
+    saved = []
+    monkeypatch.setattr(
+        artifacts,
+        "save_artifact",
+        lambda _connection, record: saved.append(record) or record,
+    )
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=content,
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-2",
+            "x-test-owner": "yes",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "id": str(saved[0].id),
+        "ownerId": "artifact-owner",
+        "revision": "render-2",
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "byteSize": len(content),
+        "mediaType": "image/png",
+    }
+    assert len(byte_store.uploads) == 1
+    stored, uploaded, limit = byte_store.uploads[0]
+    assert uploaded == content
+    assert stored.id == saved[0].id
+    assert limit == artifacts.MAX_ARTIFACT_CONTENT_BYTES
+
+
+def test_owner_upload_rejects_invalid_content_before_storage(monkeypatch):
+    byte_store = MemoryBytes(b"")
+    client = client_for(monkeypatch, record_for(), byte_store)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=b"not a PNG",
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-2",
+            "x-test-owner": "yes",
+        },
+    )
+
+    assert_upload_error(response, 422, "ARTIFACT_CONTENT_INVALID")
+    assert byte_store.uploads == []
+
+
+def test_owner_upload_rejects_unsupported_media_before_storage(monkeypatch):
+    byte_store = MemoryBytes(b"")
+    client = client_for(monkeypatch, record_for(), byte_store)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=b"opaque",
+        headers={
+            "content-type": "application/octet-stream",
+            "x-artifact-revision": "render-2",
+            "x-test-owner": "yes",
+        },
+    )
+
+    assert_upload_error(response, 415, "ARTIFACT_MEDIA_UNSUPPORTED")
+    assert byte_store.uploads == []
+
+
+def test_upload_requires_owner_before_storage(monkeypatch):
+    byte_store = MemoryBytes(b"")
+    client = client_for(monkeypatch, record_for(), byte_store)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=valid_png(),
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-2",
+        },
+    )
+
+    assert_upload_error(response, 403, "FORBIDDEN")
+    assert byte_store.uploads == []
+
+
+def test_upload_fails_closed_without_byte_store(monkeypatch):
+    client = client_for(monkeypatch, record_for(), None)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=valid_png(),
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-2",
+            "x-test-owner": "yes",
+        },
+    )
+
+    assert_upload_error(response, 503, "ARTIFACT_UNAVAILABLE")
+
+
+def test_upload_rejects_invalid_revision_before_storage(monkeypatch):
+    byte_store = MemoryBytes(b"")
+    client = client_for(monkeypatch, record_for(), byte_store)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=valid_png(),
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "../secret",
+            "x-test-owner": "yes",
+        },
+    )
+
+    assert_upload_error(response, 422, "INVALID_REQUEST")
+    assert byte_store.uploads == []
+
+
+def test_owner_upload_enforces_streamed_byte_limit(monkeypatch):
+    monkeypatch.setattr(artifacts, "MAX_ARTIFACT_CONTENT_BYTES", 8)
+    byte_store = MemoryBytes(b"")
+    client = client_for(monkeypatch, record_for(), byte_store)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=valid_png(),
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-2",
+            "x-test-owner": "yes",
+        },
+    )
+
+    assert_upload_error(response, 413, "ARTIFACT_TOO_LARGE")
+    assert byte_store.uploads == []
 
 
 def test_api_closes_injected_byte_store_on_shutdown():
