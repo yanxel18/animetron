@@ -1476,6 +1476,13 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     explicitly. The longest format/stream duration rounds upward to milliseconds;
     the soft target flag uses that resolution. No FFprobe process or decoder is
     invoked, and supplied JSON establishes neither provenance nor decodability.
+    Merged in [#215](https://github.com/yanxel18/animetron/pull/215) at
+    `88d6956` after parallel technical review, posted self-review and successful
+    GitGuardian. Tests-first failure preceded implementation; 86 focused parser
+    tests passed. The full owned PostgreSQL/Keycloak harness passed 1,126 tests
+    with 28 skips; Ruff, Linux-target mypy and migration lifecycle passed.
+    Review caught an ambient Decimal precision issue; exact integer nanoseconds
+    and a low-precision regression resolved it. P3-04 remains open.
   - Internal `validate_media_probe` in
     [#213](https://github.com/yanxel18/animetron/pull/213) checks supplied typed
     facts for exact 9:16
