@@ -33,10 +33,16 @@ class ArtifactMetadataOutput(BaseModel):
 
 
 MAX_ARTIFACT_CONTENT_BYTES = 128 * 1024 * 1024
-_INLINE_MEDIA_TYPES = frozenset({
-    "image/gif", "image/jpeg", "image/png", "image/webp",
-    "video/mp4", "video/webm",
-})
+_INLINE_MEDIA_TYPES = frozenset(
+    {
+        "image/gif",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "video/mp4",
+        "video/webm",
+    }
+)
 _DOCUMENTED_CONTENT_TYPES = (
     "application/octet-stream",
     "image/gif",
@@ -210,7 +216,9 @@ def artifacts_router(
                 )
             range_header = range_values[0] if range_values else None
             if_range = if_range_values[0] if if_range_values else None
-            use_range = range_header is not None and (if_range is None or if_range == etag)
+            use_range = range_header is not None and (
+                if_range is None or if_range == etag
+            )
             status_code = 200
             start, end = 0, len(body) - 1
             if use_range:
@@ -234,9 +242,7 @@ def artifacts_router(
                 else "application/octet-stream"
             )
             disposition = (
-                "inline"
-                if record.media_type in _INLINE_MEDIA_TYPES
-                else "attachment"
+                "inline" if record.media_type in _INLINE_MEDIA_TYPES else "attachment"
             )
             headers = {
                 "Accept-Ranges": "bytes",
@@ -246,7 +252,7 @@ def artifacts_router(
             }
             if status_code == 206:
                 headers["Content-Range"] = f"bytes {start}-{end}/{len(body)}"
-            content = body if status_code == 200 else body[start:end + 1]
+            content = body if status_code == 200 else body[start : end + 1]
             response = _ContentResponse(
                 content=content,
                 status_code=status_code,

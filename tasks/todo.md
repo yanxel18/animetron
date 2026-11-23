@@ -713,9 +713,14 @@ have the security and recovery guarantees below.
   - [ ] P0-07e Expose owner-only UUID-addressed content reads from the verified
     byte store, with a 128 MiB response cap, two concurrent reads per process,
     single byte-range support, and safe inline media allowlisting. Implemented on
-    `feat/p0-07e-artifact-content`; verification, PR and review remain
-    outstanding. `ANIMETRON_ARTIFACT_ROOT` is an explicit Linux-only runtime
-    setting; content fails closed when it is unset. Upload is not implemented.
+    `feat/p0-07e-artifact-content`; [#172](https://github.com/yanxel18/animetron/pull/172)
+    is open. The focused content/storage suites passed: 47 passed, 54 skipped;
+    Ruff and format checks passed for changed files. The full backend suite
+    reported 504 passed, 417 skipped, 48 database-auth setup errors and 3
+    database-auth failures because `ANIMETRON_TEST_DATABASE_URL` is unset.
+    GitHub checks and review remain outstanding. `ANIMETRON_ARTIFACT_ROOT` is
+    an explicit Linux-only runtime setting; content fails closed when unset.
+    Upload is not implemented.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
