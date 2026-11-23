@@ -336,6 +336,53 @@ def test_owner_upload_preserves_bytes_after_ambiguous_database_failure(
     assert after_count == before_count
 
 
+def test_owner_upload_preserves_bytes_when_commit_reconciliation_fails(
+    upload_context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    content = _png()
+
+    def fail_save_with_unknown_commit_outcome(connection, record):
+        raise OperationalError(
+            "INSERT INTO artifact_metadata",
+            {},
+            RuntimeError("database connection was interrupted"),
+        )
+
+    def fail_reconciliation(connection, artifact_id):
+        raise OperationalError(
+            "SELECT FROM artifact_metadata",
+            {},
+            RuntimeError("database connection is still unavailable"),
+        )
+
+    monkeypatch.setattr(
+        artifact_api, "save_artifact", fail_save_with_unknown_commit_outcome
+    )
+    monkeypatch.setattr(artifact_api, "get_artifact", fail_reconciliation)
+    with engine.begin() as connection:
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=content,
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-reconciliation-unavailable",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "ARTIFACT_UNAVAILABLE"
+    assert len(byte_store.uploads) == 1
+    assert next(iter(byte_store.uploads.values())) == content
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
+
+
 def test_owner_upload_confirms_metadata_after_lost_commit_acknowledgement(
     upload_context, monkeypatch: pytest.MonkeyPatch
 ) -> None:
