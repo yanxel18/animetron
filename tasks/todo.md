@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `577a657` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `36b97e2` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -10,7 +10,9 @@ guard regression and #184 recorded it. PR #185 adds conditional compensation
 for a definite artifact metadata constraint rejection. PR #187 adds P0-07h
 commit-acknowledgement reconciliation, and PR #189 adds failure-path test
 coverage for unavailable reconciliation; this update records both nested
-slices without changing top-level counts. The 2026-11-23
+slices without changing top-level counts. PR #191 synchronized generated
+artifact API types. A current source review and focused check pass completes
+P1-09k; no top-level counts change. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -71,13 +73,14 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `577a657` on 2026-11-23;
+percentage is unchanged. Recalculated against master `36b97e2` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
 the current review workflow and completes P0-09. PR #183 adds nested P0-09g
 chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
-adds P0-07i test coverage. The
+adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
+P1-09k catalog and palette work is re-audited. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -976,10 +979,18 @@ immutable workflow and recover its state without duplicate effects.
       pending; keep unchecked.
 - [ ] P1-09 Implement authorized workflow CRUD, validation and idempotent run
   creation; persist node intents and outbox effects in one transaction.
-  - [ ] P1-09k Expose an owner-only catalog generated from built-in sample
-    validation definitions and config schemas. This is validation metadata,
-    not handler or model readiness. Frontend palette integration, independent
-    review and required checks remain outstanding; no top-level count changes.
+  - [x] P1-09k Expose the owner-only sample catalog from built-in validation
+    definitions and config schemas. The API endpoint and frontend catalog are
+    present on master (`2347bbb`, `e6b2dd0`); palette insertion was added in
+    `c32ae0c` after the editor integration at `0d8aa04`. The palette uses a
+    secure UUID, inserts an empty config locally, and keeps the existing save
+    and validation flow. It exposes validation metadata only, not handler/model
+    readiness or execution. Re-audited on 2026-11-23: owner authorization,
+    query rejection, no-store response, catalog/schema mapping, and insertion
+    boundaries are covered. Owned PostgreSQL workflow API harness passed 149
+    tests with Ruff and Linux-target mypy; frontend suite passed 191 tests,
+    production build and API type-drift check passed. GitGuardian passed on
+    PR #191. This completes only the nested catalog slice; P1-09 remains open.
   - [ ] P1-09e Internal mutable draft persistence merged in
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is
