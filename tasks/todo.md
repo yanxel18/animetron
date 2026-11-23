@@ -1,7 +1,8 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `cd26df7` on 2026-11-22. An earlier check found
+against remote `master` at `bca3544` on 2026-11-23. PR #171 was
+documentation-only and did not change the task counts. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -53,7 +54,7 @@ The owner approved the
 control on 2026-11-14. Their explicit provider, model, scheduling, performance
 and human-acceptance gates still apply. This checklist does not replace them.
 
-## Overall progress snapshot - 2026-11-22
+## Overall progress snapshot - 2026-11-23
 
 **31.6%: 18 of 57 top-level P0-P9 checklist tasks are complete.** This is an
 unweighted task count, not a measure of effort, functionality or production
@@ -61,7 +62,8 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `cd26df7` after #142,
+percentage is unchanged. Recalculated against master `bca3544` on 2026-11-23;
+#171 is documentation-only. Counts remain unchanged after #142,
 #143, #140 and #141 merged; nested slices did not complete a top-level task.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 were merged without the independent
@@ -708,6 +710,12 @@ have the security and recovery guarantees below.
     frontend type drift, typecheck, 113 tests and build passed. GitGuardian
     passed, but independent review is not recorded and combined status is
     pending; keep unchecked.
+  - [ ] P0-07e Expose owner-only UUID-addressed content reads from the verified
+    byte store, with a 128 MiB response cap, single byte-range support, and
+    safe inline media allowlisting. Implemented on
+    `feat/p0-07e-artifact-content`; verification, PR and review remain
+    outstanding. `ANIMETRON_ARTIFACT_ROOT` is an explicit Linux-only runtime
+    setting; content fails closed when it is unset. Upload is not implemented.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
