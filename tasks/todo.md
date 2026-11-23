@@ -1476,6 +1476,13 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     compatibility remains unverified because no executable is available on the
     current PATH. This is not a sandbox, immutable artifact verification, decoder
     validation or runtime-handler wiring. P3-04 remains open.
+    Merged in [#217](https://github.com/yanxel18/animetron/pull/217) at
+    `60b96ae` after parallel technical review, posted self-review and passing
+    GitGuardian. Twenty focused process-boundary tests passed; the full owned
+    harness passed 1,146 tests with 28 skips. Ruff, Linux-target mypy and
+    migration lifecycle passed. Startup and unbounded-wait cleanup findings
+    were resolved. Cleanup is bounded best effort if the OS reports termination
+    failure; the trusted executable must not spawn descendants retaining pipes.
   - A bounded internal FFprobe JSON parser connects supplied metadata to the
     media-facts validator. Its supported profile requires exactly one video and
     one audio stream, unique indices, zero starts, known positive durations,
