@@ -183,3 +183,30 @@ def test_owner_upload_rejects_oversized_body_before_storage(
     with engine.begin() as connection:
         after_count = connection.scalar(select(func.count()).select_from(artifacts))
     assert after_count == before_count
+
+
+def test_owner_upload_rejects_streamed_overflow_before_storage(
+    upload_context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    monkeypatch.setattr(artifact_api, "MAX_ARTIFACT_CONTENT_BYTES", 8)
+    with engine.begin() as connection:
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=iter((b"x" * 5, b"x" * 4)),
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-stream-overflow",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "ARTIFACT_TOO_LARGE"
+    assert byte_store.uploads == {}
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
