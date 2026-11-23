@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `568c950` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `1a53bef` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -18,7 +18,8 @@ version-checked write path. PR #198 verified P1-09h's PostgreSQL versioned
 validation path. PR #200 added checked-in PostgreSQL/API evidence for P1-09i;
 no top-level counts change. P1-09j was re-audited against current source and
 owned PostgreSQL tests. P1-09e's mutable persistence was also re-audited with
-current migration, service and API harnesses; no top-level counts change. The
+current migration, service and API harnesses. P1-10c was re-audited against
+current dispatch and migration tests; no top-level counts change. The
 source/test re-audit on 2026-11-23 also credited P0-07c and P0-07d. An earlier
 check found
 `95c4fc4`, including #121 and #122; their historical review and check records
@@ -80,7 +81,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `568c950` on 2026-11-23;
+percentage is unchanged. Recalculated against master `1a53bef` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
@@ -89,8 +90,8 @@ chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
 P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
 re-audited and checked; P1-09g's write, P1-09h's validation, and P1-09i's
-run-request path are verified; P1-09j and P1-09e are re-audited and checked.
-The
+run-request path are verified; P1-09j, P1-09e, and P1-10c are re-audited and
+checked. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -1177,7 +1178,7 @@ immutable workflow and recover its state without duplicate effects.
     model readiness or production execution is implied.
     Exact-head GitGuardian passed; [#69](https://github.com/yanxel18/animetron/pull/69)
     merged at `391ecd9`.
-  - [ ] P1-10c Persist a verified node-intent plan and a distinct run-ready
+  - [x] P1-10c Persist a verified node-intent plan and a distinct run-ready
     outbox intent in one caller-owned transaction, only after the P1-08c
     whole-graph readiness preflight succeeds. A readiness failure must leave
     the run terminally failed with no node intents or executable outbox event;
@@ -1185,8 +1186,13 @@ immutable workflow and recover its state without duplicate effects.
     not invoke handlers, acquire models or fetch artifacts. Implemented in
     `38a6f5b` and merged through
     [#86](https://github.com/yanxel18/animetron/pull/86) at `dc26469`.
-    #86 has no independent review record and only a GitGuardian check; keep
-    unchecked pending the required review and verification gates.
+    Re-audited on 2026-11-23: whole-graph preflight precedes node-intent and
+    run-ready outbox persistence; failed readiness terminally fails the run
+    without executable intents; duplicate preparation is idempotent; and the
+    caller transaction rolls back all effects together. The owned PostgreSQL
+    dispatch harness passed 9 tests; the migration harness passed 7 tests.
+    Ruff and Linux-target mypy passed. This does not execute handlers or
+    acquire models or artifacts; parent P1-10 remains open.
   - [ ] P1-10d Implement durable node admission under the
     [approved contract](../docs/SPEC-workflow-runtime.md#p1-10d-node-admission-contract-approved-2026-11-18).
     The owner approved implementation on 2026-11-18. The implementation merged
