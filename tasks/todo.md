@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `37a6628` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `6bcb5b2` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -15,7 +15,8 @@ artifact API types. A current source review and focused check pass completes
 P1-09k. P1-09e1's migration downgrade test and P1-09f's PostgreSQL draft read
 were also re-audited and verified. PR #196 verified P1-09g's PostgreSQL
 version-checked write path. PR #198 verified P1-09h's PostgreSQL versioned
-validation path; no top-level counts change. The 2026-11-23
+validation path. PR #200 added checked-in PostgreSQL/API evidence for P1-09i;
+no top-level counts change. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -76,7 +77,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `37a6628` on 2026-11-23;
+percentage is unchanged. Recalculated against master `6bcb5b2` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
@@ -84,7 +85,8 @@ the current review workflow and completes P0-09. PR #183 adds nested P0-09g
 chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
 P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
-re-audited and checked; P1-09g's write and P1-09h's validation are verified. The
+re-audited and checked; P1-09g's write, P1-09h's validation, and P1-09i's
+run-request path are verified. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -1105,7 +1107,7 @@ immutable workflow and recover its state without duplicate effects.
     no self-approval or check/protection waiver. Root master was pulled and
     backend/spec matched the tested core. Parent P1-09 remains unchecked.
     [Run-request verification](run-request-records-report.md).
-  - [ ] P1-09i Add owner-only idempotent run creation for an existing immutable
+  - [x] P1-09i Add owner-only idempotent run creation for an existing immutable
     workflow revision. Implemented in `abbb12b` and merged through
     [#84](https://github.com/yanxel18/animetron/pull/84) at `eb79dbb`.
     Focused tests passed (65 passed, 52 skipped); Ruff and Linux-target mypy
@@ -1115,13 +1117,15 @@ immutable workflow and recover its state without duplicate effects.
     owner-session API creation, identical retry, changed-revision conflict,
     missing-revision refusal and persisted run/event/outbox evidence. Alembic
     upgrade and drift check, Ruff and Linux-target mypy passed. The smoke is
-    not a checked-in regression; it did not test a live OIDC provider, worker,
-    handler execution or external effects. Owned container, network and
-    anonymous volume cleanup were verified. #84 has no independent review
-    record and only a GitGuardian check. Verification evidence merged in
-    [#109](https://github.com/yanxel18/animetron/pull/109) at `da33352`;
-    GitGuardian passed, no independent GitHub review is recorded and combined
-    status is pending. Keep unchecked.
+    not a checked-in regression. Added checked-in owner-session PostgreSQL/API
+    coverage in [#200](https://github.com/yanxel18/animetron/pull/200), merged
+    at `6bcb5b2`: identical retries return one run; request-key reuse for a
+    different workflow conflicts; persisted request, run, revision binding,
+    queued event, and outbox intent agree. The owned PostgreSQL/Keycloak
+    workflow API harness passed 153 tests; Ruff and Linux-target mypy passed.
+    This verifies persisted request creation and replay only; worker execution,
+    handler execution, live OIDC and external effects remain outside this
+    slice. P1-09 and P1-09j remain open.
   - [ ] P1-09j Create an immutable sample-workflow revision from an exact,
     validated draft version. Specification
     [#110](https://github.com/yanxel18/animetron/pull/110) merged at `2cbd198`.
