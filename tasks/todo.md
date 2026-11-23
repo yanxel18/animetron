@@ -813,6 +813,14 @@ have the security and recovery guarantees below.
     at master `181bf6c`; the owned PostgreSQL harness passed 56 tests, with Ruff,
     Linux-target mypy and Alembic upgrade/check. The PR body reported no
     independent review; keep unchecked pending review-gate reconciliation.
+  - [x] P0-09e Verify malformed and oversized PNG uploads leave no bytes or
+    metadata. Added owner-authenticated integration cases in
+    [#178](https://github.com/yanxel18/animetron/pull/178), merged at
+    `1ed912e`. The owned PostgreSQL harness passed all 4 upload tests; Ruff,
+    Linux-target mypy, and `git diff --check` passed. GitGuardian passed. The
+    size limit is lowered inside the oversized-body test to keep the request
+    small. The tests do not cover video probing, transaction recovery, or
+    production backup/restore.
 
 ## Phase 1 - Workflow runtime
 
