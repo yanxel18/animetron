@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `36b97e2` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `d039146` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -12,7 +12,8 @@ commit-acknowledgement reconciliation, and PR #189 adds failure-path test
 coverage for unavailable reconciliation; this update records both nested
 slices without changing top-level counts. PR #191 synchronized generated
 artifact API types. A current source review and focused check pass completes
-P1-09k; no top-level counts change. The 2026-11-23
+P1-09k. P1-09e1's migration downgrade test was also re-audited and verified;
+no top-level counts change. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -73,14 +74,15 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `36b97e2` on 2026-11-23;
+percentage is unchanged. Recalculated against master `d039146` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
 the current review workflow and completes P0-09. PR #183 adds nested P0-09g
 chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
-P1-09k catalog and palette work is re-audited. The
+P1-09k catalog and palette work is re-audited; P1-09e1 is re-audited and
+checked. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -995,15 +997,19 @@ immutable workflow and recover its state without duplicate effects.
     [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
     unchecked because GitHub has no review record and the combined status is
     pending.
-    - [ ] P1-09e1 Update migration downgrade integration-test expectations for
+    - [x] P1-09e1 Update migration downgrade integration-test expectations for
       `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
       `task/p1-09e-migration-downgrade-tests`; merged through
       [#79](https://github.com/yanxel18/animetron/pull/79). The owned migration
       harness passed all 5 migration tests; the full backend auth/integration
       harness passed 733 tests with 20 skips. Alembic upgrade/check, Ruff and
       Linux-target mypy passed. No migration or production behavior changed.
-      GitGuardian passed; no independent GitHub review was recorded at merge.
-      Keep unchecked pending review-gate reconciliation.
+      GitGuardian passed. Re-audited on 2026-11-23: the downgrade expectation
+      removes `workflow_drafts` and other P1-09e descendants while preserving
+      unrelated schema objects, and re-upgrade restores the full schema. The
+      current owned PostgreSQL migration harness passed 7 tests; Ruff and
+      Linux-target mypy passed. This verifies only the migration-test slice;
+      P1-09e and P1-09 remain open.
   - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
     preserving its stored UTF-8 text and version. Implemented at `4aca101` and
     included in the P1-09g stack merged through
