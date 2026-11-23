@@ -1,9 +1,10 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `bf76bde` on 2026-11-23. PR #171 was
-documentation-only; PR #172 merged the nested P0-07e content-read slice. Neither
-changes the top-level task counts. An earlier check found
+against remote `master` at `804d947` on 2026-11-23. PRs #171 and #173 were
+documentation-only; PR #172 merged the nested P0-07e content-read slice. The
+2026-11-23 source/test re-audit credited P0-07c and P0-07d under the revised
+review policy. None changes the top-level task counts. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -63,10 +64,11 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `bf76bde` on 2026-11-23;
-#171 was documentation-only and #172 merged nested P0-07e. Counts remain
-unchanged after #142, #143, #140, #141 and #172; nested slices did not complete
-a top-level task.
+percentage is unchanged. Recalculated against master `804d947` on 2026-11-23;
+#171 and #173 were documentation-only; #172 merged nested P0-07e. P0-07c and
+P0-07d were re-audited under the revised review policy. Counts remain
+unchanged after #142, #143, #140, #141, #172 and #173; nested slices did not
+complete a top-level task.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 were merged without the independent
 review and required check evidence then required. #117 was also merged without
@@ -657,7 +659,7 @@ have the security and recovery guarantees below.
     with no-replace publication ([#23](https://github.com/yanxel18/animetron/pull/23);
     no HTTP, media probing, authorization,
     byte/metadata atomicity or automatic orphan recovery).
-  - [ ] P0-07c Add a bounded, report-only audit that reconciles metadata and
+  - [x] P0-07c Add a bounded, report-only audit that reconciles metadata and
     byte inventories without changing either store.
     [#156](https://github.com/yanxel18/animetron/pull/156) merged at
     `be0a9c1`: a malformed stored locator is reported as invalid metadata and
@@ -696,22 +698,35 @@ have the security and recovery guarantees below.
     merged in #91. A post-merge review identified test gaps; their follow-up
     merged in #93, pending independent review and required checks. The test is
     not a real filesystem integration test; #154 above adds that coverage.
-    Keep unchecked pending review and remaining scope reconciliation. Its branch included master commit
+    At the earlier reconciliation it remained unchecked pending review and
+    scope reconciliation. Its branch included master commit
     `8d10be9` to resolve the checklist conflict.
     Verification: SQLite metadata tests (34 passed, 25 skipped), Linux
     byte-store tests (26 passed), backend suite outside owner-gated auth tests
     (352 passed, 340 skipped), Ruff and Linux-target mypy passed. The audit
     requires all metadata and byte writers to be stopped; it does not repair
-    or adopt files.
-  - [ ] P0-07d Expose owner-only reads of artifact metadata without returning
+    or adopt files. Re-audited on 2026-11-23: the implementation enforces
+    caller-owned transactions and entry/byte limits, reports mismatches without
+    mutating either store, and has real filesystem/PostgreSQL integration
+    coverage from #154. The focused local suites passed 47 tests with 36
+    database- or Linux-gated skips. Historical PRs had no required independent
+    review under the then-current policy; the revised project workflow permits
+    completion after this source/test review. Top-level progress remains 18/57
+    (31.6%), P0 4/9.
+  - [x] P0-07d Expose owner-only reads of artifact metadata without returning
     storage locators or artifact bytes. Implemented in `6ccd3c2` on
     `task/p0-07d-artifact-metadata-read`; PR #77 merged into the #76 branch, not
     `master`. Reapplied in [#90](https://github.com/yanxel18/animetron/pull/90)
     from `4cce20c`, and merged at `b92bcc6`. Seven owned PostgreSQL
     authorization/API tests, migrations, Ruff and mypy passed. OpenAPI export,
     frontend type drift, typecheck, 113 tests and build passed. GitGuardian
-    passed, but independent review is not recorded and combined status is
-    pending; keep unchecked.
+    passed; independent review was not recorded at merge. Re-audited on
+    2026-11-23: the owner gate is enforced, UUID4 identifiers are required,
+    storage locators and bytes are omitted, and the focused local suites passed
+    47 tests with 36 database- or Linux-gated skips. The historical
+    PostgreSQL/API test evidence remains recorded above. Under the revised
+    project workflow, this slice is complete; P0-07 remains incomplete pending
+    upload.
   - [x] P0-07e Expose owner-only UUID-addressed content reads from the verified
     byte store, with a 128 MiB response cap, two concurrent reads per process,
     single byte-range support, and safe inline media allowlisting. Merged in
