@@ -15,12 +15,13 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
-from sqlalchemy import create_engine, event, text, update
+from sqlalchemy import create_engine, event, func, select, text, update
 from sqlalchemy.pool import StaticPool
 
 from app.api.auth import SESSION_COOKIE
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 from app.core.database import create_database_engine
+from app.core.outbox import outbox
 from app.main import SecurityHeaders, create_api
 from app.services.workflows.drafts import (
     WorkflowDraftConflict,
@@ -40,7 +41,10 @@ from app.services.workflows.run_requests import (
     RunRequest,
     RunRequestConflict,
     RunRequestCorrupt,
+    run_requests,
 )
+from app.services.workflows.run_revisions import run_revisions
+from app.services.workflows.runs import events, runs
 from app.services.workflows.sample_revisions import create_sample_revision
 from app.services.workflows.snapshot import WorkflowSnapshot, create_snapshot
 from app.services.workflows.validation import GraphLimits, NodeDefinition
@@ -1025,6 +1029,83 @@ def test_owner_creates_idempotent_run_and_returns_status_location(
         "rev-1",
         digest,
     )
+
+
+def test_run_creation_is_idempotent_for_persisted_revision_postgresql(context):
+    client, _, engine, _, principal = context
+    workflow_id, other_workflow_id, request_id = uuid4(), uuid4(), uuid4()
+    snapshots = {}
+    for current_workflow_id in (workflow_id, other_workflow_id):
+        save_workflow_draft(engine, current_workflow_id, sample_workflow_document())
+        with engine.begin() as connection:
+            snapshots[current_workflow_id] = create_sample_revision(
+                connection, current_workflow_id, 1
+            )
+
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": principal.csrf,
+        "Idempotency-Key": str(request_id),
+    }
+    path = f"/api/v1/workflows/{workflow_id}/runs"
+    body = {"revision": "sample-r1"}
+
+    first = client.post(path, json=body, headers=headers)
+    retry = client.post(path, json=body, headers=headers)
+
+    assert first.status_code == retry.status_code == 202
+    assert first.json() == retry.json()
+    assert first.headers["location"] == retry.headers["location"]
+    assert first.headers["cache-control"] == "no-store"
+    run_id = UUID(first.json()["runId"])
+
+    conflict = client.post(
+        f"/api/v1/workflows/{other_workflow_id}/runs",
+        json=body,
+        headers=headers,
+    )
+    assert_error(conflict, 409)
+
+    with engine.connect() as connection:
+        request = connection.execute(
+            select(run_requests).where(run_requests.c.request_id == request_id)
+        ).one()
+        assert (
+            request.run_id,
+            request.workflow_id,
+            request.revision,
+            request.sha256,
+        ) == (
+            run_id,
+            workflow_id,
+            "sample-r1",
+            snapshots[workflow_id].sha256,
+        )
+        assert connection.scalar(
+            select(func.count()).select_from(runs).where(runs.c.id == run_id)
+        ) == 1
+        assert connection.execute(
+            select(run_revisions.c.workflow_id, run_revisions.c.revision).where(
+                run_revisions.c.run_id == run_id
+            )
+        ).one() == (workflow_id, "sample-r1")
+        assert connection.execute(
+            select(events.c.sequence, events.c.state, events.c.message).where(
+                events.c.run_id == run_id
+            )
+        ).all() == [(1, "QUEUED", "Queued")]
+        assert connection.execute(
+            select(outbox.c.topic, outbox.c.resource_id).where(
+                outbox.c.id == request_id
+            )
+        ).one() == ("internal.workflow-run-requested.v1", run_id)
+        assert connection.scalar(
+            select(func.count()).select_from(run_requests).where(
+                run_requests.c.request_id == request_id
+            )
+        ) == 1
+
+
 def test_workflow_draft_read_returns_stored_text_and_version(
     offline_draft_context,
 ):
