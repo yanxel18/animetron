@@ -1269,7 +1269,7 @@ immutable workflow and recover its state without duplicate effects.
     review/independent QA without self-approval or gate waiver. Root master
     was pulled and tested backend/spec matched.
     [Run replay evidence](run-read-replay-api-report.md).
-  - [ ] P1-11b Implement the owner-only cooperative cancellation endpoint:
+  - [x] P1-11b Implement the owner-only cooperative cancellation endpoint:
     atomically transition an active run to `CANCELLING` and enqueue one stable
     cancellation intent. Retries must not duplicate the intent; do not report
     `CANCELLED` before a worker confirms termination. This slice does not
@@ -1279,8 +1279,14 @@ immutable workflow and recover its state without duplicate effects.
     on P1-10c. Focused
     backend, Ruff, mypy, frontend typecheck/build/tests and generated API drift
     checks passed; 40 database/auth API tests were skipped without the owned
-    harness. #87 has no independent review record and only a GitGuardian check;
-    keep unchecked pending the required review and verification gates.
+    harness. Re-audited on 2026-11-23 through
+    [#209](https://github.com/yanxel18/animetron/pull/209) (`de7b157`) and
+    [#210](https://github.com/yanxel18/animetron/pull/210) (`970587b`). The owned
+    API suite passed 56 tests including ten authorization denials with no
+    durable writes, real-write failure rollback with successful retry, and
+    corrupt-intent refusal without repair. Cancellation suite passed 17 tests;
+    Ruff, Linux-target mypy and migration checks passed. Self-reviews were
+    posted and GitGuardian passed. Worker termination remains outside this slice.
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
   end-to-end, including duplicate message handling.
   - [x] P1-12a Verify a cancellation intent survives database reconnect and a
@@ -1298,27 +1304,34 @@ immutable workflow and recover its state without duplicate effects.
     52; backend Ruff and Linux-target mypy passed. Self-review was posted and
     GitGuardian passed. Lease/delivery metadata is synthetic; process restart,
     actual delivery, worker termination and handler execution remain unverified.
-  - [ ] P1-12b Verify a committed cancellation blocks subsequent dispatch
+  - [x] P1-12b Verify a committed cancellation blocks subsequent dispatch
     preparation without creating node or run-ready intents. Implemented on
     [#89](https://github.com/yanxel18/animetron/pull/89); focused workflow/API tests
     passed (28 passed, 40 skipped) and Ruff passed. This does not verify a
-    concurrent PostgreSQL race or stop previously prepared work. Keep
-    unchecked: merged at `4cce20c`, but independent review is not recorded
-    and combined status is pending.
-  - [ ] P1-12c Verify concurrent cancellation requests serialize and reuse one
+    concurrent PostgreSQL race or stop previously prepared work. Original merge
+    was `4cce20c`. Re-audited in #210 on 2026-11-23: 11 dispatch tests passed
+    in owned PostgreSQL, including both operation orderings and commit/rollback
+    release of an observed row-lock waiter. Self-review and GitGuardian passed.
+    Previously prepared work and actual worker execution remain unverified.
+  - [x] P1-12c Verify concurrent cancellation requests serialize and reuse one
     intent on PostgreSQL. The owned harness passed 13 cancellation tests, and
     a row-lock mutation failed the new regression. This does not verify worker
     execution or dispatch contention. Merged in
     [#92](https://github.com/yanxel18/animetron/pull/92) at `5bce7b7`;
-    GitGuardian passed, but independent review is not recorded and combined
-    status is pending, so keep unchecked.
-  - [ ] P1-12d Verify cancellation and dispatch preparation serialize on
+    Re-audited in #209 on 2026-11-23: 17 cancellation tests passed in the owned
+    harness, including PostgreSQL row-lock contention and reconnect cases.
+    Self-review was posted; GitGuardian, Ruff and Linux-target mypy passed.
+  - [x] P1-12d Verify cancellation and dispatch preparation serialize on
     PostgreSQL in both lock orderings. Eight dispatch and 13 cancellation
     tests passed in the owned harness. Uses a fake execution binding and does
     not verify a worker or suppression of already-prepared run-ready intents.
     Merged in [#94](https://github.com/yanxel18/animetron/pull/94) at
-    `4027b19`. Independent review is not recorded and combined status is
-    pending; keep unchecked.
+    `4027b19`. Re-audited in #210 on 2026-11-23: 11 dispatch tests passed in the
+    owned harness, including PostgreSQL orderings with committed and rolled-back
+    lock holders. Exact state/event/intent assertions and row-lock wait evidence
+    passed parallel technical review. Self-review was posted; GitGuardian,
+    Ruff and Linux-target mypy passed. Parent P1-11 and P1-12 remain open for
+    execution, worker termination, reconnect/live updates and recovery scope.
   - [ ] P1-12e Verify concurrent duplicate dispatch preparation reuses one
     persisted node plan and run-ready intent after waiting on PostgreSQL.
     Nine dispatch tests, migrations, Ruff and Linux-target mypy passed in the
