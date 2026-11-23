@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `26a6c44` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `37a6628` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -14,7 +14,8 @@ slices without changing top-level counts. PR #191 synchronized generated
 artifact API types. A current source review and focused check pass completes
 P1-09k. P1-09e1's migration downgrade test and P1-09f's PostgreSQL draft read
 were also re-audited and verified. PR #196 verified P1-09g's PostgreSQL
-version-checked write path; no top-level counts change. The 2026-11-23
+version-checked write path. PR #198 verified P1-09h's PostgreSQL versioned
+validation path; no top-level counts change. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -75,7 +76,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `26a6c44` on 2026-11-23;
+percentage is unchanged. Recalculated against master `37a6628` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
@@ -83,7 +84,7 @@ the current review workflow and completes P0-09. PR #183 adds nested P0-09g
 chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
 P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
-re-audited and checked; P1-09g's version-checked write is verified. The
+re-audited and checked; P1-09g's write and P1-09h's validation are verified. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -1034,13 +1035,17 @@ immutable workflow and recover its state without duplicate effects.
     The owned PostgreSQL/Keycloak workflow API harness passed 151 tests; Ruff
     and Linux-target mypy passed. The earlier Windows Application Control
     blocker is resolved for this slice. P1-09e and parent P1-09 remain open.
-  - [ ] P1-09h Add owner-only, version-checked validation of a mutable workflow
+  - [x] P1-09h Add owner-only, version-checked validation of a mutable workflow
     draft. Implemented in `2ceb73b` and merged through
     [#83](https://github.com/yanxel18/animetron/pull/83) at `3e5c52a`.
     Focused tests passed (124 passed, 22 skipped); Ruff and Linux-target mypy
-    passed. The full backend run's auth/database failures were blocked by the
-    missing test database URL; no independent GitHub review record exists.
-    Keep unchecked.
+    passed. Added owner-session PostgreSQL/API coverage in
+    [#198](https://github.com/yanxel18/animetron/pull/198), merged at
+    `37a6628`: version 1 validates, a stale version conflicts after the draft
+    advances, and version 2 validates successfully. The owned PostgreSQL/
+    Keycloak workflow API harness passed 152 tests; Ruff and Linux-target mypy
+    passed. The prior missing test-database-url blocker is resolved for this
+    slice. P1-09e and parent P1-09 remain open.
   - [x] P1-09b Add owner-only read of a known persisted immutable workflow
     revision, returning exact canonical JSON and digest; fail closed on missing
     authorization, invalid input, database errors and integrity failures.
