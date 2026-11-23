@@ -1,15 +1,16 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `628216c` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `577a657` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
 those slices; #182 reconciled P0-09. PR #183 added the streamed chunk-count
 guard regression and #184 recorded it. PR #185 adds conditional compensation
 for a definite artifact metadata constraint rejection. PR #187 adds P0-07h
-commit-acknowledgement reconciliation; this update records both nested slices
-without changing top-level counts. The 2026-11-23
+commit-acknowledgement reconciliation, and PR #189 adds failure-path test
+coverage for unavailable reconciliation; this update records both nested
+slices without changing top-level counts. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -70,12 +71,13 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `628216c` on 2026-11-23;
+percentage is unchanged. Recalculated against master `577a657` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
 the current review workflow and completes P0-09. PR #183 adds nested P0-09g
-chunk-count coverage; #185 adds nested P0-07g and #187 adds P0-07h. The
+chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
+adds P0-07i test coverage. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -771,7 +773,8 @@ have the security and recovery guarantees below.
     reading the generated UUID in a fresh transaction and confirms success only
     when all metadata matches. If readback finds no row or the database remains
     unavailable, the request returns 503 and preserves bytes for the report-only
-    audit. There is no general orphan sweep or cross-store atomicity. Video
+    audit; #189 adds regression coverage for this unavailable-readback case.
+    There is no general orphan sweep or cross-store atomicity. Video
     upload and P0-07 as a whole remain incomplete pending a restricted probe
     runtime and broader artifact-lifecycle completion.
   - [x] P0-07g Conditionally remove just-published bytes after a definitive
@@ -791,6 +794,12 @@ have the security and recovery guarantees below.
     mypy passed; local DB-dependent run skipped 9 because no local test database
     was configured. Self-review and GitGuardian passed. Missing-row or failed
     readback remains an audit case; this does not provide cross-store atomicity.
+  - [x] P0-07i Verify that an unavailable reconciliation readback returns the
+    generic 503, leaves metadata unchanged and preserves the uploaded bytes.
+    Covered in [#189](https://github.com/yanxel18/animetron/pull/189), merged at
+    `577a657`. The owned PostgreSQL upload harness passed 10 tests; Ruff,
+    Linux-target mypy, `git diff --check` and GitGuardian passed. This adds
+    failure-path coverage without changing upload behavior.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
