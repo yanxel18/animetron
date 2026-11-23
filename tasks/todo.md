@@ -1469,6 +1469,14 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     It is not connected to speech alignment, rendering or workflow execution.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
+  - Cleanup correction merged in
+    [#219](https://github.com/yanxel18/animetron/pull/219): Event/Thread
+    construction failures after spawn now enter cleanup, and kill errors cannot
+    skip bounded wait and pipe cleanup. Two regressions failed before the fix;
+    23 focused tests passed afterward. The full owned harness passed 1,149 tests
+    with 28 skips; Ruff, Linux-target mypy and migrations passed. Independent
+    technical review, posted self-review and GitGuardian passed. Real FFprobe
+    compatibility and full media decoding remain unverified; P3-04 stays open.
   - Internal local probing accepts trusted server-controlled input/executable
     paths, uses shell-free FFprobe arguments and a file-only protocol list, and
     bounds post-spawn execution time and captured output before metadata validation.
