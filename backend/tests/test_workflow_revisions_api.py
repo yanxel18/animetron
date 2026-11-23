@@ -1115,6 +1115,49 @@ def test_workflow_draft_write_uses_versioned_compare_and_swap_postgresql(context
     assert persisted.version == 2
 
 
+def test_workflow_draft_validation_uses_postgresql_draft_version(context):
+    client, _, engine, _, principal = context
+    workflow_id = uuid4()
+    path = f"/api/v1/workflows/{workflow_id}/validations"
+    original = sample_workflow_document()
+    updated = sample_workflow_document(
+        nodes=[{"id": "source", "type": "sample.constant", "config": {"text": "updated"}}]
+    )
+    save_workflow_draft(engine, workflow_id, original)
+    headers = {
+        "Origin": "https://control.example",
+        "X-CSRF-Token": principal.csrf,
+    }
+
+    valid = client.post(path, json={"expectedVersion": 1}, headers=headers)
+
+    assert valid.status_code == 200, valid.text
+    assert valid.json() == {
+        "workflowId": str(workflow_id),
+        "draftVersion": 1,
+        "isValid": True,
+        "issues": [],
+    }
+    assert valid.headers["cache-control"] == "no-store"
+
+    with engine.begin() as connection:
+        save_draft(
+            connection,
+            workflow_id,
+            updated,
+            expected_version=1,
+            max_bytes=32_768,
+        )
+
+    stale = client.post(path, json={"expectedVersion": 1}, headers=headers)
+    assert_error(stale, 409)
+
+    current = client.post(path, json={"expectedVersion": 2}, headers=headers)
+    assert current.status_code == 200, current.text
+    assert current.json()["draftVersion"] == 2
+    assert current.json()["isValid"] is True
+
+
 def test_missing_workflow_draft_is_not_found(offline_draft_context):
     client, _, _ = offline_draft_context
 
