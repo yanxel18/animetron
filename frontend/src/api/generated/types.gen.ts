@@ -836,6 +836,55 @@ export type WorkflowValidationOutput = {
     workflowId: string;
 };
 
+export type UploadPngApiV1ArtifactsPostData = {
+    body: Blob | File;
+    path?: never;
+    query?: never;
+    url: '/api/v1/artifacts';
+};
+
+export type UploadPngApiV1ArtifactsPostErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Upload exceeds the byte limit
+     */
+    413: ErrorResponse;
+    /**
+     * Media type is unsupported
+     */
+    415: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type UploadPngApiV1ArtifactsPostError = UploadPngApiV1ArtifactsPostErrors[keyof UploadPngApiV1ArtifactsPostErrors];
+
+export type UploadPngApiV1ArtifactsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: ArtifactMetadataOutput;
+};
+
+export type UploadPngApiV1ArtifactsPostResponse = UploadPngApiV1ArtifactsPostResponses[keyof UploadPngApiV1ArtifactsPostResponses];
+
 export type ReadMetadataApiV1ArtifactsIdGetData = {
     body?: never;
     path: {
@@ -881,6 +930,64 @@ export type ReadMetadataApiV1ArtifactsIdGetResponses = {
 };
 
 export type ReadMetadataApiV1ArtifactsIdGetResponse = ReadMetadataApiV1ArtifactsIdGetResponses[keyof ReadMetadataApiV1ArtifactsIdGetResponses];
+
+export type ReadContentApiV1ArtifactsIdContentGetData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/artifacts/{id}/content';
+};
+
+export type ReadContentApiV1ArtifactsIdContentGetErrors = {
+    /**
+     * Request could not be completed
+     */
+    401: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    403: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    404: ErrorResponse;
+    /**
+     * Artifact exceeds the delivery limit
+     */
+    413: ErrorResponse;
+    /**
+     * The requested byte range is invalid
+     */
+    416: unknown;
+    /**
+     * Request could not be completed
+     */
+    422: ErrorResponse;
+    /**
+     * Request could not be completed
+     */
+    503: ErrorResponse;
+};
+
+export type ReadContentApiV1ArtifactsIdContentGetError = ReadContentApiV1ArtifactsIdContentGetErrors[keyof ReadContentApiV1ArtifactsIdContentGetErrors];
+
+export type ReadContentApiV1ArtifactsIdContentGetResponses = {
+    /**
+     * Full artifact content
+     */
+    200: Blob | File;
+    /**
+     * Partial artifact content
+     */
+    206: Blob | File;
+};
+
+export type ReadContentApiV1ArtifactsIdContentGetResponse = ReadContentApiV1ArtifactsIdContentGetResponses[keyof ReadContentApiV1ArtifactsIdContentGetResponses];
 
 export type AuditHistoryApiV1AuditEventsGetData = {
     body?: never;
