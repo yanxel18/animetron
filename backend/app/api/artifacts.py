@@ -1,12 +1,15 @@
-"""Authenticated, owner-only reads of artifact metadata and content."""
+"""Authenticated artifact upload and owner-only metadata/content reads."""
 
 import re
+from functools import partial
+from tempfile import SpooledTemporaryFile
 from threading import BoundedSemaphore
-from typing import Annotated
-from uuid import RFC_4122, UUID
+from typing import Annotated, BinaryIO, cast
+from uuid import RFC_4122, UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.concurrency import run_in_threadpool
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
@@ -17,7 +20,13 @@ from app.core.artifact_bytes import (
     StoredBytes,
     UnsupportedStorageError,
 )
-from app.core.artifacts import ArtifactNotFound, get_artifact
+from app.core.artifact_media import ArtifactMediaError, validate_png
+from app.core.artifacts import (
+    ArtifactMetadata,
+    ArtifactNotFound,
+    get_artifact,
+    save_artifact,
+)
 from app.core.auth import AuthConfig, AuthDenied, AuthStore, Principal
 
 
@@ -53,6 +62,9 @@ _DOCUMENTED_CONTENT_TYPES = (
     "video/webm",
 )
 _MAX_CONCURRENT_CONTENT_READS = 2
+_MAX_CONCURRENT_UPLOADS = 2
+_MAX_UPLOAD_CHUNKS = 8192
+_UPLOAD_SPOOL_MEMORY_BYTES = 2 * 1024 * 1024
 
 
 class _ContentResponse(Response):
@@ -124,11 +136,143 @@ def artifacts_router(
     )
     _, owner = auth_dependencies(config, store)
     content_read_slots = BoundedSemaphore(_MAX_CONCURRENT_CONTENT_READS)
+    upload_slots = BoundedSemaphore(_MAX_CONCURRENT_UPLOADS)
 
     def persistence() -> AuthStore:
         if config is None or store is None:
             raise AuthDenied("AUTH_UNAVAILABLE", 503)
         return store
+
+    def byte_store_dependency() -> ArtifactByteStore:
+        if byte_store is None:
+            raise AuthDenied("ARTIFACT_UNAVAILABLE", 503)
+        return byte_store
+
+    @router.post(
+        "",
+        response_model=ArtifactMetadataOutput,
+        status_code=201,
+        responses={
+            413: {
+                "model": ErrorResponse,
+                "description": "Upload exceeds the byte limit",
+            },
+            415: {"model": ErrorResponse, "description": "Media type is unsupported"},
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "image/png": {"schema": {"type": "string", "format": "binary"}}
+                },
+            }
+        },
+    )
+    async def upload_png(
+        request: Request,
+        principal: Annotated[Principal, Depends(owner)],
+    ) -> ArtifactMetadataOutput:
+        """Stream, validate and store one bounded PNG using a generated ID."""
+        if request.query_params:
+            raise AuthDenied("INVALID_REQUEST", 422)
+        media_types = request.headers.getlist("content-type")
+        if len(media_types) != 1 or media_types[0].strip().lower() != "image/png":
+            raise AuthDenied("ARTIFACT_MEDIA_UNSUPPORTED", 415)
+        revisions = request.headers.getlist("x-artifact-revision")
+        lengths = request.headers.getlist("content-length")
+        encodings = request.headers.getlist("content-encoding")
+        if (
+            len(revisions) != 1
+            or len(lengths) > 1
+            or (lengths and re.fullmatch(r"[0-9]{1,10}", lengths[0]) is None)
+            or len(encodings) > 1
+            or (encodings and encodings[0].lower() != "identity")
+        ):
+            raise AuthDenied("INVALID_REQUEST", 422)
+        declared_size = int(lengths[0]) if lengths else None
+        if declared_size is not None and declared_size > MAX_ARTIFACT_CONTENT_BYTES:
+            raise AuthDenied("ARTIFACT_TOO_LARGE", 413)
+        if not upload_slots.acquire(blocking=False):
+            raise AuthDenied("ARTIFACT_BUSY", 503)
+
+        try:
+            byte_store = byte_store_dependency()
+            database = persistence()
+            artifact_id = uuid4()
+            try:
+                ArtifactMetadata(
+                    artifact_id,
+                    principal.id,
+                    revisions[0],
+                    "0" * 64,
+                    0,
+                    "image/png",
+                )
+            except (TypeError, ValueError):
+                raise AuthDenied("INVALID_REQUEST", 422) from None
+
+            with SpooledTemporaryFile(
+                max_size=_UPLOAD_SPOOL_MEMORY_BYTES, mode="w+b"
+            ) as raw_source:
+                source = cast(BinaryIO, raw_source)
+                byte_count = 0
+                chunk_count = 0
+                async for chunk in request.stream():
+                    chunk_count += 1
+                    if chunk_count > _MAX_UPLOAD_CHUNKS:
+                        raise AuthDenied("ARTIFACT_TOO_LARGE", 413)
+                    byte_count += len(chunk)
+                    if byte_count > MAX_ARTIFACT_CONTENT_BYTES:
+                        raise AuthDenied("ARTIFACT_TOO_LARGE", 413)
+                    await run_in_threadpool(source.write, chunk)
+                if declared_size is not None and byte_count != declared_size:
+                    raise AuthDenied("INVALID_REQUEST", 422)
+                source.seek(0)
+                try:
+                    await run_in_threadpool(
+                        validate_png,
+                        source,
+                        max_bytes=MAX_ARTIFACT_CONTENT_BYTES,
+                    )
+                except ArtifactMediaError:
+                    raise AuthDenied("ARTIFACT_CONTENT_INVALID", 422) from None
+                source.seek(0)
+                try:
+                    stored = await run_in_threadpool(
+                        partial(
+                            byte_store.put,
+                            artifact_id,
+                            source,
+                            max_bytes=MAX_ARTIFACT_CONTENT_BYTES,
+                        )
+                    )
+                except (UnsupportedStorageError, OSError, ValueError):
+                    raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
+
+            record = ArtifactMetadata(
+                artifact_id,
+                principal.id,
+                revisions[0],
+                stored.sha256,
+                stored.byte_size,
+                "image/png",
+            )
+
+            def persist() -> ArtifactMetadata:
+                with database.transaction() as connection:
+                    return save_artifact(connection, record)
+
+            record = await run_in_threadpool(persist)
+            return ArtifactMetadataOutput(
+                id=record.id,
+                ownerId=record.owner_id,
+                revision=record.revision,
+                sha256=record.sha256,
+                byteSize=record.byte_size,
+                mediaType=record.media_type,
+            )
+        finally:
+            upload_slots.release()
 
     @router.get("/{id}", response_model=ArtifactMetadataOutput)
     def read_metadata(

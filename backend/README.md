@@ -26,7 +26,8 @@ plane using Keycloak/Authlib and opaque PostgreSQL sessions. See
 [AUTH.md](AUTH.md) for explicit fail-closed configuration, versioned routes,
 CSRF, audit/readiness/WebSocket and review controls, and security limitations.
 Review HTTP access is owner-only and metadata/decision-only. The artifact API
-exposes owner-only metadata reads and verified content delivery by opaque UUID.
+accepts owner-only bounded PNG uploads and exposes owner-only metadata reads
+and verified content delivery by opaque UUID.
 Content delivery requires `ANIMETRON_ARTIFACT_ROOT` to name an existing
 service-owned Linux directory with mode `0700`; without it, content requests
 fail closed with `503`. Responses recheck stored size and SHA-256, cap content
@@ -272,12 +273,12 @@ Identical retries succeed; changes raise `ArtifactConflict` without overwriting;
 missing IDs raise `ArtifactNotFound`. Database errors propagate.
 
 **Limits:** core helpers do not enforce authentication/authorization or perform
-filesystem access/deletion; the metadata route is owner-role-only. Digest/size/
-media type are assertions, not verified bytes; locators do not prove containment
-or safe access. Privileged SQL can change/delete rows. No upload or content
-route, lifecycle, retention/privacy policy, audit, run/review binding,
-byte/metadata atomicity or backup/restore coordination exists. This establishes
-no security or readiness.
+filesystem access/deletion; the metadata and content routes are owner-role-only.
+Core digest/size/media type values are assertions, not verified bytes; locators
+do not prove containment or safe access. Privileged SQL can change/delete rows.
+Artifact lifecycle, retention/privacy policy, run/review binding,
+byte/metadata atomicity and backup/restore coordination remain incomplete. This
+establishes no security or readiness.
 
 The `0005_artifact_metadata` migration creates the table. Downgrade to `0004_run_revisions`
 drops **all artifact metadata**: require authorization and a recovery plan for
@@ -377,10 +378,28 @@ local filesystem/device sync behavior.
 
 Byte publication and metadata commit are **not atomic**: DB rollback/crash can
 leave orphan bytes. This report does not supply automatic recovery, retention,
-coordinated backup, encryption, media signature/probing validation or readiness
-certification. Hashes detect corruption, not malicious edits to both bytes and
-metadata. Callers must validate media and enforce access policy before making
-artifacts usable.
+coordinated backup, encryption or readiness certification. Hashes detect
+corruption, not malicious edits to both bytes and metadata. The owner-only
+upload route validates its supported PNG profile before publishing; other
+trusted artifact producers must validate media and enforce access policy before
+making artifacts usable.
+
+## Owner-only bounded PNG upload
+
+`POST /api/v1/artifacts` accepts a raw `image/png` body and one
+`X-Artifact-Revision` header. The shared owner dependency requires the existing
+session, origin and CSRF checks. The server generates the UUID4; the response
+contains immutable metadata and never a storage locator. Upload bytes stream to
+a 2 MiB memory-threshold spool with a 128 MiB cap and at most two concurrent
+uploads per process.
+
+The validator accepts only non-interlaced 8-bit RGB/RGBA PNGs with dimensions at
+most 4096 by 4096 and at most 16 MiB of decoded scanline data. It verifies chunk
+order/CRCs, bounded DEFLATE output and row filters; ancillary chunks and other
+media types are rejected. Video upload remains disabled until an isolated,
+resource-bounded media-probe runtime is provided. The byte file is published
+before metadata commit, so a database failure can leave an orphan for the
+report-only audit; the upload route does not attempt unsafe cleanup.
 
 Dependency-free Linux tests use the existing `python:3.12-slim` image, read-only
 code, no network, a fresh private named volume and service UID 10001. From this
