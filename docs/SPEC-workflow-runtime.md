@@ -856,9 +856,9 @@ Do not treat a hard-coded or caller-asserted digest as that proof.
 ## Proposed P1-10g deployment-backed handler binding
 
 **Status: owner approval expressed; implementation and deployment remain blocked.**
-The revised design needs further independent review; three adversarial review
-cycles found substantive issues. The amendments below have not yet been
-independently verified.
+Three earlier adversarial review cycles found substantive issues. A fresh
+independent review on 2026-11-23 found additional design gaps recorded below;
+this review does not approve implementation or establish deployment controls.
 The owner selected a deployment-backed trust root and explicitly approved
 proceeding on 2026-11-18. That approval does not waive independent review
 or the prerequisites below. P1-10g remains blocked until the trust root is
@@ -977,10 +977,12 @@ only the pair is compared with the existing snapshot pin. Any mismatch fails
 closed. It inserts the unique-per-claim start record with those identities, and
 holds the policy lock through a successful commit. A policy update or
 revocation takes an exclusive lock on the same row and does not acquire run
-locks. The function is `VOLATILE` and returns the current locked row under
-`READ COMMITTED`; a timeout, serialization failure or duplicate start forbids
-invocation. A committed revocation first prevents a start; a start committed first
-may still invoke once even if revocation follows. Revocation does not stop
+locks. The function is `VOLATILE` and returns the current locked row under an
+explicitly configured `READ COMMITTED` runtime transaction; function
+volatility does not select transaction isolation. A timeout, serialization
+failure or duplicate start forbids invocation. A committed revocation first
+prevents a start; a start committed first may still invoke once even if
+revocation follows. Revocation does not stop
 an already committed start, even if the original process stalls indefinitely;
 the owner must accept this residual risk. Restart never invokes that start.
 Missing policy, inaccessible keys, mismatches,
@@ -1043,6 +1045,46 @@ stated process-trust assumptions. Tests alone cannot prove deployment isolation
 or signing authority;
 those require independently reviewed deployment evidence. Existing P1-10g
 replay, cancellation, outcome and no-external-effect requirements still apply.
+
+### Independent review findings and required design closure
+
+The 2026-11-23 review found the proposed start/revocation lock order sound when
+runtime starts lock the run before the policy row and policy administration
+never locks runs. The following controls remain design and deployment gates:
+
+- Initial provisioning must serialize even while the policy row is absent, for
+  example through a stable deployment-scoped advisory lock or a pre-created
+  singleton row. Policy rows must not be deletable or recreated in a way that
+  resets key-generation history; preserve durable evidence that a generation
+  has never been reused for another key. Runtime has no table-write privilege;
+  tombstones are append-only and generation/key uniqueness is enforced by the
+  administrator-owned path and database constraints.
+- Deployment provisioning must establish a dedicated non-login owner for the
+  `SECURITY DEFINER` function, revoke `PUBLIC` execution, grant only the
+  required runtime `EXECUTE`, deny runtime table DML and ownership, and use a
+  fixed search path containing no writable schemas. Independently inspect the
+  function owner, grants, body, and effective role permissions.
+- The start record's unique key and foreign keys must bind the exact admitted
+  claim, run, node, deployment ID, and immutable policy identity. Specify and
+  test rollback, cross-run/cross-deployment rejection, lost commit
+  acknowledgement, wrong isolation, provisioning races, policy deletion or
+  generation rollback attempts, and tombstone-versus-permit races.
+- Bootstrap initialization must be serialized within the process. If module
+  execution fails after temporary registration, remove the partially
+  initialized private module before returning failure; no caller may observe
+  or retain a partial instance.
+- Release evidence must identify the exact tested release tree, the command
+  that extracts and hashes the module bytes, and the retained digest/signing
+  record. A signature alone does not prove that the signed bytes were the
+  bytes tested and reviewed.
+- Select and review a specific Ed25519 implementation and version before
+  coding verification. Confirm its canonical-signature and small-order-key
+  behavior with offline tests; do not add or install a cryptographic
+  dependency before that supply-chain review.
+
+Close these items in the design and deployment procedure, then obtain another
+independent review of the amended proposal. Until then, neither an isolated
+verifier nor runtime wiring is approved by this specification.
 
 ## Bounded internal P1-10b sample evaluator
 
