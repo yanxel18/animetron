@@ -1,10 +1,11 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `804d947` on 2026-11-23. PRs #171 and #173 were
-documentation-only; PR #172 merged the nested P0-07e content-read slice. The
-2026-11-23 source/test re-audit credited P0-07c and P0-07d under the revised
-review policy. None changes the top-level task counts. An earlier check found
+against remote `master` at `af0b635` on 2026-11-23. PRs #171, #173 and #174
+were documentation-only; #172 merged P0-07e content reads and #175 merged
+P0-07f bounded PNG upload. The 2026-11-23 source/test re-audit credited
+P0-07c and P0-07d under the revised review policy. None changes the top-level
+task counts. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -64,11 +65,11 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `804d947` on 2026-11-23;
-#171 and #173 were documentation-only; #172 merged nested P0-07e. P0-07c and
-P0-07d were re-audited under the revised review policy. Counts remain
-unchanged after #142, #143, #140, #141, #172 and #173; nested slices did not
-complete a top-level task.
+percentage is unchanged. Recalculated against master `af0b635` on 2026-11-23;
+#171, #173 and #174 were documentation-only; #172 and #175 merged nested
+P0-07e/P0-07f. P0-07c and P0-07d were re-audited under the revised review
+policy. Counts remain unchanged after #142, #143, #140, #141, #172, #173,
+#174 and #175; nested slices did not complete a top-level task.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 were merged without the independent
 review and required check evidence then required. #117 was also merged without
@@ -741,7 +742,25 @@ have the security and recovery guarantees below.
     Linux-only `os`/`fcntl` errors in the existing byte-store module.
     GitGuardian passed; self-review posted. `ANIMETRON_ARTIFACT_ROOT` is an
     explicit Linux-only runtime setting; content fails closed when unset.
-    Upload is not implemented; P0-07 remains incomplete.
+    Video upload remains unsupported pending a restricted media-probe runtime;
+    P0-07 remains incomplete.
+  - [x] P0-07f Add a bounded owner-only PNG upload with a server-generated UUID4
+    and immutable metadata. Merged in
+    [#175](https://github.com/yanxel18/animetron/pull/175) at `af0b635`.
+    `POST /api/v1/artifacts` requires the existing owner, origin and CSRF checks,
+    accepts only raw `image/png` plus one revision header, and caps streamed
+    input at 128 MiB, two requests per process and 8,192 chunks. A 2 MiB
+    memory-threshold spool feeds a strict non-interlaced 8-bit RGB/RGBA PNG
+    validator (4096 dimension cap, 16 MiB decoded scanline cap, chunk order/CRC,
+    DEFLATE and row-filter checks) before bytes are published. Focused artifact
+    suites passed 61 tests with 38 Windows database/Linux-gated skips; the owned
+    PostgreSQL upload harness passed 2 integration tests, including persisted
+    metadata/bytes and CSRF rejection before storage. Harness Ruff and
+    Linux-target mypy passed; GitGuardian passed. Ancillary chunks and all other
+    media are rejected. A database failure after byte publication may leave an
+    orphan for the report-only audit; there is no automatic cleanup. Video
+    upload and P0-07 as a whole remain incomplete pending a restricted probe
+    runtime and recovery/atomicity work.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
