@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `d039146` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `d5099d8` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -12,8 +12,8 @@ commit-acknowledgement reconciliation, and PR #189 adds failure-path test
 coverage for unavailable reconciliation; this update records both nested
 slices without changing top-level counts. PR #191 synchronized generated
 artifact API types. A current source review and focused check pass completes
-P1-09k. P1-09e1's migration downgrade test was also re-audited and verified;
-no top-level counts change. The 2026-11-23
+P1-09k. P1-09e1's migration downgrade test and P1-09f's PostgreSQL draft read
+were also re-audited and verified; no top-level counts change. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -74,15 +74,15 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `d039146` on 2026-11-23;
+percentage is unchanged. Recalculated against master `d5099d8` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
 the current review workflow and completes P0-09. PR #183 adds nested P0-09g
 chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
-P1-09k catalog and palette work is re-audited; P1-09e1 is re-audited and
-checked. The
+P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
+re-audited and checked. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -1010,13 +1010,18 @@ immutable workflow and recover its state without duplicate effects.
       current owned PostgreSQL migration harness passed 7 tests; Ruff and
       Linux-target mypy passed. This verifies only the migration-test slice;
       P1-09e and P1-09 remain open.
-  - [ ] P1-09f Expose an owner-only read of an existing mutable workflow draft,
+  - [x] P1-09f Expose an owner-only read of an existing mutable workflow draft,
     preserving its stored UTF-8 text and version. Implemented at `4aca101` and
     included in the P1-09g stack merged through
-    [#82](https://github.com/yanxel18/animetron/pull/82) at `429e1a7`. Its
-    required PostgreSQL/Keycloak verification is blocked by Windows Application
-    Control; #82 has no independent review record and only a GitGuardian
-    check. Keep unchecked.
+    [#82](https://github.com/yanxel18/animetron/pull/82) at `429e1a7`. Re-audited
+    on 2026-11-23: owner authorization precedes lookup, the endpoint returns
+    exact UTF-8 text and version with `Cache-Control: no-store`, and corrupt,
+    missing and unauthorized cases fail closed. Added PostgreSQL/owner-session
+    coverage in [#194](https://github.com/yanxel18/animetron/pull/194), merged
+    at `d5099d8`. The owned PostgreSQL/Keycloak workflow API harness passed
+    150 tests; Ruff and Linux-target mypy passed. The earlier Windows
+    Application Control verification blocker is resolved for this slice.
+    P1-09e and parent P1-09 remain open.
   - [ ] P1-09g Add an owner-only version-checked write for an existing mutable
     workflow draft. Implemented in `f0d21a7` and merged through
     [#82](https://github.com/yanxel18/animetron/pull/82) at `429e1a7`.
