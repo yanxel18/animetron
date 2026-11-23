@@ -1,8 +1,9 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `bca3544` on 2026-11-23. PR #171 was
-documentation-only and did not change the task counts. An earlier check found
+against remote `master` at `bf76bde` on 2026-11-23. PR #171 was
+documentation-only; PR #172 merged the nested P0-07e content-read slice. Neither
+changes the top-level task counts. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -62,9 +63,10 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `bca3544` on 2026-11-23;
-#171 is documentation-only. Counts remain unchanged after #142,
-#143, #140 and #141 merged; nested slices did not complete a top-level task.
+percentage is unchanged. Recalculated against master `bf76bde` on 2026-11-23;
+#171 was documentation-only and #172 merged nested P0-07e. Counts remain
+unchanged after #142, #143, #140, #141 and #172; nested slices did not complete
+a top-level task.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 were merged without the independent
 review and required check evidence then required. #117 was also merged without
@@ -710,21 +712,21 @@ have the security and recovery guarantees below.
     frontend type drift, typecheck, 113 tests and build passed. GitGuardian
     passed, but independent review is not recorded and combined status is
     pending; keep unchecked.
-  - [ ] P0-07e Expose owner-only UUID-addressed content reads from the verified
+  - [x] P0-07e Expose owner-only UUID-addressed content reads from the verified
     byte store, with a 128 MiB response cap, two concurrent reads per process,
-    single byte-range support, and safe inline media allowlisting. Implemented on
-    `feat/p0-07e-artifact-content`; [#172](https://github.com/yanxel18/animetron/pull/172)
-    is open. The focused content/storage suites passed: 48 passed, 54 skipped;
-    the backend suite excluding four database-bound auth files passed 486
-    tests with 417 skipped. The full backend suite reported 505 passed, 417
+    single byte-range support, and safe inline media allowlisting. Merged in
+    [#172](https://github.com/yanxel18/animetron/pull/172) at `bf76bde`. The
+    focused content/storage suites passed: 48 passed, 54 skipped; the backend
+    suite excluding four database-bound auth files passed 486 tests with 417
+    skipped. The full backend suite reported 505 passed, 417
     skipped, 48 database-auth setup errors and 3 database-auth failures because
     `ANIMETRON_TEST_DATABASE_URL` is unset. Ruff lint passed for changed Python
     files, and formatting passed for the route and test files; `app/main.py`
     has unrelated pre-existing formatting differences. Windows mypy reports
     Linux-only `os`/`fcntl` errors in the existing byte-store module.
-    GitGuardian passed; review remains outstanding. `ANIMETRON_ARTIFACT_ROOT` is
-    an explicit Linux-only runtime setting; content fails closed when unset.
-    Upload is not implemented.
+    GitGuardian passed; self-review posted. `ANIMETRON_ARTIFACT_ROOT` is an
+    explicit Linux-only runtime setting; content fails closed when unset.
+    Upload is not implemented; P0-07 remains incomplete.
 - [ ] P0-08 Establish private service networking, loopback gateway, retention,
   and tested backup/restore for metadata and artifacts.
   - [x] P0-08a Add a local-only, disposable backup/restore check for PostgreSQL
