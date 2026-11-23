@@ -264,7 +264,10 @@ def test_committed_cancellation_prevents_later_dispatch_preparation(
 
 
 @pytest.mark.parametrize("first_operation", ["cancel", "dispatch"])
-def test_dispatch_and_cancellation_serialize_on_postgresql(first_operation, monkeypatch):
+@pytest.mark.parametrize("commit_first", [True, False], ids=["commit", "rollback"])
+def test_dispatch_and_cancellation_serialize_on_postgresql(
+    first_operation, commit_first, monkeypatch,
+):
     url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
     if not url:
         pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
@@ -323,7 +326,10 @@ def test_dispatch_and_cancellation_serialize_on_postgresql(first_operation, monk
                     else:
                         pytest.fail("Contender never waited on the first transaction")
                 assert not future.done()
-                transaction.commit()
+                if commit_first:
+                    transaction.commit()
+                else:
+                    transaction.rollback()
             finally:
                 if transaction.is_active:
                     transaction.rollback()
@@ -343,8 +349,31 @@ def test_dispatch_and_cancellation_serialize_on_postgresql(first_operation, monk
     finally:
         engine.dispose()
 
-    assert status.state is RunState.CANCELLING
     assert topics.count(run_requests.INTERNAL_TOPIC) == 1
+    if not commit_first:
+        assert status.last_sequence == 2
+        assert len(topics) == 2
+        if first_operation == "cancel":
+            assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED
+            assert second.outcome is run_dispatch.DispatchOutcome.PREPARED
+            assert status.state is RunState.RUNNING
+            assert [event.state for event in events] == [RunState.QUEUED, RunState.RUNNING]
+            assert topics.count(run_cancellations.CANCELLATION_TOPIC) == 0
+            assert topics.count(run_dispatch.RUN_READY_TOPIC) == 1
+            assert node_count == 1
+        else:
+            assert first.outcome is run_dispatch.DispatchOutcome.PREPARED
+            assert second.outcome is run_cancellations.CancellationOutcome.REQUESTED
+            assert status.state is RunState.CANCELLING
+            assert [event.state for event in events] == [
+                RunState.QUEUED, RunState.CANCELLING,
+            ]
+            assert topics.count(run_cancellations.CANCELLATION_TOPIC) == 1
+            assert topics.count(run_dispatch.RUN_READY_TOPIC) == 0
+            assert node_count == 0
+        return
+
+    assert status.state is RunState.CANCELLING
     assert topics.count(run_cancellations.CANCELLATION_TOPIC) == 1
     if first_operation == "cancel":
         assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED

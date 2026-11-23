@@ -1283,14 +1283,21 @@ immutable workflow and recover its state without duplicate effects.
     keep unchecked pending the required review and verification gates.
 - [ ] P1-12 Verify restart, reconnect, concurrency and cancellation behavior
   end-to-end, including duplicate message handling.
-  - [ ] P1-12a Verify a cancellation intent survives database reconnect and a
+  - [x] P1-12a Verify a cancellation intent survives database reconnect and a
     retry reuses it without duplication. Implemented as a file-backed SQLite
     regression in commit `e8e0e28`, merged through
     [#88](https://github.com/yanxel18/animetron/pull/88) at `2679b6c`. Focused
     run/cancellation/API tests passed (19 passed, 40 database/auth cases
     skipped) and Ruff passed. This does not verify PostgreSQL locking, worker
-    delivery, or handler execution. GitGuardian passed; no independent review
-    is recorded and the combined status is pending. Keep unchecked.
+    delivery, or handler execution. Re-audited on 2026-11-23 in
+    [#209](https://github.com/yanxel18/animetron/pull/209), merged at `de7b157`:
+    four owned PostgreSQL cases dispose the original engine and verify committed
+    or rolled-back cancellation through a fresh engine. Complete durable
+    run/event/outbox rows and pending, leased or delivered metadata survive
+    idempotent retries. Cancellation suite passed 17 tests; run API suite passed
+    52; backend Ruff and Linux-target mypy passed. Self-review was posted and
+    GitGuardian passed. Lease/delivery metadata is synthetic; process restart,
+    actual delivery, worker termination and handler execution remain unverified.
   - [ ] P1-12b Verify a committed cancellation blocks subsequent dispatch
     preparation without creating node or run-ready intents. Implemented on
     [#89](https://github.com/yanxel18/animetron/pull/89); focused workflow/API tests

@@ -7,13 +7,15 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.auth import SESSION_COOKIE
 from app.core.auth import AuthConfig, AuthStore
 from app.core.database import create_database_engine
 from app.core.outbox import outbox
 from app.main import SecurityHeaders, create_api
+from app.services.workflows import run_cancellations
 from app.services.workflows import runs as run_service
 
 
@@ -507,6 +509,90 @@ def test_cancellation_denials_preserve_run_events_and_intents(
                 outbox.c.resource_id == run_id,
             )
         ) == 0
+
+
+def cancellation_rows(engine, run_id, intent_id=None):
+    with engine.connect() as connection:
+        return (
+            connection.execute(
+                select(run_service.runs).where(run_service.runs.c.id == run_id)
+            ).one(),
+            connection.execute(
+                select(run_service.events).where(
+                    run_service.events.c.run_id == run_id,
+                ).order_by(run_service.events.c.sequence)
+            ).all(),
+            connection.execute(select(outbox).where(
+                outbox.c.resource_id == run_id
+                if intent_id is None else outbox.c.id == intent_id,
+            )).all(),
+        )
+
+
+def test_cancellation_http_failure_rolls_back_real_writes_and_allows_retry(
+    run_context, monkeypatch,
+):
+    client, _, engine, _, principal = run_context
+    run_id = create_durable_run(engine, terminal=False)
+    before = cancellation_rows(engine, run_id)
+    request_cancellation = run_cancellations.request_run_cancellation
+    private_error = "private-cancellation-database-detail"
+
+    def fail_after_write(connection, identifier):
+        result = request_cancellation(connection, identifier)
+        assert result.state is run_service.RunState.CANCELLING
+        assert connection.scalar(select(func.count()).select_from(outbox).where(
+            outbox.c.resource_id == identifier,
+        )) == 1
+        raise SQLAlchemyError(private_error)
+
+    path = f"/api/v1/runs/{run_id}/cancellations"
+    with monkeypatch.context() as patch:
+        patch.setattr(run_cancellations, "request_run_cancellation", fail_after_write)
+        response = client.post(path, headers=owner_headers(principal))
+    assert_error(response, 503)
+    assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
+    assert private_error not in response.text
+    assert cancellation_rows(engine, run_id) == before
+
+    retry = client.post(path, headers=owner_headers(principal))
+    assert_success(retry, status=202)
+    assert retry.json()["outcome"] == "REQUESTED"
+    after = cancellation_rows(engine, run_id)
+    assert after[0].state == "CANCELLING"
+    assert len(after[1]) == len(before[1]) + 1
+    assert len(after[2]) == 1
+
+
+@pytest.mark.parametrize("corruption", ["missing", "wrong_topic", "wrong_resource"])
+def test_cancellation_http_corrupt_intent_fails_without_repair(run_context, corruption):
+    client, _, engine, _, principal = run_context
+    run_id = create_durable_run(engine, terminal=False)
+    path = f"/api/v1/runs/{run_id}/cancellations"
+    assert_success(client.post(path, headers=owner_headers(principal)), status=202)
+    with engine.begin() as connection:
+        intent_id = connection.scalar(select(outbox.c.id).where(
+            outbox.c.resource_id == run_id,
+        ))
+        assert intent_id is not None
+        if corruption == "missing":
+            connection.execute(delete(outbox).where(outbox.c.id == intent_id))
+        else:
+            values = (
+                {"topic": "internal.wrong-topic.v1"}
+                if corruption == "wrong_topic" else {"resource_id": uuid4()}
+            )
+            connection.execute(update(outbox).where(outbox.c.id == intent_id).values(**values))
+    before = cancellation_rows(engine, run_id, intent_id)
+
+    response = client.post(path, headers=owner_headers(principal))
+    assert_error(response, 503)
+    assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
+    assert cancellation_rows(engine, run_id, intent_id) == before
+    # A repair must not hide behind a different outbox identity.
+    assert cancellation_rows(engine, run_id)[2] == (
+        before[2] if corruption == "wrong_topic" else []
+    )
 
 
 def test_cancellation_route_has_an_explicit_async_openapi_contract():
