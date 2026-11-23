@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `6bcb5b2` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `76c2ab5` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -16,7 +16,8 @@ P1-09k. P1-09e1's migration downgrade test and P1-09f's PostgreSQL draft read
 were also re-audited and verified. PR #196 verified P1-09g's PostgreSQL
 version-checked write path. PR #198 verified P1-09h's PostgreSQL versioned
 validation path. PR #200 added checked-in PostgreSQL/API evidence for P1-09i;
-no top-level counts change. The 2026-11-23
+no top-level counts change. P1-09j was re-audited against current source and
+owned PostgreSQL tests; no top-level counts change. The 2026-11-23
 source/test re-audit also credited P0-07c and P0-07d. An earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
@@ -77,7 +78,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `6bcb5b2` on 2026-11-23;
+percentage is unchanged. Recalculated against master `76c2ab5` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
@@ -86,7 +87,7 @@ chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
 P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
 re-audited and checked; P1-09g's write, P1-09h's validation, and P1-09i's
-run-request path are verified. The
+run-request path are verified; P1-09j is re-audited and checked. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -1125,8 +1126,8 @@ immutable workflow and recover its state without duplicate effects.
     workflow API harness passed 153 tests; Ruff and Linux-target mypy passed.
     This verifies persisted request creation and replay only; worker execution,
     handler execution, live OIDC and external effects remain outside this
-    slice. P1-09 and P1-09j remain open.
-  - [ ] P1-09j Create an immutable sample-workflow revision from an exact,
+    slice. P1-09e and parent P1-09 remain open.
+  - [x] P1-09j Create an immutable sample-workflow revision from an exact,
     validated draft version. Specification
     [#110](https://github.com/yanxel18/animetron/pull/110) merged at `2cbd198`.
     The
@@ -1139,13 +1140,17 @@ immutable workflow and recover its state without duplicate effects.
     Implementation [#112](https://github.com/yanxel18/animetron/pull/112) merged
     at `f5f29fc` and adds the owner-only endpoint, locked draft validation,
     immutable replay and conflict handling; it does not create runs, execution
-    bindings or authorize handler execution. The isolated PostgreSQL suite
-    passed 204 tests including both update/create lock orderings, duplicate
+    bindings or authorize handler execution. The earlier isolated PostgreSQL
+    suite passed 204 tests including both update/create lock orderings, duplicate
     creation, lock timeout, lost-acknowledgement replay, size and version
     boundaries; migrations, Ruff, Linux-target mypy, generated API type drift
-    check and frontend typecheck passed. Live OIDC and execution were not
-    tested. GitGuardian passed, but the independent GitHub review record is
-    absent and combined status is pending; keep unchecked.
+    check and frontend typecheck passed. Re-audited on 2026-11-23: the current
+    owned PostgreSQL/Keycloak workflow API harness passed 153 tests, including
+    exact-version draft locking, canonical snapshot creation, idempotent
+    replay, collision, size/version boundaries and lock-order cases. The
+    dedicated workflow-draft suite passed 7 tests. Ruff and Linux-target mypy
+    passed. Live OIDC and handler execution remain untested; P1-09e and parent
+    P1-09 remain open.
 - [ ] P1-10 Implement typed handlers, dispatch, fan-out/join and failure/skip
   behavior with deterministic sample nodes.
   - [x] P1-10a Derive immutable node dependencies from a validated workflow
