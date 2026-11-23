@@ -9,6 +9,7 @@ from uuid import RFC_4122, UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
@@ -262,7 +263,19 @@ def artifacts_router(
                 with database.transaction() as connection:
                     return save_artifact(connection, record)
 
-            record = await run_in_threadpool(persist)
+            try:
+                record = await run_in_threadpool(persist)
+            except IntegrityError:
+                # A constraint rejection proves that this insert did not commit.
+                # Other database errors have ambiguous outcomes; keep their bytes
+                # for the report-only audit instead of risking a dangling record.
+                try:
+                    await run_in_threadpool(
+                        partial(byte_store.remove_if_matches, stored)
+                    )
+                except (OSError, RuntimeError):
+                    raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
+                raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
             return ArtifactMetadataOutput(
                 id=record.id,
                 ownerId=record.owner_id,

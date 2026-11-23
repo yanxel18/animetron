@@ -122,7 +122,8 @@ class ArtifactByteStore:
     """Pinned private volume root. All service writers must use this protocol.
 
     Operations may share an instance; close must not race operations. Streams
-    are caller-owned and synchronous. No automatic orphan cleanup or DB writes.
+    are caller-owned and synchronous. No orphan sweeps or DB writes; an exact
+    object may be removed only when its caller still holds matching byte facts.
     """
 
     def __init__(self, root: str) -> None:
@@ -253,6 +254,66 @@ class ArtifactByteStore:
                     os.unlink(pending, dir_fd=fd)
                     os.fsync(fd)
             return result
+
+    def remove_if_matches(self, expected: StoredBytes) -> bool:
+        """Remove one exact object after its caller proves it is unreferenced.
+
+        Refuse missing, unsafe, changed or mismatched bytes. This is a narrow
+        compensation primitive, not an orphan scanner or garbage collector.
+        """
+        if not isinstance(expected, StoredBytes):
+            raise TypeError("Validated byte expectations required")
+        with self._locked(exclusive=True) as root_fd, self._artifacts(root_fd) as fd:
+            try:
+                content = os.open(
+                    expected.id.hex,
+                    os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+                    dir_fd=fd,
+                )
+            except FileNotFoundError:
+                return False
+            try:
+                before = _private_file(content)
+                if before.st_size != expected.byte_size:
+                    return False
+                digest = hashlib.sha256()
+                size = 0
+                while True:
+                    chunk = os.read(content, min(_CHUNK, expected.byte_size - size + 1))
+                    if size + len(chunk) > expected.byte_size:
+                        return False
+                    if not chunk:
+                        break
+                    digest.update(chunk)
+                    size += len(chunk)
+                after = _private_file(content)
+                if (
+                    size != expected.byte_size
+                    or digest.hexdigest() != expected.sha256
+                    or (
+                        before.st_dev,
+                        before.st_ino,
+                        before.st_size,
+                        before.st_mtime_ns,
+                        before.st_ctime_ns,
+                    )
+                    != (
+                        after.st_dev,
+                        after.st_ino,
+                        after.st_size,
+                        after.st_mtime_ns,
+                        after.st_ctime_ns,
+                    )
+                ):
+                    return False
+                named = os.stat(expected.id.hex, dir_fd=fd, follow_symlinks=False)
+                if (named.st_dev, named.st_ino) != (after.st_dev, after.st_ino):
+                    return False
+            finally:
+                os.close(content)
+            os.unlink(expected.id.hex, dir_fd=fd)
+            os.fsync(fd)
+            return True
 
     def read_verified(self, expected: StoredBytes, *, max_bytes: int) -> bytes:
         """Return bounded content only after complete size/hash verification."""
