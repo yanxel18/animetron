@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `76c2ab5` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `568c950` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -17,8 +17,10 @@ were also re-audited and verified. PR #196 verified P1-09g's PostgreSQL
 version-checked write path. PR #198 verified P1-09h's PostgreSQL versioned
 validation path. PR #200 added checked-in PostgreSQL/API evidence for P1-09i;
 no top-level counts change. P1-09j was re-audited against current source and
-owned PostgreSQL tests; no top-level counts change. The 2026-11-23
-source/test re-audit also credited P0-07c and P0-07d. An earlier check found
+owned PostgreSQL tests. P1-09e's mutable persistence was also re-audited with
+current migration, service and API harnesses; no top-level counts change. The
+source/test re-audit on 2026-11-23 also credited P0-07c and P0-07d. An earlier
+check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -78,7 +80,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `76c2ab5` on 2026-11-23;
+percentage is unchanged. Recalculated against master `568c950` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
@@ -87,7 +89,8 @@ chunk-count coverage; #185 adds nested P0-07g, #187 adds P0-07h, and #189
 adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
 P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
 re-audited and checked; P1-09g's write, P1-09h's validation, and P1-09i's
-run-request path are verified; P1-09j is re-audited and checked. The
+run-request path are verified; P1-09j and P1-09e are re-audited and checked.
+The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -998,10 +1001,16 @@ immutable workflow and recover its state without duplicate effects.
     tests with Ruff and Linux-target mypy; frontend suite passed 191 tests,
     production build and API type-drift check passed. GitGuardian passed on
     PR #191. This completes only the nested catalog slice; P1-09 remains open.
-  - [ ] P1-09e Internal mutable draft persistence merged in
-    [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`. Keep
-    unchecked because GitHub has no review record and the combined status is
-    pending.
+  - [x] P1-09e Internal mutable draft persistence merged in
+    [#73](https://github.com/yanxel18/animetron/pull/73) at `df80d91`.
+    Re-audited on 2026-11-23: the schema stores opaque UTF-8 bytes with a
+    positive version, and the caller-transaction service enforces size, UTF-8,
+    create conflicts and compare-and-swap updates. The owned PostgreSQL
+    migration harness passed 7 tests; the draft service suite passed 7 tests,
+    including concurrent single-winner updates and caller rollback; the
+    workflow API harness passed 153 tests. Ruff and Linux-target mypy passed.
+    P1-09e1 records the separate downgrade-test re-audit; parent P1-09 remains
+    open.
     - [x] P1-09e1 Update migration downgrade integration-test expectations for
       `workflow_drafts` added by P1-09e. Implemented in commit `efe330c` on
       `task/p1-09e-migration-downgrade-tests`; merged through
@@ -1013,8 +1022,8 @@ immutable workflow and recover its state without duplicate effects.
       removes `workflow_drafts` and other P1-09e descendants while preserving
       unrelated schema objects, and re-upgrade restores the full schema. The
       current owned PostgreSQL migration harness passed 7 tests; Ruff and
-      Linux-target mypy passed. This verifies only the migration-test slice;
-      P1-09e and P1-09 remain open.
+      Linux-target mypy passed. This verifies the downgrade-test slice; parent
+      P1-09 remains open.
   - [x] P1-09f Expose an owner-only read of an existing mutable workflow draft,
     preserving its stored UTF-8 text and version. Implemented at `4aca101` and
     included in the P1-09g stack merged through
