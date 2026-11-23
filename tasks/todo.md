@@ -1,7 +1,7 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `65cd989` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `16327e3` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
@@ -20,9 +20,10 @@ no top-level counts change. P1-09j was re-audited against current source and
 owned PostgreSQL tests. P1-09e's mutable persistence was also re-audited with
 current migration, service and API harnesses. P1-10c was re-audited against
 current dispatch and migration tests. P1-10d was re-audited against its
-approved contract and PostgreSQL tests; no top-level counts change. The
-source/test re-audit on 2026-11-23 also credited P0-07c and P0-07d. An earlier
-check found
+approved contract and PostgreSQL tests. P1-10e was re-audited against its
+record-only contract and current PostgreSQL tests; no top-level counts change.
+The source/test re-audit on 2026-11-23 also credited P0-07c and P0-07d. An
+earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -82,7 +83,7 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `65cd989` on 2026-11-23;
+percentage is unchanged. Recalculated against master `16327e3` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
@@ -92,7 +93,7 @@ adds P0-07i test coverage. PR #191 synchronizes generated artifact API types;
 P1-09k catalog and palette work is re-audited; P1-09e1 and P1-09f are
 re-audited and checked; P1-09g's write, P1-09h's validation, and P1-09i's
 run-request path are verified; P1-09j, P1-09e, and P1-10c are re-audited and
-checked; P1-10d is re-audited and checked. The
+checked; P1-10d and P1-10e are re-audited and checked. The
 count remains 19/57
 (33.3%), with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised
 review policy.
@@ -1205,14 +1206,19 @@ immutable workflow and recover its state without duplicate effects.
     PostgreSQL/Keycloak node-admission harness passed 41 tests; the migration
     harness passed 7 tests. Ruff and Linux-target mypy passed. Claims do not
     invoke handlers or authorize retries; parent P1-10 remains open.
-  - [ ] P1-10e Implement confirmed node-outcome records under the
+  - [x] P1-10e Implement confirmed node-outcome records under the
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10e-node-outcome-contract).
     The owner approved implementation on 2026-11-18; specification
     [#100](https://github.com/yanxel18/animetron/pull/100) and implementation
-    [#101](https://github.com/yanxel18/animetron/pull/101) are merged. No
-    independent GitHub review is recorded and combined status is pending;
-    keep unchecked. It does not execute handlers, store outputs, or unlock
-    dependent nodes.
+    [#101](https://github.com/yanxel18/animetron/pull/101) are merged.
+    Re-audited on 2026-11-23: outcomes require an existing exact claim
+    association, allow one immutable success/failure record, use only the
+    bounded `EXECUTION_FAILED` code, and serialize with cancellation under the
+    caller transaction. Exact replay is idempotent; conflicts and failures do
+    not leave partial records. The owned PostgreSQL/Keycloak node-outcome suite
+    passed 41 tests; the migration suite passed 7 tests. Ruff and Linux-target
+    mypy passed. It does not execute handlers, store outputs, or unlock
+    dependent nodes; parent P1-10 remains open.
   - [ ] P1-10f Implement admitted-node revalidation under the
     [approved contract](../docs/SPEC-workflow-runtime.md#approved-p1-10f-admitted-node-revalidation-contract).
     The owner approved implementation on 2026-11-18; specification
