@@ -3,6 +3,7 @@ import os
 import secrets
 import struct
 import zlib
+from contextlib import contextmanager
 from uuid import UUID
 
 import pytest
@@ -315,20 +316,66 @@ def test_owner_upload_preserves_bytes_after_ambiguous_database_failure(
     with engine.begin() as connection:
         before_count = connection.scalar(select(func.count()).select_from(artifacts))
 
-    with pytest.raises(OperationalError):
-        client.post(
-            "/api/v1/artifacts",
-            content=content,
-            headers={
-                "content-type": "image/png",
-                "x-artifact-revision": "render-uncertain-commit",
-                "origin": config.origin,
-                "x-csrf-token": principal.csrf,
-            },
-        )
+    response = client.post(
+        "/api/v1/artifacts",
+        content=content,
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-uncertain-commit",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
 
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "ARTIFACT_UNAVAILABLE"
     assert len(byte_store.uploads) == 1
     assert next(iter(byte_store.uploads.values())) == content
     with engine.begin() as connection:
         after_count = connection.scalar(select(func.count()).select_from(artifacts))
     assert after_count == before_count
+
+
+def test_owner_upload_confirms_metadata_after_lost_commit_acknowledgement(
+    upload_context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    content = _png()
+    original_transaction = AuthStore.transaction
+    original_save_artifact = artifact_api.save_artifact
+    interrupt_commit_ack = {"armed": False}
+
+    @contextmanager
+    def transaction_with_lost_commit_ack(store):
+        with original_transaction(store) as connection:
+            yield connection
+        if interrupt_commit_ack.pop("armed", False):
+            raise OperationalError(
+                "COMMIT", {}, RuntimeError("database acknowledgement was lost")
+            )
+
+    def save_then_interrupt(connection, record):
+        saved = original_save_artifact(connection, record)
+        interrupt_commit_ack["armed"] = True
+        return saved
+
+    monkeypatch.setattr(AuthStore, "transaction", transaction_with_lost_commit_ack)
+    monkeypatch.setattr(artifact_api, "save_artifact", save_then_interrupt)
+
+    response = client.post(
+        "/api/v1/artifacts",
+        content=content,
+        headers={
+            "content-type": "image/png",
+            "x-artifact-revision": "render-commit-ack-lost",
+            "origin": config.origin,
+            "x-csrf-token": principal.csrf,
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    with engine.begin() as connection:
+        record = get_artifact(connection, UUID(payload["id"]))
+    assert record.revision == "render-commit-ack-lost"
+    assert byte_store.uploads[record.id] == content

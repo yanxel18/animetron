@@ -9,7 +9,7 @@ from uuid import RFC_4122, UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
@@ -267,8 +267,7 @@ def artifacts_router(
                 record = await run_in_threadpool(persist)
             except IntegrityError:
                 # A constraint rejection proves that this insert did not commit.
-                # Other database errors have ambiguous outcomes; keep their bytes
-                # for the report-only audit instead of risking a dangling record.
+                # Other database errors need readback before deciding their outcome.
                 try:
                     await run_in_threadpool(
                         partial(byte_store.remove_if_matches, stored)
@@ -276,6 +275,23 @@ def artifacts_router(
                 except (OSError, RuntimeError):
                     raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
                 raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
+            except DBAPIError:
+                def reconcile() -> ArtifactMetadata | None:
+                    with database.transaction() as connection:
+                        try:
+                            return get_artifact(connection, artifact_id)
+                        except ArtifactNotFound:
+                            return None
+
+                try:
+                    existing = await run_in_threadpool(reconcile)
+                except DBAPIError:
+                    # Keep the uploaded bytes when the commit outcome remains unknown.
+                    raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
+                if existing != record:
+                    raise AuthDenied("ARTIFACT_UNAVAILABLE", 503) from None
+                # A matching row confirms that the original commit succeeded.
+                record = existing
             return ArtifactMetadataOutput(
                 id=record.id,
                 ownerId=record.owner_id,
