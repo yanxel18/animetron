@@ -1,11 +1,12 @@
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from queue import Queue
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, func, select, text
+from sqlalchemy import create_engine, func, select, text, update
 from sqlalchemy.engine import URL
 
 from app.core.database import create_database_engine
@@ -20,6 +21,9 @@ from app.services.workflows.runs import (
     list_events,
     runs,
     transition_run,
+)
+from app.services.workflows.runs import (
+    events as run_events,
 )
 
 pytest_plugins = ("test_execution_readiness",)
@@ -65,6 +69,105 @@ def test_cancellation_request_transitions_once_and_deduplicates_outbox(
     assert second.last_sequence == 2
     with engine.connect() as connection:
         assert get_run_status(connection, run_id).state is RunState.CANCELLING
+
+
+@pytest.mark.parametrize(
+    ("commit_cancellation", "intent_state"),
+    [(True, "pending"), (True, "leased"), (True, "delivered"), (False, "pending")],
+    ids=["committed-pending", "committed-leased", "committed-delivered", "rollback"],
+)
+def test_postgresql_cancellation_reconnect_preserves_transaction_boundary(
+    commit_cancellation, intent_state,
+):
+    url = os.environ.get("ANIMETRON_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set ANIMETRON_TEST_DATABASE_URL to an isolated PostgreSQL database")
+    run_id = uuid4()
+
+    def durable_rows(connection):
+        return (
+            connection.execute(select(runs).where(runs.c.id == run_id)).one(),
+            connection.execute(
+                select(run_events).where(run_events.c.run_id == run_id)
+                .order_by(run_events.c.sequence)
+            ).all(),
+            connection.execute(
+                select(outbox).where(outbox.c.resource_id == run_id)
+            ).all(),
+        )
+
+    engine = create_database_engine(url)
+    try:
+        with engine.begin() as connection:
+            create_run(connection, run_id)
+        with engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                first = run_cancellations.request_run_cancellation(connection, run_id)
+                assert first.outcome is run_cancellations.CancellationOutcome.REQUESTED
+                assert first.state is RunState.CANCELLING
+                assert first.last_sequence == 2
+                # Preserve delivery metadata as well as identity during a retry.
+                if intent_state == "leased":
+                    connection.execute(
+                        update(outbox).where(outbox.c.resource_id == run_id)
+                        .values(
+                            lease_token=uuid4(),
+                            lease_until=datetime.now(UTC) + timedelta(minutes=5),
+                        )
+                    )
+                elif intent_state == "delivered":
+                    connection.execute(
+                        update(outbox).where(outbox.c.resource_id == run_id)
+                        .values(delivered_at=func.now())
+                    )
+                if commit_cancellation:
+                    transaction.commit()
+                else:
+                    transaction.rollback()
+            finally:
+                if transaction.is_active:
+                    transaction.rollback()
+        with engine.connect() as connection:
+            before_reconnect = durable_rows(connection)
+    finally:
+        engine.dispose()
+
+    reconnected_engine = create_database_engine(url)
+    try:
+        with reconnected_engine.begin() as connection:
+            assert durable_rows(connection) == before_reconnect
+            status = get_run_status(connection, run_id)
+            assert status.state is (
+                RunState.CANCELLING if commit_cancellation else RunState.QUEUED
+            )
+            assert status.last_sequence == (2 if commit_cancellation else 1)
+            assert len(before_reconnect[1]) == status.last_sequence
+            assert len(before_reconnect[2]) == (1 if commit_cancellation else 0)
+            retry = run_cancellations.request_run_cancellation(connection, run_id)
+            assert retry.outcome is (
+                run_cancellations.CancellationOutcome.ALREADY_REQUESTED
+                if commit_cancellation
+                else run_cancellations.CancellationOutcome.REQUESTED
+            )
+            after_retry = durable_rows(connection)
+            if commit_cancellation:
+                assert after_retry == before_reconnect
+
+        with reconnected_engine.begin() as connection:
+            again = run_cancellations.request_run_cancellation(connection, run_id)
+            assert again.outcome is run_cancellations.CancellationOutcome.ALREADY_REQUESTED
+            assert again.state is RunState.CANCELLING
+            assert again.last_sequence == retry.last_sequence == 2
+            assert durable_rows(connection) == after_retry
+            assert [event.state for event in list_events(connection, run_id, 0)] == [
+                RunState.QUEUED, RunState.CANCELLING,
+            ]
+            assert len(after_retry[2]) == 1
+            assert after_retry[2][0].topic == run_cancellations.CANCELLATION_TOPIC
+            assert after_retry[2][0].resource_id == run_id
+    finally:
+        reconnected_engine.dispose()
 
 
 def test_concurrent_cancellation_waits_and_reuses_committed_intent():
