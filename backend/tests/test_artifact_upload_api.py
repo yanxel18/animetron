@@ -7,7 +7,8 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import OperationalError
 from starlette.requests import Request
 
 from app.api import artifacts as artifact_api
@@ -30,6 +31,15 @@ class MemoryUploadBytes:
         return StoredBytes(
             artifact_id, hashlib.sha256(content).hexdigest(), len(content)
         )
+
+    def remove_if_matches(self, expected: StoredBytes) -> bool:
+        content = self.uploads.get(expected.id)
+        if content is None or len(content) != expected.byte_size:
+            return False
+        if hashlib.sha256(content).hexdigest() != expected.sha256:
+            return False
+        del self.uploads[expected.id]
+        return True
 
     def close(self) -> None:
         pass
@@ -243,6 +253,82 @@ def test_owner_upload_rejects_excessive_chunk_count_before_storage(
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "ARTIFACT_TOO_LARGE"
     assert byte_store.uploads == {}
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
+
+
+def test_owner_upload_removes_bytes_after_definite_metadata_rejection(
+    upload_context,
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    constraint = "artifact_upload_integrity_probe"
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "ALTER TABLE artifact_metadata ADD CONSTRAINT "
+                + constraint
+                + " CHECK (revision <> 'force-integrity-rejection')"
+            )
+        )
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    try:
+        response = client.post(
+            "/api/v1/artifacts",
+            content=_png(),
+            headers={
+                "content-type": "image/png",
+                "x-artifact-revision": "force-integrity-rejection",
+                "origin": config.origin,
+                "x-csrf-token": principal.csrf,
+            },
+        )
+    finally:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE artifact_metadata DROP CONSTRAINT " + constraint)
+            )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "ARTIFACT_UNAVAILABLE"
+    assert byte_store.uploads == {}
+    with engine.begin() as connection:
+        after_count = connection.scalar(select(func.count()).select_from(artifacts))
+    assert after_count == before_count
+
+
+def test_owner_upload_preserves_bytes_after_ambiguous_database_failure(
+    upload_context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, engine, byte_store, config, principal = upload_context
+    content = _png()
+
+    def fail_with_unknown_commit_outcome(connection, record):
+        raise OperationalError(
+            "INSERT INTO artifact_metadata",
+            {},
+            RuntimeError("database connection was interrupted"),
+        )
+
+    monkeypatch.setattr(artifact_api, "save_artifact", fail_with_unknown_commit_outcome)
+    with engine.begin() as connection:
+        before_count = connection.scalar(select(func.count()).select_from(artifacts))
+
+    with pytest.raises(OperationalError):
+        client.post(
+            "/api/v1/artifacts",
+            content=content,
+            headers={
+                "content-type": "image/png",
+                "x-artifact-revision": "render-uncertain-commit",
+                "origin": config.origin,
+                "x-csrf-token": principal.csrf,
+            },
+        )
+
+    assert len(byte_store.uploads) == 1
+    assert next(iter(byte_store.uploads.values())) == content
     with engine.begin() as connection:
         after_count = connection.scalar(select(func.count()).select_from(artifacts))
     assert after_count == before_count

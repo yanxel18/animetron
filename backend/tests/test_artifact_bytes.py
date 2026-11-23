@@ -91,6 +91,20 @@ class ArtifactByteTests(unittest.TestCase):
                 self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
                 self.assertEqual(target.stat().st_nlink, 1)
 
+    def test_remove_if_matches_deletes_only_unchanged_expected_bytes(self):
+        with self.store() as store:
+            expected = store.put(uuid4(), io.BytesIO(b"verified"), max_bytes=8)
+            mismatch = StoredBytes(
+                expected.id, hashlib.sha256(b"tampered").hexdigest(), 8
+            )
+
+            self.assertFalse(store.remove_if_matches(mismatch))
+            self.assertEqual(store.read_verified(expected, max_bytes=8), b"verified")
+            self.assertTrue(store.remove_if_matches(expected))
+            self.assertFalse(store.remove_if_matches(expected))
+            with self.assertRaises(FileNotFoundError):
+                store.read_verified(expected, max_bytes=8)
+
     def test_audit_reports_private_files_and_metadata_only_counts_without_mutation(self):
         with self.store() as store:
             expected = store.put(uuid4(), io.BytesIO(b"complete"), max_bytes=8)
