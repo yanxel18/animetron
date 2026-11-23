@@ -1,14 +1,14 @@
 # AnimeTron project progress
 
 This is the single project-wide implementation checklist. It was reconciled
-against remote `master` at `ed17b13` on 2026-11-23. PRs #171, #173 and #174
+against remote `master` at `3345411` on 2026-11-23. PRs #171, #173 and #174
 were documentation-only; #172 merged P0-07e content reads and #175 merged
 P0-07f bounded PNG upload. PRs #178 and #180 added P0-09 malformed, declared
 oversize and streamed-overflow rejection evidence; #179 and #181 reconciled
-those slices. This update re-audits P0-09c/d under the current source-review
-workflow and completes P0-09, raising the top-level count to 19/57. The
-2026-11-23 source/test re-audit also credited P0-07c and P0-07d. An earlier
-check found
+those slices; #182 reconciled P0-09. PR #183 added the streamed chunk-count
+guard regression; this update records it without changing top-level counts.
+The 2026-11-23 source/test re-audit also credited P0-07c and P0-07d. An
+earlier check found
 `95c4fc4`, including #121 and #122; their historical review and check records
 have not been re-audited under the revised development policy.
 Earlier reconciliation was at `969eb37` on 2026-11-19. #53 and #54 merged
@@ -68,13 +68,13 @@ readiness. Nested slices are not counted separately; a partially completed
 parent task stays incomplete, and open PRs do not count as complete. No phase
 or P9 acceptance is complete. Recalculate this snapshot when the checklist or
 merged status changes and after each completed task or slice, even if the
-percentage is unchanged. Recalculated against master `ed17b13` on 2026-11-23;
+percentage is unchanged. Recalculated against master `3345411` on 2026-11-23;
 #171, #173 and #174 were documentation-only; #172 and #175 merged nested
 P0-07e/P0-07f; #178 and #180 added nested P0-09 verification; #179 reconciled
 P0-09e evidence; #181 recorded P0-09f. This update re-audits P0-09b/c/d under
-the current review workflow and completes P0-09. The count is 19/57 (33.3%),
-with P0 at 5/9. P0-07c and P0-07d were re-audited under the revised review
-policy.
+the current review workflow and completes P0-09. PR #183 adds nested P0-09g
+chunk-count coverage. The count remains 19/57 (33.3%), with P0 at 5/9.
+P0-07c and P0-07d were re-audited under the revised review policy.
 Earlier reconciliation at `969eb37` recorded that #82, #83, #84, #86, #87, #88, #89, #90, #91, #92, #93,
 #94, #95, #96, #99, #101, #103 and #116 were merged without the independent
 review and required check evidence then required. #117 was also merged without
@@ -845,6 +845,13 @@ have the security and recovery guarantees below.
     Linux-target mypy, `git diff --check`, and GitGuardian passed. The test
     lowers the limit to 8 bytes and sends a two-chunk iterator; production
     limits are unchanged.
+  - [x] P0-09g Verify the request chunk-count cap rejects excessive stream
+    chunks without storing bytes or creating artifact metadata. Added in
+    [#183](https://github.com/yanxel18/animetron/pull/183), merged at
+    `3345411`. The owned PostgreSQL upload harness passed all 6 tests; Ruff,
+    Linux-target mypy, `git diff --check`, and GitGuardian passed. The test
+    injects three explicit ASGI chunks against a test-only limit of two;
+    production limits are unchanged.
 
 ## Phase 1 - Workflow runtime
 
