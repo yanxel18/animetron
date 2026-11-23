@@ -1467,7 +1467,9 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     It is not connected to speech alignment, rendering or workflow execution.
 - [ ] P3-04 Validate 9:16 output, decodability, audio and duration: target
   30-60 seconds, hard maximum 90 seconds; verify boundary cases.
-  - Internal `validate_media_probe` checks supplied typed facts for exact 9:16
+  - Internal `validate_media_probe` in
+    [#213](https://github.com/yanxel18/animetron/pull/213) checks supplied typed
+    facts for exact 9:16
     display dimensions, an audio-track flag and positive integer millisecond
     duration at most 90 seconds. It reports the inclusive 30-60 second target
     separately; outside-target durations within the hard limit remain valid.
