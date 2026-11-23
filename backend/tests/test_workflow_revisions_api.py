@@ -1052,6 +1052,30 @@ def test_workflow_draft_read_returns_stored_text_and_version(
     assert response.headers["x-content-type-options"] == "nosniff"
 
 
+def test_workflow_draft_read_returns_stored_text_and_version_postgresql(context):
+    client, _, engine, _, _ = context
+    workflow_id = uuid4()
+    document = '{"draft":"東京 🌸"}'.encode()
+    with engine.begin() as connection:
+        save_draft(
+            connection,
+            workflow_id,
+            document,
+            expected_version=None,
+            max_bytes=4096,
+        )
+
+    response = client.get(f"/api/v1/workflows/{workflow_id}/draft")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "workflowId": str(workflow_id),
+        "document": document.decode("utf-8"),
+        "version": 1,
+    }
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_missing_workflow_draft_is_not_found(offline_draft_context):
     client, _, _ = offline_draft_context
 
