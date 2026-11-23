@@ -711,8 +711,8 @@ have the security and recovery guarantees below.
     passed, but independent review is not recorded and combined status is
     pending; keep unchecked.
   - [ ] P0-07e Expose owner-only UUID-addressed content reads from the verified
-    byte store, with a 128 MiB response cap, single byte-range support, and
-    safe inline media allowlisting. Implemented on
+    byte store, with a 128 MiB response cap, two concurrent reads per process,
+    single byte-range support, and safe inline media allowlisting. Implemented on
     `feat/p0-07e-artifact-content`; verification, PR and review remain
     outstanding. `ANIMETRON_ARTIFACT_ROOT` is an explicit Linux-only runtime
     setting; content fails closed when it is unset. Upload is not implemented.
