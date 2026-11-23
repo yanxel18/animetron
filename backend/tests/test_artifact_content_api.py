@@ -11,6 +11,7 @@ from app.api import artifacts
 from app.core.artifact_bytes import ByteIntegrityError, StoredBytes
 from app.core.artifacts import ArtifactMetadata, ArtifactNotFound
 from app.core.auth import AuthDenied
+from app.main import create_api
 
 
 class MemoryStore:
@@ -30,6 +31,14 @@ class MemoryBytes:
         if self.error is not None:
             raise self.error
         return self.content
+
+
+class CloseableBytes:
+    def __init__(self) -> None:
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
 
 
 def record_for(
@@ -216,3 +225,13 @@ def test_oversized_artifact_is_rejected_before_byte_read(monkeypatch):
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "ARTIFACT_TOO_LARGE"
     assert byte_store.calls == []
+
+
+def test_api_closes_injected_byte_store_on_shutdown():
+    byte_store = CloseableBytes()
+
+    with TestClient(create_api(artifact_byte_store=byte_store)) as client:
+        assert client.get("/api/v1/health").status_code == 200
+        assert not byte_store.closed
+
+    assert byte_store.closed
