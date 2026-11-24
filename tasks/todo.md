@@ -1475,6 +1475,13 @@ checks and a measured hardware benchmark, without cloud inference fallback.
     Use only trusted media and trusted storage/staging/tool configuration: FFmpeg's
     file protocol may follow local file references and is not an isolation boundary.
     Real FFprobe, decoding and end-to-end media acceptance remain unverified.
+    Merged in [#223](https://github.com/yanxel18/animetron/pull/223) at
+    `a36daf0` after parallel technical review, self-review and GitGuardian.
+    Tests-first missing-module failure preceded implementation; 55 focused
+    tests passed, with one real-store Linux owned-volume test skipped on Windows.
+    The full owned backend harness passed 1,204 tests with 29 skips; Ruff,
+    Linux-target mypy and migration lifecycle passed. Real Linux storage-to-probe
+    integration and real FFprobe remain unverified. P3-04 stays open.
   - An internal bytes-based probing helper verifies an expected SHA-256,
     stages bounded bytes under a trusted server root, probes the staged file,
     and checks the staged size/digest again before returning facts plus identity.
